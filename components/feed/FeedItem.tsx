@@ -8,11 +8,20 @@
  * Exact UI match with AngularJS version
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FeedItem as FeedItemType } from '@/lib/api/feed';
 import { User } from '@/lib/api/auth';
 import CommentsPanel from './CommentsPanel';
 import { useFeedContext } from '@/lib/contexts/FeedContext';
+import UserProfileImage from '@/components/common/UserProfileImage';
+import LikeButton from './LikeButton';
+import { likeService } from '@/lib/api/feed';
+import FileGallery from './FileGallery';
+import FeedItemDropdown, { DropdownOption } from './FeedItemDropdown';
+import { itemsService } from '@/lib/api/items';
+import { promptModal } from '@/lib/utils/modal';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface FeedItemProps {
   item: FeedItemType;
@@ -22,7 +31,10 @@ interface FeedItemProps {
 function getUserName(users: Record<string, User>, userId: string): string {
   const user = users[userId];
   if (!user) return 'Unknown';
-  return (user as any).name || (user as any).firstName + ' ' + (user as any).lastName || userId;
+  const name = (user as any).name || 
+               ((user as any).first_name || (user as any).firstName || '') + ' ' + 
+               ((user as any).last_name || (user as any).lastName || '').trim();
+  return name.trim() || userId;
 }
 
 // Helper function to get group name from groups map
@@ -41,32 +53,258 @@ function getNameById(users: Record<string, User>, groups: Record<string, any>, i
   }
 }
 
+// Helper function to format date as DD/MM/YYYY
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 export default function FeedItem({ item }: FeedItemProps) {
   const [showCommentsPanel, setShowCommentsPanel] = useState(false);
+  const [localItem, setLocalItem] = useState(item);
   const { users, groups } = useFeedContext();
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  // Update local item when prop changes
+  useEffect(() => {
+    setLocalItem(item);
+  }, [item]);
+
+  const handleLikeClick = async (action: 'like' | 'unlike') => {
+    try {
+      const title = item.hierarchy?.[0]?.title || '';
+      const type = localItem.resource_type || '';
+      const response = await likeService.likeResource(
+        localItem.feed_id,
+        localItem.resource_id,
+        localItem.app_instance_id,
+        action,
+        title,
+        type
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to like feed item:', error);
+      throw error;
+    }
+  };
 
   // Filter out milestones and todos
-  if (item.app_instance_id === 3 || item.app_instance_id === 14) {
+  if (localItem.app_instance_id === 3 || localItem.app_instance_id === 14) {
     return null;
   }
 
   // Handle different app instance types
-  const isNote = item.app_instance_id === 6 || item.app_instance_id === 4 || item.app_instance_id === 23;
-  const isChat = item.app_instance_id === 21 || item.app_instance_id === 18 || item.app_instance_id === 9;
+  const isNote = localItem.app_instance_id === 6 || localItem.app_instance_id === 4 || localItem.app_instance_id === 23;
+  const isChat = localItem.app_instance_id === 21 || localItem.app_instance_id === 18 || localItem.app_instance_id === 9;
 
   if (!isNote && !isChat) {
     return null;
   }
 
-  const createdBy = item.created_by;
-  const updatedBy = item.updated_by;
+  // Show dropdown menu only for specific app instance IDs (matches AngularJS feedItemOptionsMenu logic)
+  const showFeedItemOptionsMenu = localItem.app_instance_id === 3 || 
+                                   localItem.app_instance_id === 4 || 
+                                   localItem.app_instance_id === 6 || 
+                                   localItem.app_instance_id === 14 || 
+                                   localItem.app_instance_id === 23;
+
+  const createdBy = localItem.created_by;
+  const updatedBy = localItem.updated_by;
   const isEdited = createdBy !== updatedBy;
-  const isDimmed = item.action === 'DOUBLE_DELETED' || item.deleted === '2';
+  const isDimmed = localItem.action === 'DOUBLE_DELETED' || localItem.deleted === '2';
+  const appInstanceId = localItem.app_instance_id;
+
+  // Dropdown options initialization (matches AngularJS initializeDropdownOptions)
+  const initializeDropdownOptions = (): DropdownOption[] => {
+    const options: DropdownOption[] = [];
+
+    // Open post (not for polls)
+    if (appInstanceId !== 23) {
+      options.push({
+        label: 'Open post',
+        icon: 'icons_Post-lightgray',
+        iconStyle: 'cnv-icons-16',
+        class: 'open-in-detail-view',
+        callback: () => {
+          // Navigate to post detail view
+          const title = localItem.hierarchy?.[0]?.title || '';
+          window.location.href = `#/post/${localItem.resource_id}?title=${encodeURIComponent(title)}`;
+        }
+      });
+    }
+
+    // Edit post (only for notes app, not system messages)
+    if (appInstanceId === 6 && localItem.data?.is_system_message !== 1) {
+      // TODO: Check canEdit permission
+      options.push({
+        label: 'Edit post',
+        icon: 'icons2_Compose-lightgray',
+        iconStyle: 'cnv-icons-16',
+        class: 'open-in-detail-view',
+        callback: () => {
+          const title = localItem.hierarchy?.[0]?.title || '';
+          window.location.href = `#/post/${localItem.resource_id}?view=Edit&title=${encodeURIComponent(title)}`;
+        }
+      });
+    }
+
+    // Divider before permissions
+    if (appInstanceId !== 23) {
+      options.push({ isDivider: true });
+    }
+
+    // Mute/Unmute notifications
+    if (appInstanceId !== 23 && !localItem.viewData?.showManageSubscriptionOption) {
+      if (localItem.muted === 0 && localItem.deleted === '0' && localItem.data?.draft === 0) {
+        options.push({
+          label: 'Mute notifications',
+          icon: 'icons2_Mute-lightgray',
+          iconStyle: 'cnv-icons-16',
+          callback: async () => {
+            try {
+              await itemsService.mutePost(appInstanceId, localItem.resource_id);
+              setLocalItem({ ...localItem, muted: 1 });
+              queryClient.invalidateQueries({ queryKey: ['feed'] });
+            } catch (error) {
+              console.error('Failed to mute post:', error);
+            }
+          }
+        });
+      } else if (localItem.muted === 1) {
+        options.push({
+          label: 'Unmute notifications',
+          icon: 'icons2_Speaker-lightgray',
+          iconStyle: 'cnv-icons-16',
+          callback: async () => {
+            try {
+              await itemsService.unmutePost(appInstanceId, localItem.resource_id);
+              setLocalItem({ ...localItem, muted: 0 });
+              queryClient.invalidateQueries({ queryKey: ['feed'] });
+            } catch (error) {
+              console.error('Failed to unmute post:', error);
+            }
+          }
+        });
+      }
+    }
+
+    // Star/Unstar
+    if (localItem.starred === 1) {
+      options.push({
+        label: 'Unstar this post',
+        icon: 'icons_Star-lightgray',
+        iconStyle: 'cnv-icons-16',
+        callback: async () => {
+          try {
+            await itemsService.unStarPost(appInstanceId, localItem.resource_id);
+            setLocalItem({ ...localItem, starred: 0 });
+            queryClient.invalidateQueries({ queryKey: ['feed'] });
+          } catch (error) {
+            console.error('Failed to unstar post:', error);
+          }
+        }
+      });
+    } else {
+      options.push({
+        label: 'Star this post',
+        icon: 'icons_Star-lightgray',
+        iconStyle: 'cnv-icons-16',
+        callback: async () => {
+          try {
+            await itemsService.starPost(appInstanceId, localItem.resource_id);
+            setLocalItem({ ...localItem, starred: 1 });
+            queryClient.invalidateQueries({ queryKey: ['feed'] });
+          } catch (error) {
+            console.error('Failed to star post:', error);
+          }
+        }
+      });
+    }
+
+    // Divider before delete
+    if (appInstanceId !== 23) {
+      options.push({ isDivider: true });
+    }
+
+    // Copy link
+    if (appInstanceId !== 23) {
+      options.push({
+        label: 'Copy link',
+        icon: 'linkhorizontal-lightgray',
+        iconStyle: 'cnv-icons-16',
+        callback: () => {
+          const title = localItem.hierarchy?.[0]?.title || '';
+          const url = `${window.location.origin}/#/post/${localItem.resource_id}?title=${encodeURIComponent(title)}`;
+          navigator.clipboard.writeText(url);
+        }
+      });
+    }
+
+    // Delete post (if deletable)
+    if (localItem.viewData?.deletable) {
+      if (localItem.deleted === '1') {
+        // Already in trash - show delete permanently
+        options.push({
+          label: 'Delete permanently',
+          icon: 'icons2_Trash-lightgray',
+          iconStyle: 'cnv-icons-16',
+          callback: () => {
+            promptModal(
+              'Delete Post',
+              'Are you sure you want to delete this post permanently? This cannot be undone.',
+              async () => {
+                try {
+                  await itemsService.deletePermanently(appInstanceId, localItem.resource_id);
+                  queryClient.invalidateQueries({ queryKey: ['feed'] });
+                } catch (error) {
+                  console.error('Failed to delete post permanently:', error);
+                }
+              },
+              null,
+              'Delete'
+            );
+          }
+        });
+      } else {
+        // Not in trash - show move to trash
+        options.push({
+          label: 'Delete post',
+          icon: 'icons2_Trash-lightgray',
+          iconStyle: 'cnv-icons-16',
+          callback: () => {
+            promptModal(
+              'Delete Post',
+              'Are you sure you want to delete this post?',
+              async () => {
+                try {
+                  await itemsService.moveToTrash(appInstanceId, localItem.resource_id);
+                  queryClient.invalidateQueries({ queryKey: ['feed'] });
+                } catch (error) {
+                  console.error('Failed to move post to trash:', error);
+                }
+              },
+              null,
+              'Delete'
+            );
+          }
+        });
+      }
+    }
+
+    return options;
+  };
+
+  const dropdownOptions = showFeedItemOptionsMenu ? initializeDropdownOptions() : [];
 
   return (
     <div 
       className={`feed-item-container row ${isDimmed ? 'dim-feed-item' : ''}`}
-      id={item.feed_id}
+      id={localItem.feed_id}
       style={{
         padding: '0px',
         position: 'relative',
@@ -97,19 +335,13 @@ export default function FeedItem({ item }: FeedItemProps) {
             width: '60px',
           }}
         >
-          <div style={{
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            backgroundColor: '#4183d7',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontSize: '18px',
-          }}>
-            {createdBy ? createdBy.charAt(0).toUpperCase() : 'U'}
-          </div>
+          <UserProfileImage
+            userId={createdBy}
+            user={users[createdBy]}
+            width={60}
+            height={60}
+            source="Feed"
+          />
         </a>
 
         {/* Updated By Profile Picture (if edited) */}
@@ -125,20 +357,14 @@ export default function FeedItem({ item }: FeedItemProps) {
               width: '35px',
             }}
           >
-            <div style={{
-              width: '35px',
-              height: '35px',
-              borderRadius: '50%',
-              backgroundColor: '#4183d7',
-              border: '2px solid white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontSize: '10px',
-            }}>
-              {updatedBy ? updatedBy.charAt(0).toUpperCase() : 'U'}
-            </div>
+            <UserProfileImage
+              userId={updatedBy}
+              user={users[updatedBy]}
+              width={32}
+              height={32}
+              source="Feed"
+              showBorder={true}
+            />
           </a>
         )}
       </div>
@@ -147,7 +373,7 @@ export default function FeedItem({ item }: FeedItemProps) {
       <div 
         className="feed-item-content-right"
         style={{
-          width: '100%',
+          width: '495px',
           float: 'left',
           marginLeft: '12px',
         }}
@@ -157,19 +383,39 @@ export default function FeedItem({ item }: FeedItemProps) {
           position: 'relative',
           float: 'right',
         }}>
-          {item.starred === 1 && (
+          {localItem.starred === 1 && (
             <i className="cnv-icons-16 icons_Star-blue" style={{
               marginRight: '10px',
               marginBottom: '2px',
               display: 'inline-block',
             }}></i>
           )}
-          {item.muted === 1 && (
+          {localItem.muted === 1 && (
             <i className="cnv-icons-16 bell-mute" style={{
               marginRight: '10px',
               marginBottom: '2px',
               display: 'inline-block',
             }}></i>
+          )}
+          {localItem.muted === 0 && localItem.viewData?.showManageSubscriptionOption && (
+            <i className="cnv-icons-16 bell" style={{
+              marginRight: '10px',
+              marginBottom: '2px',
+              display: 'inline-block',
+            }}></i>
+          )}
+          {/* Feed Item Options Dropdown - matches AngularJS cnv-dropdowns */}
+          {showFeedItemOptionsMenu && dropdownOptions.length > 0 && (
+            <div className="feed-item-options-menu-container" style={{
+              display: 'inline-block',
+              marginLeft: '5px',
+            }}>
+              <FeedItemDropdown
+                options={dropdownOptions}
+                align="right"
+                ddType="more-options"
+              />
+            </div>
           )}
         </div>
 
@@ -179,14 +425,20 @@ export default function FeedItem({ item }: FeedItemProps) {
           marginBottom: '5px',
           marginRight: '18px',
           lineHeight: '15px',
-          color: '#339fb8',
+          color: 'rgb(51, 113, 189)', // Theme color
           wordBreak: 'break-all',
         }}>
           <a 
             href={`#/feed?filter=user:${createdBy}`}
             style={{
-              color: '#339fb8',
+              color: 'rgb(51, 113, 189)', // Theme color
               textDecoration: 'none',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.textDecoration = 'underline';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.textDecoration = 'none';
             }}
           >
             {getNameById(users, groups, createdBy)}
@@ -198,8 +450,15 @@ export default function FeedItem({ item }: FeedItemProps) {
               <a 
                 href={`#/feed?filter=${shareInfo.type.toLowerCase()}:${shareInfo.published_to}`}
                 style={{
-                  color: '#339fb8',
+                  color: 'rgb(51, 113, 189)', // Theme color
                   textDecoration: 'none',
+                  marginLeft: '4px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.textDecoration = 'underline';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.textDecoration = 'none';
                 }}
               >
                 {getNameById(users, groups, shareInfo.published_to)}
@@ -212,10 +471,19 @@ export default function FeedItem({ item }: FeedItemProps) {
           {item.sharing_info && item.sharing_info.length > 2 && (
             <span className="more-sharing-info">
               <span style={{ color: '#959595' }}>, </span>
-              <a href="javascript:void(0)" style={{
-                color: '#339fb8',
-                textDecoration: 'none',
-              }}>
+              <a 
+                href="#" 
+                style={{
+                  color: 'rgb(51, 113, 189)', // Theme color
+                  textDecoration: 'none',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.textDecoration = 'underline';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.textDecoration = 'none';
+                }}
+              >
                 +{item.sharing_info.length - 2} more
               </a>
             </span>
@@ -246,7 +514,7 @@ export default function FeedItem({ item }: FeedItemProps) {
                 color: '#7b8386',
                 textDecoration: 'none',
               }}>
-                {new Date(item.last_modified_date).toLocaleDateString()}
+                {formatDate(item.last_modified_date)}
               </a>
             </li>
           </ul>
@@ -274,9 +542,17 @@ export default function FeedItem({ item }: FeedItemProps) {
                   href={`#/post/${item.resource_id}`}
                   className="open-in-detail-view"
                   style={{
-                    color: '#339fb8',
+                    color: 'rgb(51, 113, 189)', // Theme color (@link-color / @cnv-blue-dark)
                     fontWeight: 'bold',
                     textDecoration: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.textDecoration = 'underline';
+                    e.currentTarget.style.color = 'rgb(65, 131, 215)'; // @cnv-blue on hover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.textDecoration = 'none';
+                    e.currentTarget.style.color = 'rgb(51, 113, 189)'; // Back to theme color
                   }}
                 >
                   {item.hierarchy[0].searched_title || item.hierarchy[0].title}
@@ -290,6 +566,8 @@ export default function FeedItem({ item }: FeedItemProps) {
                 wordWrap: 'break-word',
                 position: 'relative',
                 paddingRight: '20px',
+                marginTop: '0px',
+                color: '#272b2c', // @text-color - matches AngularJS
               }}>
                 <span dangerouslySetInnerHTML={{ 
                   __html: item.search_fragment || item.details || '' 
@@ -331,11 +609,22 @@ export default function FeedItem({ item }: FeedItemProps) {
                 </div>
               </div>
             )}
+
+            {/* File Gallery - matches AngularJS cnv-note-gallery */}
+            {localItem.data?.files && localItem.data.files.length > 0 && (
+              <FileGallery
+                files={localItem.data.files}
+                noteId={localItem.resource_id}
+                resourceType={localItem.resource_type}
+                appId={localItem.app_instance_id}
+                isActivatedPinnedPost={false}
+              />
+            )}
           </div>
         )}
 
         {/* Feed Info Container (Comment, Like, Tags) */}
-        {item.show_post_contents === 1 && (
+        {localItem.show_post_contents === 1 && (
           <div className="feed-info-container" style={{
             clear: 'left',
             marginTop: '0px',
@@ -348,8 +637,12 @@ export default function FeedItem({ item }: FeedItemProps) {
             }}>
               <li style={{ display: 'inline' }}>
                 <a 
-                  href="javascript:void(0);" 
-                  onClick={() => setShowCommentsPanel(!showCommentsPanel)}
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowCommentsPanel(!showCommentsPanel);
+                  }}
+                  className="meta"
                   style={{
                     color: '#7b8386',
                     textDecoration: 'none',
@@ -360,47 +653,39 @@ export default function FeedItem({ item }: FeedItemProps) {
                 </a>
               </li>
               <span className="dot" style={{
-                color: '#7b8386',
+                color: '#959595',
                 fontSize: '20px',
               }}>&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
               <li className="nobullet" style={{ display: 'inline' }}>
-                <a 
-                  href="javascript:void(0);"
-                  style={{
-                    color: '#7b8386',
-                    textDecoration: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Like
-                </a>
-                {item.like_info.likes_count > 0 && (
-                  <span style={{ color: '#7b8386', marginLeft: '5px' }}>
-                    ({item.like_info.likes_count})
-                  </span>
-                )}
+                <LikeButton 
+                  likeInfo={localItem.like_info} 
+                  onLikeClick={handleLikeClick}
+                />
               </li>
             </ul>
           </div>
         )}
 
-        {/* Comments Panel */}
-        {(item.conversations_count > 0 || item.like_info.likes_count > 0 || showCommentsPanel) && (
+        {/* Comments Panel - Always show if show_post_contents == 1 (matches AngularJS) */}
+        {localItem.show_post_contents === 1 && (
           <CommentsPanel 
-            item={item}
+            item={localItem}
             showCommentsPanel={showCommentsPanel}
             onToggleComments={() => setShowCommentsPanel(!showCommentsPanel)}
           />
         )}
       </div>
 
-      {/* Feed Divider */}
+      {/* Feed Divider - Always show (matches AngularJS) */}
       <hr className="feed-divider" style={{
         marginTop: '0px',
         marginBottom: '0px',
         borderTop: '1px solid #e2e5ea',
+        borderBottom: 'none',
+        borderLeft: 'none',
+        borderRight: 'none',
+        width: '100%',
       }} />
     </div>
   );
 }
-

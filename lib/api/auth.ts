@@ -43,6 +43,9 @@ export interface User {
   email: string;
   phone?: string;
   profile_picture?: string;
+  profile_image_type?: number; // Added for avatar migration
+  profile_image_version?: number; // Added for avatar migration
+  name?: string;
   [key: string]: unknown;
 }
 

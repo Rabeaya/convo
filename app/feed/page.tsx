@@ -5,23 +5,87 @@
  * 
  * Main feed page displaying feed items
  * Migrated from AngularJS cnv-feed directive
+ * Implements infinite scroll like AngularJS version
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useFeed } from '@/lib/hooks/use-feed';
 import FeedItem from '@/components/feed/FeedItem';
 import { FeedProvider } from '@/lib/contexts/FeedContext';
 
 export default function FeedPage() {
-  const { feedItems, isLoading, error, users, groups } = useFeed();
+  const { feedItems, isLoading, error, users, groups, fetchNextPage, hasNextPage, isFetchingNextPage } = useFeed();
   const [showUpdatesNotif, setShowUpdatesNotif] = useState(false);
   const [updatesNotifText] = useState(''); // Will be set when feed polling is implemented
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoadingMoreRef = useRef(false);
 
   const handleFeedItemsUpdatesAvailableNotifClick = useCallback(() => {
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setShowUpdatesNotif(false);
   }, []);
+
+  // Infinite scroll implementation - matches AngularJS onFeedScrolledBottom directive
+  // Uses window scroll like AngularJS directive, but also supports feedScroller container
+  useEffect(() => {
+    const feedScroller = document.getElementById('feedScroller');
+    const scrollElement = feedScroller || window;
+
+    const handleScroll = () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      scrollTimeoutRef.current = setTimeout(() => {
+        if (isLoadingMoreRef.current || !hasNextPage || isFetchingNextPage) {
+          return;
+        }
+
+        // Check if scrolled near bottom (within 500px, matching AngularJS)
+        let scrollHeight: number;
+        let documentHeight: number;
+
+        if (feedScroller) {
+          // Use feedScroller container scroll
+          scrollHeight = feedScroller.scrollTop + feedScroller.clientHeight;
+          documentHeight = feedScroller.scrollHeight;
+        } else {
+          // Use window scroll (fallback)
+          scrollHeight = window.scrollY + window.innerHeight;
+          documentHeight = document.documentElement.scrollHeight;
+        }
+
+        if (scrollHeight > documentHeight - 500) {
+          isLoadingMoreRef.current = true;
+          fetchNextPage().finally(() => {
+            isLoadingMoreRef.current = false;
+          });
+        }
+      }, 250); // Throttle like AngularJS (250ms)
+    };
+
+    if (feedScroller) {
+      feedScroller.addEventListener('scroll', handleScroll, { passive: true });
+      feedScroller.addEventListener('mousewheel', handleScroll, { passive: true });
+    } else {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      window.addEventListener('mousewheel', handleScroll, { passive: true });
+    }
+
+    return () => {
+      if (feedScroller) {
+        feedScroller.removeEventListener('scroll', handleScroll);
+        feedScroller.removeEventListener('mousewheel', handleScroll);
+      } else {
+        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('mousewheel', handleScroll);
+      }
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   if (isLoading) {
     return (
@@ -68,7 +132,12 @@ export default function FeedPage() {
 
   return (
     <FeedProvider users={users} groups={groups}>
-      <div className="feed" style={{ position: 'relative' }}>
+      <div className="feed" style={{ 
+        display: 'inline-block',
+        width: '572px',
+        textAlign: 'left',
+        marginTop: '0px',
+      }}>
         {/* Feed Updates Available Notification */}
         {showUpdatesNotif && (
         <div 
@@ -136,8 +205,20 @@ export default function FeedPage() {
         )}
       </div>
 
+      {/* Loading More Indicator */}
+      {isFetchingNextPage && (
+        <div style={{
+          textAlign: 'center',
+          padding: '20px',
+          color: '#7b8386',
+          fontSize: '14px',
+        }}>
+          Loading more...
+        </div>
+      )}
+
       {/* Feed End Placeholder */}
-      {visibleFeedItems.length > 0 && (
+      {visibleFeedItems.length > 0 && !hasNextPage && (
         <div className="feed-end-placeholder" style={{
           background: 'url(/assets/img/feed/infinitescrollend2x.png)',
           backgroundRepeat: 'no-repeat',
@@ -152,4 +233,3 @@ export default function FeedPage() {
     </FeedProvider>
   );
 }
-

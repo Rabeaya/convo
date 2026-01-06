@@ -8,6 +8,7 @@
 
 import MainHeader from '@/components/layout/MainHeader';
 import LeftSidebar from '@/components/layout/LeftSidebar';
+import RightSidebar from '@/components/layout/RightSidebar';
 
 export default function HomeLayout({
   children,
@@ -33,24 +34,56 @@ export default function HomeLayout({
         background: '#fff',
         height: 'calc(100% - 60px)',
         whiteSpace: 'nowrap',
+        display: 'flex',
       }}>
         {/* Left Panel Container */}
         <div className="left-panel-container" style={{
           padding: 0,
           minHeight: '2px',
+          width: '235px',
+          flexShrink: 0,
+          position: 'relative',
+          zIndex: 2,
         }}>
           <LeftSidebar />
         </div>
 
-        {/* Center Panel - Feed Content */}
-        <div className="center-panel-container" style={{
-          display: 'inline-block',
-          verticalAlign: 'top',
-          whiteSpace: 'normal',
-          width: '572px',
-          marginLeft: '235px',
+        {/* Feed Scroller Container - matches AngularJS #feedScroller */}
+        <div id="feedScroller" style={{
+          height: '100%',
+          overflowX: 'hidden',
+          overflowY: 'scroll',
+          flex: '1',
+          position: 'relative',
+          minWidth: 0, // Prevents flex item from overflowing
+          marginLeft: 0, // Ensure it starts right after left panel
         }}>
-          {children}
+          {/* Center Panel - Feed Content */}
+          <div id="feedContentBody" className="center-panel-container" style={{
+            textAlign: 'center',
+            paddingRight: '300px', // Make room for right panel
+          }}>
+            <div id="home-center-panel" style={{
+              width: '572px',
+              margin: '0 auto',
+              textAlign: 'left',
+            }}>
+              {children}
+            </div>
+          </div>
+
+          {/* Right Panel Container - matches AngularJS #home-right-panel */}
+          <div id="home-right-panel" className="right-panel-container" style={{
+            width: '300px',
+            position: 'absolute',
+            right: '0px',
+            top: '0px',
+            zIndex: 1,
+            visibility: 'visible',
+            height: '100%',
+          }}>
+            <RightSidebar />
+          </div>
         </div>
       </div>
 
@@ -364,11 +397,41 @@ export default function HomeLayout({
           margin-top: 0px;
           margin-bottom: 0px;
           border-top: 1px solid #e2e5ea;
+          border-bottom: none;
+          border-left: none;
+          border-right: none;
+          width: 100%;
+          display: block;
+        }
+        #feedScroller {
+          height: 100%;
+          overflow-x: hidden;
+          overflow-y: scroll;
+        }
+        .center-panel-container {
+          text-align: center;
+        }
+        #home-center-panel {
+          width: 572px;
+          margin: 0 auto;
+          text-align: left;
+        }
+        #feedContentBody {
+          text-align: center;
+        }
+        .feed {
+          display: inline-block;
+          width: 572px;
+          text-align: left;
+          margin-top: 0px;
         }
         .feed-item-content-right {
           width: 100%;
           float: left;
           margin-left: 12px;
+        }
+        .feed-item-container .feed-item-content-right {
+          width: 495px;
         }
         .feed-item-content-right > .shared-with-container {
           margin-top: -3px;
@@ -531,8 +594,82 @@ export default function HomeLayout({
         .comment-cont .comment {
           position: relative;
           padding: 10px 0px;
-          border-bottom: 1px solid #e6e8ec;
+          border-bottom: 1px solid #e0e0e0;
           width: 473px;
+        }
+        .comment-cont .comment:hover {
+          /* Show dropdown on hover */
+        }
+        .comment-cont .comment .comment-drop-down {
+          display: none;
+          position: absolute;
+          right: 4px;
+          top: 4px;
+          padding-left: 5px;
+        }
+        .comment-cont .comment:hover .comment-drop-down {
+          display: block;
+        }
+        .comment-cont .comment:hover cnv-dropdowns,
+        .comment-cont .comment:hover .comment-drop-down {
+          display: block;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .fetch-more-spinner span {
+          animation: spin 1s linear infinite;
+        }
+        /* Comment Editor Styles - Exact match from AngularJS */
+        .feed-comment-editor-cont {
+          border-radius: 4px;
+          background: white;
+          border: 1px solid #ced2dc;
+          position: relative;
+        }
+        .feed-comment-editor-cont.highlight {
+          border: 1px solid #4183d7;
+        }
+        .feed-comment-editor-cont .dummy-text-area {
+          border-radius: 4px;
+          padding: 10px;
+          height: 40px;
+          cursor: text;
+          color: #BFC3C4;
+          font-size: 14px;
+          font-family: 'Source Sans Pro', sans-serif;
+        }
+        .feed-comment-editor-cont .feed-comment-editor-active-cont {
+          border-radius: 4px;
+          position: relative;
+        }
+        .feed-comment-editor-cont .comment-action-bar {
+          position: relative;
+          padding: 9px 8px;
+          border-top: 1px solid #ced2dc;
+          border-bottom: 1px solid transparent;
+        }
+        .feed-comment-editor-cont .comment-action-bar .comment-action {
+          text-align: center;
+          margin-right: 4px;
+          cursor: pointer;
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+          vertical-align: middle;
+          display: inline-block;
+          opacity: 0.85;
+        }
+        .feed-comment-editor-cont .comment-action-bar .comment-action.anim {
+          transition: transform 125ms cubic-bezier(0.4, 0, 1, 1);
+        }
+        .feed-comment-editor-cont .comment-action-bar .comment-action.anim:hover {
+          transform: scale(1.25);
+        }
+        .feed-comment-editor-cont .comment-action-bar .comment-action.file-chooser {
+          background-size: 16px;
+          background-position: 2px 2px;
         }
         .comment-cont .comment .pic_container {
           display: block;
@@ -634,6 +771,92 @@ export default function HomeLayout({
         }
         .dim-feed-item {
           opacity: 0.5;
+        }
+        /* Feed Item Styles - Exact match from AngularJS feedMain.less */
+        .feed-item-container > .dp-container > .created-by .img-circle {
+          height: 60px !important;
+          width: 60px !important;
+          line-height: 60px !important;
+          font-size: 18px;
+        }
+        .feed-item-container > .dp-container > .created-by img {
+          height: 60px !important;
+          width: 60px !important;
+        }
+        .feed-item-container > .dp-container > .edited-by .img-circle {
+          height: 35px !important;
+          width: 35px !important;
+          line-height: 32px !important;
+          border: 2px solid white;
+          font-size: 10px !important;
+        }
+        .feed-item-container > .dp-container > .edited-by img {
+          height: 35px !important;
+          width: 35px !important;
+          border: 2px solid white;
+        }
+        .feed-item-container > .dp-container.edited {
+          font-size: 8px;
+        }
+        .feed-item-container .feed-item-content-right {
+          width: calc(100% - 72px);
+        }
+        .feed-item-content-right .action-items-wrapper {
+          position: relative;
+          float: right;
+        }
+        .feed-item-content-right .action-items-wrapper > i {
+          margin-right: 10px;
+          margin-bottom: 2px;
+          display: inline-block;
+        }
+        .feed-item-container .feed-item-content-right .shared-with-container ul li.nobullet {
+          list-style: none;
+        }
+        .feed-item-container .feed-item-content-right .shared-with-container ul li a.meta {
+          color: #7b8386;
+          text-decoration: none;
+        }
+        .feed-item-container .feed-item-content-right .note .note-details {
+          margin-top: 0px;
+        }
+        .feed-item-container .feed-item-content-right .note .note-details span {
+          display: inline;
+        }
+        .feed-item-content-right .note .note-details.ackWrapper {
+          color: white;
+          position: relative;
+          text-align: center;
+          cursor: pointer;
+        }
+        .feed-item-content-right .note .note-details.ackWrapper .ackLabel {
+          position: absolute;
+          top: calc(50% - 19px);
+          left: calc(50% - 145px);
+          background-color: #929191;
+          padding: 10px 30px;
+          border-radius: 18px;
+          opacity: 0.8;
+        }
+        .feed-item-content-right .note .note-details.ackWrapper .ackLabel span {
+          opacity: 1;
+          width: 230px;
+          display: inline-block;
+        }
+        /* Comment Styles */
+        .comment-cont .comment .comment_txt .comment-inner {
+          color: #272b2c;
+        }
+        .reply-arrow {
+          width: 13px;
+          height: 5px;
+          background: url(/assets/img/common/reply_arrow.png);
+          background-size: 13px 5px;
+          display: inline-block;
+          vertical-align: middle;
+          float: left;
+          margin-top: 8px;
+          margin-right: 4px;
         }
       `}</style>
     </div>
