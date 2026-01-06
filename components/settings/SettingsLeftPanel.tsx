@@ -97,9 +97,12 @@ export default function SettingsLeftPanel({
             <li>
               <i className="cnv-icons-16 icons2_Settings-dark"></i>
               <a 
-                href="javascript:void(0)" 
+                href="#" 
                 className={selectedView === ACCOUNT_SETTINGS_VIEW ? 'active' : ''}
-                onClick={() => toggleView(ACCOUNT_SETTINGS_VIEW)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleView(ACCOUNT_SETTINGS_VIEW);
+                }}
               >
                 My account
               </a>
@@ -107,9 +110,12 @@ export default function SettingsLeftPanel({
             <li>
               <i className="cnv-icons-16 Icon1_customize-01-dark"></i>
               <a 
-                href="javascript:void(0)" 
+                href="#" 
                 className={selectedView === CUSTOMIZE_FEED_VIEW ? 'active' : ''}
-                onClick={() => toggleView(CUSTOMIZE_FEED_VIEW)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleView(CUSTOMIZE_FEED_VIEW);
+                }}
               >
                 Feed and sharing
               </a>
@@ -117,8 +123,11 @@ export default function SettingsLeftPanel({
             <li>
               <i className="cnv-icons-16 icons_Notifications-dark"></i>
               <a 
-                href="javascript:void(0)" 
-                onClick={() => toggleView(NOTIFICATION_VIEW)}
+                href="#" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleView(NOTIFICATION_VIEW);
+                }}
                 className={selectedView === NOTIFICATION_VIEW ? 'active' : ''}
               >
                 Notifications
@@ -143,8 +152,11 @@ export default function SettingsLeftPanel({
               <li>
                 <i className="cnv-icons-16 Icon1_networkinformation-01-dark"></i>
                 <a 
-                  href="javascript:void(0)" 
-                  onClick={() => toggleView(NETWORK_INFO_VIEW)}
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleView(NETWORK_INFO_VIEW);
+                  }}
                   className={selectedView === NETWORK_INFO_VIEW ? 'active' : ''}
                 >
                   Network information
@@ -156,9 +168,12 @@ export default function SettingsLeftPanel({
               <li>
                 <i className="cnv-icons-16 icon2__Following-dark"></i>
                 <a 
-                  href="javascript:void(0)" 
+                  href="#" 
                   id="manageUsers" 
-                  onClick={() => toggleView(MANAGE_USERS_VIEW)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleView(MANAGE_USERS_VIEW);
+                  }}
                   className={selectedView === MANAGE_USERS_VIEW ? 'active' : ''}
                 >
                   Manage users
@@ -170,8 +185,11 @@ export default function SettingsLeftPanel({
               <li>
                 <i className="cnv-icons-16 icon2__Group-Following-dark"></i>
                 <a 
-                  href="javascript:void(0)" 
-                  onClick={() => toggleView(MANAGE_GROUPS_SETTINGS)}
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleView(MANAGE_GROUPS_SETTINGS);
+                  }}
                   className={selectedView === MANAGE_GROUPS_SETTINGS ? 'active' : ''}
                 >
                   Manage Groups
@@ -183,8 +201,11 @@ export default function SettingsLeftPanel({
               <li>
                 <i className="billing-ico"></i>
                 <a 
-                  href="javascript:void(0)" 
-                  onClick={() => toggleView(BILLING_VIEW)}
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleView(BILLING_VIEW);
+                  }}
                   className={selectedView === BILLING_VIEW ? 'active' : ''}
                 >
                   Billing
@@ -196,8 +217,11 @@ export default function SettingsLeftPanel({
               <li>
                 <i className="manage-content-ico"></i>
                 <a 
-                  href="javascript:void(0)" 
-                  onClick={() => toggleView(MONITOR_CONTENT_VIEW)}
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleView(MONITOR_CONTENT_VIEW);
+                  }}
                   className={selectedView === MONITOR_CONTENT_VIEW ? 'active' : ''}
                 >
                   Manage content
@@ -209,8 +233,11 @@ export default function SettingsLeftPanel({
               <li>
                 <i className="cnv-icons-16 icons_Lock-dark"></i>
                 <a 
-                  href="javascript:void(0)" 
-                  onClick={() => toggleView(SECURITY_VIEW)}
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleView(SECURITY_VIEW);
+                  }}
                   className={selectedView === SECURITY_VIEW ? 'active' : ''}
                 >
                   Security
@@ -222,8 +249,11 @@ export default function SettingsLeftPanel({
               <li>
                 <i className="cnv-icons-16 sso"></i>
                 <a 
-                  href="javascript:void(0)" 
-                  onClick={() => toggleView(SSO_SETTINGS_VIEW)}
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleView(SSO_SETTINGS_VIEW);
+                  }}
                   className={selectedView === SSO_SETTINGS_VIEW ? 'active' : ''}
                 >
                   Single sign on
@@ -235,8 +265,11 @@ export default function SettingsLeftPanel({
               <li>
                 <i className="cnv-icons-16 icons_Phone-dark"></i>
                 <a 
-                  href="javascript:void(0)" 
-                  onClick={() => toggleView(SMS_NOTIFICATIONS_VIEW)}
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleView(SMS_NOTIFICATIONS_VIEW);
+                  }}
                   className={selectedView === SMS_NOTIFICATIONS_VIEW ? 'active' : ''}
                 >
                   SMS Notifications
@@ -249,8 +282,11 @@ export default function SettingsLeftPanel({
                 <div className="pull-left">
                   <i className="cnv-icons-16 analytics"></i>
                   <a 
-                    href="javascript:void(0)" 
-                    onClick={openAnalytics}
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openAnalytics();
+                    }}
                     className={selectedView === USERS_ANALYTICS_VIEW || selectedView === CONTENT_ANALYTICS_VIEW ? 'active' : ''}
                   >
                     Analytics
@@ -261,8 +297,11 @@ export default function SettingsLeftPanel({
                         <li>
                           <i className="users-analytics-ico"></i>
                           <a 
-                            href="javascript:void(0)" 
-                            onClick={() => toggleView(USERS_ANALYTICS_VIEW)}
+                            href="#" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              toggleView(USERS_ANALYTICS_VIEW);
+                            }}
                             className={selectedView === USERS_ANALYTICS_VIEW ? 'active' : ''}
                           >
                             Users
@@ -274,8 +313,11 @@ export default function SettingsLeftPanel({
                         <li>
                           <i className="content-analytics-ico"></i>
                           <a 
-                            href="javascript:void(0)" 
-                            onClick={() => toggleView(CONTENT_ANALYTICS_VIEW)}
+                            href="#" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              toggleView(CONTENT_ANALYTICS_VIEW);
+                            }}
                             className={selectedView === CONTENT_ANALYTICS_VIEW ? 'active' : ''}
                           >
                             Content

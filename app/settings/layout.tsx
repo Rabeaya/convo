@@ -104,11 +104,13 @@ export default function SettingsLayout({
         .settings-container .view-content {
           padding-left: 235px;
           min-width: 1200px;
-          overflow: auto;
+          overflow-x: hidden;
+          overflow-y: auto;
           height: 100%;
         }
         .settings-container .view-content > div:not(.cnv-advanced-search) {
           max-width: 1205px;
+          box-sizing: border-box;
         }
         .settings-container .view-content .header {
           margin-top: 20px;
@@ -120,8 +122,6 @@ export default function SettingsLayout({
         .settings-container .view-content .subHeader {
           margin-top: 20px;
           font-weight: bold;
-          font-size: 14px;
-          text-transform: uppercase;
           color: #7b8386;
         }
         .settings-container .meta {
@@ -194,6 +194,36 @@ export default function SettingsLayout({
         }
         .settings-container #password-policy-constraints ul li {
           padding: 5px 0;
+        }
+
+        /* Tags Input Styles - Exact match from AngularJS */
+        .to-field-cont {
+          display: inline-block;
+          width: 450px;
+          max-width: 450px;
+          vertical-align: middle;
+          box-sizing: border-box;
+        }
+        .to-field-cont .tags {
+          margin: 4px 0px;
+          border: 1px solid #e2e8ed;
+          border-radius: 6px;
+          padding: 0px 0px 0px 5px;
+        }
+        .to-field-cont input[type="text"],
+        .to-field-cont textarea {
+          height: 19px;
+          margin-left: 0px;
+          width: 1px;
+        }
+        .to-field-cont .host > div {
+          height: 40px;
+        }
+
+        /* Anchor Disabled Style */
+        .anchorDisabled {
+          pointer-events: none;
+          color: #7b8386;
         }
       `}</style>
     </div>

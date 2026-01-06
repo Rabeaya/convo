@@ -36,7 +36,7 @@ export default function MainHeader() {
                 {/* Network logo image - will be loaded from account data */}
                 <img 
                   className="logo" 
-                  src={(account as any)?.network_logo_url || '/assets/img/common/convo-logo.png'} 
+                  src={(account as any)?.network_logo_url || 'https://fs1.app.convo.com/api/v1/files/w_88bac084-aee8-102b-bfae-a1ae858f3e89/account-images/thumbnails/w_88bac084-aee8-102b-bfae-a1ae858f3e89-thumbnail-56.jpg'} 
                   alt={accountName}
                   style={{
                     width: '40px',

@@ -187,3 +187,41 @@ export function useRemoveUserFromNetwork() {
     }
   });
 }
+
+// Save setting by name - matches settingsService.saveSettingByName
+export function useSaveSettingByName() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: { settingName: string; value: any }) => {
+      const { settingName, value } = data;
+      const settings: Record<string, any> = {};
+      settings[settingName] = value;
+      
+      // POST to /settings endpoint (matches AngularJS saveGeneralSettings)
+      const response = await apiClient.post<ApiResponse>('/settings', settings);
+      
+      // Invalidate general settings if sharing options changed
+      if (settingName === 'sharing_options_list' || settingName === 'reset_to_default_sharing_options') {
+        queryClient.invalidateQueries({ queryKey: ['generalSettings'] });
+      }
+      
+      return (response.data as any) || response;
+    }
+  });
+}
+
+// Get settings for customize feed - matches settingsService.getSettingsForCustomizeFeed
+export function useCustomizeFeedSettings(refetchFromServer = false) {
+  const { data: generalSettings, isLoading } = useGeneralSettings(refetchFromServer);
+  
+  return {
+    data: generalSettings ? {
+      sharing_options: generalSettings?.sharing_options || 0,
+      sharing_options_list: generalSettings?.sharing_options_list || [],
+      profile_groups_settings: generalSettings?.profile_groups_settings || [],
+      regular_groups_settings: generalSettings?.regular_groups_settings || [],
+    } : undefined,
+    isLoading,
+  };
+}

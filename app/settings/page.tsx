@@ -21,6 +21,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import SettingsLeftPanel from '@/components/settings/SettingsLeftPanel';
 import AccountSettingsView from '@/components/settings/AccountSettingsView';
+import CustomizeFeedView from '@/components/settings/CustomizeFeedView';
 
 const ACCOUNT_SETTINGS_VIEW = 'myAccountSettings';
 const NOTIFICATION_VIEW = 'notificationsSettings';
@@ -104,7 +105,7 @@ export default function SettingsPage() {
         )}
 
         {selectedView === CUSTOMIZE_FEED_VIEW && (
-          <div>Customize Feed Settings - To be migrated</div>
+          <CustomizeFeedView />
         )}
 
         {selectedView === NETWORK_INFO_VIEW && (
