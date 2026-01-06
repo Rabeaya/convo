@@ -1,28 +1,22 @@
 'use client';
 
 /**
- * Account Settings Page
+ * Account Settings Page Route
  * 
- * Migrated from AngularJS myAccountSettings view
- * Route: /settings/account
- * 
- * This page will contain:
- * - Email change functionality
- * - Password change functionality
- * - Multi-factor authentication settings
- * - Account deactivation
- * - Display preferences (phone/email visibility)
- * - Sign out all other sessions
+ * This route redirects to the main settings page with account view
+ * The actual content is in SettingsPage component
  */
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
 export default function AccountSettingsPage() {
-  return (
-    <div className="settings-container">
-      <div className="settings-content">
-        <h1>My Account Settings</h1>
-        <p>Account settings page - content to be migrated from AngularJS</p>
-        {/* Content will be added here based on AngularJS accountSettingsView.tpl.html */}
-      </div>
-    </div>
-  );
+  const router = useRouter();
+  
+  useEffect(() => {
+    // Redirect to main settings page - it will show account view by default
+    router.replace('/settings');
+  }, [router]);
+
+  return null;
 }

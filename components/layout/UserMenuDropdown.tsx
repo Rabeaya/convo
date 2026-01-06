@@ -69,7 +69,7 @@ export default function UserMenuDropdown() {
   };
 
   const navigateToSettings = () => {
-    router.push('/settings/account');
+    router.push('/settings');
     setIsOpen(false);
   };
 
