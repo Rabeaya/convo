@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import UserMenuDropdown from './UserMenuDropdown';
 
 export default function MainHeader() {
   const account = useAuthStore((state) => state.account);
@@ -155,9 +156,11 @@ export default function MainHeader() {
             
             {/* Notifications Dropdown */}
             <div className="cnv-notif-container dark-bell-icon" style={{
-              display: 'inline-block',
+              display: 'inline-flex',
+              alignItems: 'center',
               marginRight: '16px',
               cursor: 'pointer',
+              verticalAlign: 'middle',
             }}>
               <div className="bell-wrapper">
                 <span className="bell-hit-area">
@@ -166,38 +169,10 @@ export default function MainHeader() {
               </div>
             </div>
 
-            <span className="separator"></span>
+            <span className="separator" style={{ verticalAlign: 'middle' }}></span>
 
-            {/* User Profile */}
-            <div style={{
-              position: 'relative',
-              display: 'inline-block',
-              paddingRight: '10px',
-              cursor: 'pointer',
-              marginLeft: '16px',
-            }}>
-              {/* User Profile Image - placeholder */}
-              <div className="profilePictureHeader" style={{
-                display: 'inline-block',
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                backgroundColor: '#4183d7',
-                marginRight: '5px',
-                verticalAlign: 'middle',
-              }}></div>
-              <div className="user-menu-dropdown-widget" style={{
-                display: 'inline-block',
-                position: 'relative',
-                top: '3px',
-              }}>
-                <span className="dropdown cnv-custom-dropdown">
-                  <a className="dropdown-toggle" style={{ cursor: 'pointer' }}>
-                    <i className="cnv-icons-16 icons_Dropdown_incircle-lightgray"></i>
-                  </a>
-                </span>
-              </div>
-            </div>
+            {/* User Profile Menu Dropdown */}
+            <UserMenuDropdown />
           </div>
         </div>
 

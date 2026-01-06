@@ -116,19 +116,21 @@ export default function HomeLayout({
           height: 60px;
           padding: 0 15px 0 0;
           text-align: right;
-          line-height: 53px;
+          line-height: 60px;
           z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
         }
-        .header-bar-container .separator {
+        .header-bar-container .right-column .separator {
           width: 1px;
           border: 0;
           display: inline-block;
           background-color: #e0e0e0;
           height: 31px;
-          top: 12px;
-          position: relative;
           margin: 0px 2px 0px 15px;
-          padding-top: 20px;
+          vertical-align: middle;
+          align-self: center;
         }
 
         /* Left Panel Styles - Exact match from AngularJS index.php */
@@ -634,6 +636,99 @@ export default function HomeLayout({
         }
         .dim-feed-item {
           opacity: 0.5;
+        }
+
+        /* Dropdown Menu Styles - Exact match from AngularJS */
+        .dropdown.cnv-custom-dropdown {
+          position: relative;
+          display: inline-block;
+          vertical-align: middle;
+        }
+        .dropdown.cnv-custom-dropdown.user-menu-dropdown-widget {
+          position: relative;
+          top: 3px;
+        }
+        .dropdown.cnv-custom-dropdown .dropdown-toggle {
+          cursor: pointer;
+          text-decoration: none;
+          display: inline-block;
+          background: none;
+          border: none;
+          padding: 0;
+          margin: 0;
+        }
+        .dropdown.cnv-custom-dropdown .dropdown-toggle i {
+          display: inline-block;
+        }
+        /* Chrome 45 hack - but we override it */
+        .dropdown.cnv-custom-dropdown.open > .dropdown-menu {
+          display: block !important;
+        }
+        .dropdown-menu.dropdown-main-menu {
+          position: absolute;
+          top: 20px;
+          right: 0;
+          left: auto;
+          min-width: 200px;
+          max-width: 206px;
+          background-color: #fff;
+          border: 1px solid #d4d5d7;
+          border-radius: 4px;
+          box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.4);
+          z-index: 1000;
+          padding: 4px 0;
+          margin: 0;
+          list-style: none;
+          text-align: left;
+        }
+        .dropdown-menu.dropdown-main-menu > li {
+          margin: 0;
+          padding: 0;
+        }
+        .dropdown-menu.dropdown-main-menu > li > a.menu-item-wrapper {
+          display: block;
+          padding: 8px 16px;
+          cursor: pointer;
+          font-size: 14px;
+          font-family: 'Source Sans Pro', sans-serif;
+          color: #2b2b2b;
+          text-decoration: none;
+          white-space: nowrap;
+          background: none;
+          line-height: 1.4;
+        }
+        .dropdown-menu.dropdown-main-menu > li > a.menu-item-wrapper span {
+          display: inline-block;
+        }
+        /* Hover on li element - matches AngularJS override.less */
+        .dropdown-menu.dropdown-main-menu > li:hover,
+        .dropdown-menu.dropdown-main-menu > li:active,
+        .dropdown-menu.dropdown-main-menu > li:focus {
+          background-color: #4183d7 !important;
+        }
+        .dropdown-menu.dropdown-main-menu > li:hover > a.menu-item-wrapper,
+        .dropdown-menu.dropdown-main-menu > li:active > a.menu-item-wrapper,
+        .dropdown-menu.dropdown-main-menu > li:focus > a.menu-item-wrapper {
+          color: #ffffff !important;
+          background: none !important;
+        }
+        .dropdown-menu.dropdown-main-menu > li:hover > a.menu-item-wrapper .subtext,
+        .dropdown-menu.dropdown-main-menu > li:active > a.menu-item-wrapper .subtext,
+        .dropdown-menu.dropdown-main-menu > li:focus > a.menu-item-wrapper .subtext {
+          color: #ffffff !important;
+        }
+        .dropdown-menu.dropdown-main-menu > li.divider {
+          height: 1px;
+          margin: 4px 0;
+          overflow: hidden;
+          background-color: #e0e0e0;
+        }
+        .dropdown-menu.dropdown-main-menu > li.divider:hover {
+          background-color: #e0e0e0 !important;
+        }
+        .dropdown-menu.dropdown-main-menu > li > a.menu-item-wrapper .subtext {
+          font-size: 12px;
+          color: #7b8386;
         }
       `}</style>
     </div>
