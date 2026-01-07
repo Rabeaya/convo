@@ -48,17 +48,16 @@ export function useFeed(options: UseFeedOptions = {}) {
     staleTime: 0, // Feed data should always be fresh
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
-      // Matches AngularJS loadMoreFeed logic:
-      // Keep loading until numResponseFeedItems === 0 (no items received from server)
+      // If we got fewer items than requested, we've reached the end
+      const allItems = allPages.flatMap(page => page.feed_items || []);
       const lastPageItems = lastPage.feed_items || [];
       
-      // If we received items, continue loading
+      // If last page has items, return the next index
       if (lastPageItems.length > 0) {
-        const allItems = allPages.flatMap(page => page.feed_items || []);
-        return allItems.length; // Next offset
+        return allItems.length;
       }
       
-      // If no items received, we've reached the end (matches AngularJS: if numResponseFeedItems === 0, stop)
+      // Otherwise, we've reached the end
       return undefined;
     },
   });

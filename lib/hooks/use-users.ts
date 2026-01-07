@@ -1,254 +1,160 @@
-/**
- * useUsers Hook
- * 
- * Fetches and caches users for @mentions and user display
- * Matches AngularJS Users service behavior
- */
+'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { usersService } from '../api/users';
-import type { User } from '../api/auth';
+import type { User } from '@/lib/api/auth';
+import type { Group } from '@/lib/api/groups';
+import type { ApiError } from '@/lib/api/client';
+import { usersService } from '@/lib/api/users';
+import { useAuthStore } from '@/lib/stores/auth-store';
+
+export type UsersQueryData = {
+  users: Record<string, User>;
+  usersArray: User[];
+};
 
 export interface UserListItem {
   id: string;
+  type: 'USER' | 'GROUP';
   label: string;
-  formattedlabel: string;
-  formatteddesclabel?: string;
-  labelisemail?: boolean;
-  labelisphone?: boolean;
-  type?: 'USER' | 'GROUP' | 'CONTACT';
-  imgUrl?: string;
-  classes?: string;
-  isGuestUser?: boolean;
-  status?: string;
-  rank?: number;
+  formattedlabel?: string;
   desclabel?: string;
+  formatteddesclabel?: string;
   email?: string;
-  access?: string; // For groups: 'PUBLIC', 'PRIVATE', 'SECRET'
-  grouptype?: string; // For groups
+  access?: string;
+  rank?: number;
+  invited?: boolean;
+  classes?: string;
+  grouptype?: string;
 }
 
-/**
- * Get user full name
- * Matches AngularJS Users.getUserFullName()
- */
-export function getUserFullName(user: User | null | undefined): string {
-  if (!user) return 'Unknown';
-  
-  let fullName = '';
-  if ((user as any).fullName) {
-    fullName = (user as any).fullName;
-  } else if ((user as any).first_name || (user as any).last_name) {
-    fullName = ((user as any).first_name || '') + ' ' + ((user as any).last_name || '').trim();
-  } else if ((user as any).name) {
-    fullName = (user as any).name;
-  }
-  
-  if (fullName.trim().length < 2) {
-    // Fallback to email or user_id
-    if ((user as any).email) {
-      fullName = (user as any).email;
-    } else if ((user as any).user_id) {
-      fullName = (user as any).user_id;
-    } else {
-      fullName = 'Unknown';
-    }
-  }
-  
-  return fullName.trim();
+export function getUserFullName(u: any): string {
+  if (!u) return '';
+  if (u.name) return String(u.name);
+  const first = u.first_name || u.firstName || '';
+  const last = u.last_name || u.lastName || '';
+  const full = `${first} ${last}`.trim();
+  return full || String(u.user_id || u.userId || '');
 }
 
-/**
- * Create user list item for @mentions
- * Matches AngularJS usersGroupsListProvider.createUserListItem()
- */
-export function createUserListItem(user: User, currentUserId?: string): UserListItem {
-  const fullName = getUserFullName(user);
-  const userId = (user as any).user_id || (user as any).userId || (user as any).id;
-  
-  // Don't include current user in mentions
-  if (currentUserId && userId === currentUserId) {
-    return null as any;
-  }
-  
-  // Get email/phone for desc label (matches AngularJS logic)
-  const email = (user as any).email || '';
-  const phone = (user as any).phone_no || '';
-  const showEmail = (user as any).show_email;
-  const showPhone = (user as any).show_phone;
-  
-  let desclabel = '';
-  let labelisemail = false;
-  let labelisphone = false;
-  
-  // Determine desc label (matches AngularJS createUserListItem logic)
-  if (showEmail && email) {
-    desclabel = email;
-    labelisemail = true;
-  } else if (showPhone && phone) {
-    desclabel = phone;
-    labelisphone = true;
-  }
-  
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function highlightHtml(label: string, query: string): string {
+  const safeLabel = escapeHtml(label);
+  const q = query.trim();
+  if (!q) return safeLabel;
+  const idx = label.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) return safeLabel;
+  const before = escapeHtml(label.slice(0, idx));
+  const match = escapeHtml(label.slice(idx, idx + q.length));
+  const after = escapeHtml(label.slice(idx + q.length));
+  return `${before}<b>${match}</b>${after}`;
+}
+
+function createUserListItem(user: any): UserListItem | null {
+  const id = String(user?.user_id || user?.userId || '');
+  if (!id) return null;
+  const label = getUserFullName(user) || (user?.email ? String(user.email) : id);
+  const email = user?.email ? String(user.email) : '';
   return {
-    id: userId,
-    label: fullName,
-    formattedlabel: fullName,
-    formatteddesclabel: desclabel,
-    desclabel: desclabel,
-    labelisemail,
-    labelisphone,
+    id,
     type: 'USER',
-    imgUrl: '', // Will be generated using getUserProfileImageUrl
-    classes: `user ${(user as any).isGuestUser ? 'guest-user' : ''}`,
-    isGuestUser: (user as any).isGuestUser || false,
-    status: (user as any).status || 'ACTIVE',
-    rank: (user as any).rank || 0,
-    email: email,
+    label,
+    desclabel: email,
+    email,
   };
 }
 
-/**
- * Create group list item for @mentions
- * Matches AngularJS usersGroupsListProvider.createGroupListItem()
- */
-export function createGroupListItem(group: any): UserListItem {
-  const groupId = group.id || group.group_id;
-  const groupTitle = group.title || group.name || '';
-  const access = (group.access || 'PUBLIC').toLowerCase();
-  
-  // Determine group icon class (matches AngularJS createGroupListItem)
-  let classes = 'group ';
-  if (access === 'public') {
-    classes += 'Icon1_PublicChannel-01-lightgray';
-  } else if (access === 'private' || access === 'profile') {
-    classes += 'privateGroup_icon-lightgray';
-  } else if (access === 'secret') {
-    classes += 'privateGroup_icon-lightgray';
-  }
-  
+function createGroupListItem(group: any): UserListItem | null {
+  const id = String(group?.id || '');
+  if (!id) return null;
+  const label = String(group?.title || group?.name || id);
+  const access = String(group?.access || 'PUBLIC');
   return {
-    id: groupId,
-    label: groupTitle,
-    formattedlabel: groupTitle,
-    formatteddesclabel: 'Group',
-    desclabel: 'Group',
+    id,
     type: 'GROUP',
-    imgUrl: '',
-    classes,
-    grouptype: group.type,
-    access: access.toUpperCase(),
-    rank: group.rank || 0,
+    label,
+    desclabel: 'Group',
+    access,
+    rank: typeof group?.rank === 'number' ? group.rank : undefined,
+    grouptype: group?.grouptype,
+    classes: group?.classes,
   };
 }
 
 /**
- * Query publishable users and groups for @mentions
- * Matches AngularJS atMentionsListProvider.queryPublishableUsersAndGroups()
+ * Angular parity: atMentionsListProvider.queryPublishableUsersAndGroups()
+ * - Users first, then groups
+ * - Returns [] if query is empty
+ * - Adds <b> highlighting markup in formattedlabel/formatteddesclabel
  */
 export function queryPublishableUsersAndGroups(
-  users: User[],
-  groups: any[],
+  usersArray: any[],
+  groupsArray: any[],
   query: string,
   maxResults: number = 10,
   currentUserId?: string
 ): UserListItem[] {
-  // AngularJS usersGroupsListProvider.queryPublishableUsersAndGroups:
-  // - returns [] if !query
-  // - scans users first, then groups (each list already sorted by relevancy)
-  // - adds item if label or desc label matches regex, and sets formattedlabel/formatteddesclabel with <b> highlighting
+  const q = (query || '').trim();
+  if (!q) return [];
 
-  if (!query || !query.trim().length) {
-    return [];
-  }
+  const qLower = q.toLowerCase();
 
-  const escapeRegexChars = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(([\\s,<>():._])|^)(${escapeRegexChars(query)})`, 'gi');
-
-  const highlight = (text: string) => {
-    if (!text) return '';
-    return text.replace(regex, (_m, p1, _p2, p3) => `${p1}<b>${p3}</b>`);
-  };
-
-  const results: UserListItem[] = [];
-
-  // Users first (include INVITED users at the end like Angular does, but keep them searchable)
-  const publishableUsers = (users || [])
-    .filter((u: any) => {
-      const id = u.user_id || u.userId || u.id;
-      return !!u.publishable && id !== currentUserId;
+  const users: UserListItem[] = (usersArray || [])
+    .map(createUserListItem)
+    .filter((x): x is UserListItem => !!x)
+    .filter((u) => !currentUserId || u.id !== String(currentUserId))
+    .filter((u) => {
+      const label = (u.label || '').toLowerCase();
+      const email = (u.email || '').toLowerCase();
+      return label.includes(qLower) || email.includes(qLower);
     })
-    .slice()
-    .sort((a: any, b: any) => {
-      const aInv = a.status === 'INVITED' ? 1 : 0;
-      const bInv = b.status === 'INVITED' ? 1 : 0;
-      if (aInv !== bInv) return aInv - bInv; // invited last
-      return (b.rank || 0) - (a.rank || 0); // higher rank first
-    });
+    .map((u) => ({
+      ...u,
+      formattedlabel: highlightHtml(u.label || '', q),
+      formatteddesclabel: u.desclabel ? highlightHtml(u.desclabel, q) : u.desclabel,
+    }));
 
-  for (let i = 0; i < publishableUsers.length && results.length < maxResults; i++) {
-    const u: any = publishableUsers[i];
-    const item = createUserListItem(u as any, currentUserId);
-    if (!item) continue;
+  const groups: UserListItem[] = (groupsArray || [])
+    .map(createGroupListItem)
+    .filter((x): x is UserListItem => !!x)
+    .filter((g) => (g.label || '').toLowerCase().includes(qLower))
+    .sort((a, b) => {
+      const ar = a.rank ?? -Infinity;
+      const br = b.rank ?? -Infinity;
+      if (ar !== br) return br - ar;
+      return (a.label || '').localeCompare(b.label || '');
+    })
+    .map((g) => ({
+      ...g,
+      formattedlabel: highlightHtml(g.label || '', q),
+      formatteddesclabel: g.desclabel ? highlightHtml(g.desclabel, q) : g.desclabel,
+    }));
 
-    const formattedLabel = highlight(item.label || '');
-    const formattedDesc = highlight(item.desclabel || '');
-
-    // Only include if match exists in label or desc (Angular checks formatted != original)
-    if (formattedLabel !== (item.label || '') || formattedDesc !== (item.desclabel || '')) {
-      item.formattedlabel = formattedLabel;
-      item.formatteddesclabel = formattedDesc || item.formatteddesclabel || item.desclabel || '';
-      (item as any).invited = u.status === 'INVITED';
-      results.push(item);
-    }
-  }
-
-  // Then groups
-  const publishableGroups = (groups || [])
-    .filter((g: any) => g.isListable !== false)
-    .slice()
-    .sort((a: any, b: any) => (b.rank || 0) - (a.rank || 0));
-
-  for (let i = 0; i < publishableGroups.length && results.length < maxResults; i++) {
-    const g: any = publishableGroups[i];
-    const item = createGroupListItem(g);
-    const formattedLabel = highlight(item.label || '');
-    if (formattedLabel !== (item.label || '')) {
-      item.formattedlabel = formattedLabel;
-      item.formatteddesclabel = 'Group';
-      results.push(item);
-    }
-  }
-
-  return results;
+  // Angular ordering: users first, then groups
+  return [...users, ...groups].slice(0, maxResults);
 }
 
-/**
- * Hook to fetch users
- */
-export function useUsers() {
-  return useQuery({
+export function useUsers(enabled: boolean = true) {
+  const { loginData, user, account } = useAuthStore();
+
+  return useQuery<UsersQueryData, ApiError>({
     queryKey: ['users'],
+    enabled: enabled && !!loginData && !!user && !!account,
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const response = await usersService.getUsers();
-      // Convert users_data array to map for easier lookup
-      const usersMap: Record<string, User> = {};
-      if (response.data.users_data) {
-        response.data.users_data.forEach((user: any) => {
-          const userId = user.user_id || user.userId || user.id;
-          if (userId) {
-            usersMap[userId] = user;
-          }
-        });
-      }
-      return {
-        users: usersMap,
-        usersArray: response.data.users_data || [],
-        accountDataRevisionNumber: response.data.account_data_revision_number,
-      };
+      // Backend normally returns { users: {id -> user} }
+      const users = (response.data as any)?.users || (response.data as any) || {};
+      const usersArray = Object.values(users || {}) as User[];
+      return { users, usersArray };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
   });
 }
 

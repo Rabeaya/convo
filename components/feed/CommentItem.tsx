@@ -8,7 +8,7 @@
  * Exact 1:1 match with AngularJS implementation
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Comment } from '@/lib/api/feed';
 import { User } from '@/lib/api/auth';
 import { useFeedContext } from '@/lib/contexts/FeedContext';
@@ -20,10 +20,26 @@ import { commentsService } from '@/lib/api/comments';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { formatDateAgo } from '@/lib/utils/dateFormat';
 import CommentFileAttachments from './CommentFileAttachments';
-import { promptModal } from '@/lib/utils/modal.tsx';
+import { promptModal } from '@/lib/utils/modal';
 import { getFileExtension, getSmallFileIconClassByType } from '@/lib/utils/file-icons';
 import CommentOnThisTooltip from '@/components/common/CommentOnThisTooltip';
 import { clearNativeSelection, getSelectionDataWithin } from '@/lib/utils/text-selection';
+
+function ViewAllCommentsGap({ onClick }: { onClick: () => void }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setVisible(true), 1000); // Angular: removes ng-hide after ~1000ms
+    return () => window.clearTimeout(t);
+  }, []);
+  return (
+    <div
+      className={`show-all-cont animate-bottom-up ${visible ? '' : 'ng-hide'}`}
+      onClick={onClick}
+    >
+      View all comments
+    </div>
+  );
+}
 
 interface CommentItemProps {
   comment: Comment;
@@ -346,8 +362,31 @@ export default function CommentItem({
 
   const [isHovered, setIsHovered] = useState(false);
 
+  const limitToWithEllipsis = useCallback((txt: string, max: number) => {
+    const s = String(txt ?? '');
+    if (s.length <= max) return s;
+    return `${s.slice(0, max)}...`;
+  }, []);
+
+  // Smooth hide/show during thread playback: mimic jQuery slideUp(700) by animating to the real height (not a huge maxHeight).
+  const commentContRef = useRef<HTMLDivElement>(null);
+  const [measuredMaxHeight, setMeasuredMaxHeight] = useState<number>(1000);
+  useLayoutEffect(() => {
+    const el = commentContRef.current;
+    if (!el) return;
+    const measure = () => {
+      // scrollHeight is stable even when maxHeight is constrained; use it to get full expanded height
+      setMeasuredMaxHeight(Math.max(0, el.scrollHeight));
+    };
+    measure();
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div 
+      ref={commentContRef}
       className={[
         'comment-cont',
         threadPlayback?.isSourcePointer ? 'source-comment-pointer' : '',
@@ -358,10 +397,13 @@ export default function CommentItem({
       style={{
         backgroundColor: '#f2f4f8',
         position: 'relative',
-        maxHeight: isHiddenByThreadPlayback ? '0px' : '1000px',
-        overflow: 'hidden',
+        maxHeight: isHiddenByThreadPlayback ? '0px' : `${measuredMaxHeight}px`,
+        // IMPORTANT: When visible, allow overflow so `.show-all-cont` (bottom:-8px) isn't clipped.
+        // When hidden (thread playback), clip like Angular's slideUp.
+        overflow: isHiddenByThreadPlayback ? 'hidden' : 'visible',
         opacity: isHiddenByThreadPlayback ? 0 : 1,
         transition: 'max-height 700ms ease, opacity 250ms ease',
+        pointerEvents: isHiddenByThreadPlayback ? 'none' : 'auto',
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -373,6 +415,7 @@ export default function CommentItem({
           position: 'relative',
           padding: '10px 0px',
           borderBottom: '1px solid #e0e0e0',
+          // Angular parity: `.comment { width: 473px; }`
           width: '473px',
         }}
       >
@@ -391,7 +434,6 @@ export default function CommentItem({
           marginLeft: '10px',
           width: '40px',
           height: '40px',
-          position: 'relative',
         }}>
           <a href={`#/feed?filter=user:${localComment.from_user}`}>
             <UserProfileImage
@@ -553,7 +595,7 @@ export default function CommentItem({
             )}
           </div>
 
-          {/* Snippet blocks (partial parity) */}
+          {/* Snippet blocks (Angular parity: cnvComment.tpl.html) */}
           {snippetData?.text && !snippetData?.source && (resourceHierarchy?.length || 0) < 2 && appInstanceId !== 4 && (
             <a
               className="comment-snippet-attachment"
@@ -565,7 +607,23 @@ export default function CommentItem({
             >
               <div className="snippet-wrapper note-file-snippet">
                 <div className="textSnippet">
-                  <span>{String(snippetData.text).slice(0, 100)}</span>
+                  <span>{limitToWithEllipsis(String(snippetData.text), 100)}</span>
+                </div>
+              </div>
+            </a>
+          )}
+
+          {snippetData?.text && !snippetData?.source && ((resourceHierarchy?.length || 0) > 1 || appInstanceId === 4) && (
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                onPostSnippetPlayback?.(snippetData, localComment.uid);
+              }}
+            >
+              <div className="snippet-wrapper note-file-snippet">
+                <div className="textSnippet">
+                  <span>{limitToWithEllipsis(String(snippetData.text), 100)}</span>
                 </div>
               </div>
             </a>
@@ -573,16 +631,14 @@ export default function CommentItem({
 
           {snippetData?.text && snippetData?.source === 'comment' && (
             <a
-              className="comment-snippet-link"
-              href="#"
               onClick={(e) => {
-                e.preventDefault();
+                e.preventDefault(); // keep anchor semantics but match Angular "no href"
                 handleViewThreadClick();
               }}
             >
               <div className="snippet-wrapper comment-snippet">
                 <div className="textSnippet">
-                  <span>{String(snippetData.text).slice(0, 100)}</span>
+                  <span>{limitToWithEllipsis(String(snippetData.text), 100)}</span>
                 </div>
           </div>
             </a>
@@ -799,12 +855,7 @@ export default function CommentItem({
           )}
         {/* "View all comments" gap button (Angular appends this inside `.comment`) */}
         {threadPlayback?.showViewAllButton && (
-          <div
-            className="show-all-cont animate-bottom-up"
-            onClick={() => onHideThread?.()}
-          >
-            View all comments
-          </div>
+          <ViewAllCommentsGap onClick={() => onHideThread?.()} />
         )}
         </div>
       </div>

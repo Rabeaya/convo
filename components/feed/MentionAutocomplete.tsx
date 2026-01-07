@@ -191,7 +191,7 @@ export default function MentionAutocomplete({
                   className="sec-label"
                   dangerouslySetInnerHTML={{ __html: item.formatteddesclabel || item.desclabel || '' }}
                 />
-                {(item as any).invited ? <status className="list-item-status light">Invited</status> : null}
+                {(item as any).invited ? <span className="list-item-status light">Invited</span> : null}
               </div>
             </a>
           </li>

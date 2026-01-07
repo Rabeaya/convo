@@ -60,18 +60,18 @@ export default function UserProfileImage({
   const userProfileVersion = profileVersion ?? (userData as any)?.profile_image_version;
   const userName = fullName || (userData ? getUserInitials(userData) : null) || userId;
 
-  // Get image URL (matches AngularJS userImgUrl filter)
-  // Get servicesHost from window (matches AngularJS config.AWS_FILE_DIR_BASE)
-  const servicesHost = typeof window !== 'undefined' ? (window as any).servicesHost : undefined;
-  const userSerialNo = (userData as any)?.serialNo;
-  
+  // Get image URL
+  // IMPORTANT: servicesHost can be undefined on the window; never pass undefined to URL builder.
+  const servicesHost =
+    typeof window !== 'undefined'
+      ? (window as any).servicesHost || 'app14.convodev.net'
+      : 'app14.convodev.net';
   const imageUrl = getUserProfileImageUrl(
     userId,
     userProfileType,
     userProfileVersion,
     size,
-    servicesHost,
-    userSerialNo
+    servicesHost
   );
   
   // Debug logging (remove in production)
@@ -90,45 +90,8 @@ export default function UserProfileImage({
   const initials = getUserInitials(userData || { user_id: userId, name: userName } as User);
   const backgroundColor = stringToColor(userName);
 
-  // Check if we should show initials immediately (no profile image data)
-  // AngularJS treats profile type/version as number or string and does loose checks.
-  const profileTypeNum = userProfileType === undefined || userProfileType === null ? NaN : Number(userProfileType as any);
-  const profileVersionNum = userProfileVersion === undefined || userProfileVersion === null ? NaN : Number(userProfileVersion as any);
-  const shouldShowInitialsImmediately =
-    !userId ||
-    profileTypeNum === 0 ||
-    String(userProfileType) === '0' ||
-    !userProfileVersion ||
-    profileVersionNum === 0 ||
-    String(userProfileVersion) === '0';
-
-  // If we know it's a default image, show initials immediately
-  if (shouldShowInitialsImmediately) {
-    return (
-      <span
-        className={`img-circle ${className}`}
-        style={{
-          height: `${heightNum}px`,
-          width: `${widthNum}px`,
-          fontStyle: 'normal',
-          lineHeight: `${heightNum}px`,
-          textAlign: 'center',
-          fontWeight: 100,
-          fontSize: 'inherit',
-          letterSpacing: '-1px',
-          backgroundColor: backgroundColor,
-          borderRadius: '50%',
-          display: 'inline-block',
-          color: '#fff',
-          border: showBorder ? '2px solid white' : 'none',
-        }}
-      >
-        {initials}
-      </span>
-    );
-  }
-
-  // Try to load the image - show initials as placeholder, then image when loaded
+  // Angular parity: always attempt to load the computed thumbnail URL (default/system/custom),
+  // and use initials only as a placeholder/fallback if the image can't load.
   return (
     <span style={{ position: 'relative', display: 'inline-block', width: `${widthNum}px`, height: `${heightNum}px` }}>
       {/* Placeholder initials - shown while loading or on error */}

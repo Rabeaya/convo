@@ -47,6 +47,7 @@ export interface Comment {
   resource_id: string;
   from_user: string;
   comment_text: string;
+  summary?: string;
   comment_text_less?: string;
   comment_text_less_snippet?: string;
   has_more_text?: boolean;

@@ -105,7 +105,7 @@ export default function FileGallery({ files, noteId, resourceType, appId, isActi
             whiteSpace: 'nowrap',
           }}>
             {files.map((file, index) => {
-              const fileId = file.file_id || file.id;
+              const fileId = String(file.file_id || file.id || index);
               const isVideo = isVideoFile(file) || file.file_format === 'VIDEO';
               const isDoc = file.file_format === 'DOC' || file.file_format === 'OTHER';
               const isGif = file.type === 'gif';
@@ -155,7 +155,7 @@ export default function FileGallery({ files, noteId, resourceType, appId, isActi
               // Get file resource link URL
               const fileUrl = getFileResourceLinkUrl(
                 fileId,
-                file.file_format,
+                String(file.file_format || 'OTHER'),
                 appId,
                 resourceType,
                 noteId,

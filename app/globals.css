@@ -407,6 +407,11 @@ body {
   z-index: 1;
 }
 
+/* Ensure pointer lines position relative to `.comment` like Angular (pic_container is NOT positioned) */
+.comment .pic_container {
+  position: static;
+}
+
 .comment-cont.replied-comment-pointer.thread-t-pad .comment {
   transition: padding-top 150ms;
 }
@@ -435,12 +440,22 @@ body {
   left: 50%;
   bottom: -8px;
   cursor: pointer;
+  width: 118px;        /* Angular centers via margin-left:-59px (implicit pill width) */
   margin-left: -59px;
   font-size: 13px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  isolation: isolate; /* keep ::before/::after behind the pill text */
+  height: 20px;       /* Angular pill effectively centers around 20px */
+  line-height: 20px;
 }
 
 .show-all-cont:hover {
   color: #585858;
+}
+
+.show-all-cont.ng-hide {
+  display: none;
 }
 
 .show-all-cont:before {
@@ -448,9 +463,11 @@ body {
   position: absolute;
   left: -120px;
   width: 120px;
-  top: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   height: 1px;
   background-color: #e0e0e0;
+  z-index: -1;
 }
 
 .show-all-cont:after {
@@ -458,9 +475,11 @@ body {
   position: absolute;
   right: -120px;
   width: 120px;
-  top: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   height: 1px;
   background-color: #e0e0e0;
+  z-index: -1;
 }
 
 /* reply-arrow icon (AngularJS uses img/common/reply_arrow.png) */
@@ -723,13 +742,40 @@ body {
 }
 
 .comment .snippet-wrapper.comment-snippet .textSnippet {
-  background: #dde2ea;
+  /* Match the "paper" snippet style (torn edge + corner), per reference UI */
+  background: #fff;
   padding: 8px 10px;
   word-break: break-word;
   font-style: italic;
   color: #2b2b2b;
-  border-radius: 3px;
   position: relative;
+}
+
+.comment .snippet-wrapper.comment-snippet .textSnippet:after {
+  content: '';
+  width: 100%;
+  display: block;
+  height: 6px;
+  position: absolute;
+  background-image: var(--cnv-torn-edge-url);
+  bottom: -6px;
+  left: 0;
+  background-repeat-y: no-repeat;
+  background-repeat-x: repeat;
+}
+
+.comment .snippet-wrapper.comment-snippet .textSnippet:before {
+  content: '';
+  width: 100%;
+  display: block;
+  height: 13px;
+  position: absolute;
+  background-image: var(--cnv-snippet-corner-url);
+  top: 0;
+  right: 0;
+  background-repeat: no-repeat;
+  background-position: right;
+  background-size: 13px 13px;
 }
 
 .comment .snippet-wrapper.note-file-snippet {

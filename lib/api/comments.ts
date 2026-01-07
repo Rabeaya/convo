@@ -424,7 +424,7 @@ export class CommentsService {
     authToken: string,
     userId: string,
     accountId: string,
-    hierarchy?: Array<{ uid: string; type: string; title?: string }>,
+    hierarchy?: Array<{ uid?: string; type?: string; title?: string; created_by?: string; version?: string }>,
     collaborationInfo?: { replied_to_comment_id?: string; replied_to_user_id?: string; parent_resource_index?: number } | null,
     replyEventData?: { citem_uid: string; from_user: string } | null,
     conversationUID?: string

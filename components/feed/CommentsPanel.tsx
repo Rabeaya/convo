@@ -107,7 +107,7 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
         const existingCommentsMap = new Map(prevComments.map(c => [c.uid, c]));
         
         // Update or add comments from feed item
-        item.conversations.forEach((comment: Comment) => {
+        item.conversations?.forEach((comment: Comment) => {
           if (comment.uid) {
             existingCommentsMap.set(comment.uid, comment);
           }
@@ -294,7 +294,17 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
     const cRect = container.getBoundingClientRect();
     const eRect = el.getBoundingClientRect();
     const delta = eRect.top - cRect.top;
-    container.scrollTop = container.scrollTop + delta;
+    // Angular: commentsPanelContainer.animate({ scrollTop: top }, { duration: 100 })
+    const start = container.scrollTop;
+    const target = start + delta;
+    const duration = 100;
+    const t0 = performance.now();
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - t0) / duration);
+      container.scrollTop = start + (target - start) * p;
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   };
 
   const handleUnHideAll = (commentId?: string) => {
@@ -454,27 +464,36 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
           threadTPad,
         });
 
-        // Mirrors Angular: $broadcast('Comments:highlightText', actionComments[1], data.snippet_data)
-        const snippetObj = collaborationInfo?.snippet_data;
-        const sd = snippetObj?.data || snippetObj?.snippetData?.data || snippetObj?.snippetData || null;
-        const highlightCommentId = actionComments[1];
-        if (sd && highlightCommentId && commentsContainerRef.current) {
-          const commentEl = commentsContainerRef.current.querySelector(`#${CSS.escape(highlightCommentId)}`) as HTMLElement | null;
-          const inner = commentEl?.querySelector('.comment_txt .comment-inner') as HTMLElement | null;
-          if (inner) {
-            rmAllSelections();
-            selectTextNested({
-              commentId: highlightCommentId,
-              data: sd,
-              nodes: inner,
-              scrollContainer: commentsContainerRef.current,
-              highlight: true,
-              highlightRemoveTime: null,
-              selectionOffset: 10,
-              getContent: () => inner.innerText.replace(/\n/g, ''),
-            });
+        // Mirrors Angular: $broadcast('Comments:highlightText', actionComments[1], data.snippet_data) after a small delay
+        // (Angular does _timer + 50 to allow DOM + showMore changes to settle).
+        window.setTimeout(() => {
+          const snippetObj = collaborationInfo?.snippet_data;
+          const sd = snippetObj?.data || snippetObj?.snippetData?.data || snippetObj?.snippetData || null;
+          const highlightCommentId = actionComments[1];
+          if (sd && highlightCommentId && commentsContainerRef.current) {
+            const commentEl = commentsContainerRef.current.querySelector(
+              `#${CSS.escape(highlightCommentId)}`
+            ) as HTMLElement | null;
+            // Angular: element.find('.comment_txt .comment-inner:visible')[0]
+            const inner =
+              (commentEl?.querySelector('.comment_txt .comment-inner-full') as HTMLElement | null) ||
+              (commentEl?.querySelector('.comment_txt .comment-inner-less') as HTMLElement | null) ||
+              (commentEl?.querySelector('.comment_txt .comment-inner') as HTMLElement | null);
+            if (inner) {
+              rmAllSelections();
+              selectTextNested({
+                commentId: highlightCommentId,
+                data: sd,
+                nodes: inner,
+                scrollContainer: commentsContainerRef.current,
+                highlight: true,
+                highlightRemoveTime: null,
+                selectionOffset: 10,
+                getContent: () => inner.innerText.replace(/\n/g, ''),
+              });
+            }
           }
-        }
+        }, 50);
 
         // bring start of thread in view (matches Angular)
         window.setTimeout(() => {
@@ -491,7 +510,7 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
     if (localHasRepliedTo) {
       // Determine if first comment of thread exists; if not, fetch all (matches Angular logic)
       let commentId: string | null = collaborationInfo.replied_to_comment_id;
-      let lastCommentId: string = commentId;
+      let lastCommentId: string = collaborationInfo.replied_to_comment_id;
 
       for (let idx = allComments.length - 1; idx >= 0; idx--) {
         const c: any = allComments[idx];
@@ -569,12 +588,13 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
           if (updatedItem && updatedItem.conversations) {
             // Merge comments from poll response (matches AngularJS updateCommentsDataReceivedInFeedPoll)
             // Deduplicate by uid to avoid duplicate keys
+            const convs = updatedItem.conversations;
             setAllComments((prevComments) => {
               // Create a map of existing comments by uid
               const existingCommentsMap = new Map(prevComments.map(c => [c.uid, c]));
               
               // Update or add comments from poll response
-              updatedItem.conversations.forEach((comment: Comment) => {
+              convs.forEach((comment: Comment) => {
                 if (comment.uid) {
                   existingCommentsMap.set(comment.uid, comment);
                 }

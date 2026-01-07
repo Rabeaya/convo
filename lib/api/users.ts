@@ -9,30 +9,13 @@ import type { ApiResponse } from './client';
 import type { User } from './auth';
 
 export interface UsersResponse {
-  users_data?: User[];
-  users?: Record<string, User>;
-  account_data_revision_number?: number;
-}
-
-export interface UserListItem {
-  id: string;
-  label: string;
-  formattedlabel: string;
-  labelisemail?: boolean;
-  labelisphone?: boolean;
-  type?: 'USER' | 'GROUP' | 'CONTACT';
-  imgUrl?: string;
-  classes?: string;
-  isGuestUser?: boolean;
-  status?: string;
-  rank?: number;
+  users: Record<string, User>;
 }
 
 export class UsersService {
   /**
    * Get users list
-   * Matches AngularJS Users.getUsers() -> serverComm.getx('users')
-   * Returns array of users (matches AngularJS usersArray)
+   * Note: Users are typically included in feed response, but this can be used for standalone fetching
    */
   async getUsers(): Promise<ApiResponse<UsersResponse>> {
     try {
@@ -69,89 +52,45 @@ export class UsersService {
       throw error;
     }
   }
-
-  /**
-   * Get publishable users (for @mentions)
-   * Matches AngularJS Users.getPublishableUsers()
-   */
-  async getPublishableUsers(): Promise<User[]> {
-    const response = await this.getUsers();
-    if (response.data.users_data) {
-      // Filter publishable users (matches AngularJS logic)
-      return response.data.users_data.filter((user: any) => user.publishable && user.status !== 'INVITED');
-    }
-    return [];
-  }
-
-  /**
-   * Get searchable users
-   * Matches AngularJS Users.getSearchableUsers()
-   */
-  async getSearchableUsers(): Promise<User[]> {
-    const response = await this.getUsers();
-    if (response.data.users_data) {
-      // Filter searchable users (matches AngularJS logic)
-      return response.data.users_data.filter((user: any) => user.searchable);
-    }
-    return [];
-  }
 }
 
 export const usersService = new UsersService();
 
 /**
  * Helper function to get user profile image URL
- * Matches AngularJS userImgUrl filter exactly
- * Uses config.AWS_FILE_DIR_BASE pattern: "https://{servicesHost}/api/v1/files/"
+ * Matches AngularJS userImgUrl filter
  */
 export function getUserProfileImageUrl(
   userId: string | undefined,
-  profileImageType: number | string | undefined,
-  profileImageVersion: number | string | undefined,
+  profileImageType: number | any,
+  profileImageVersion: number | any,
   size: string = '48x48',
-  servicesHost?: string,
-  userSerialNo?: number
+  servicesHost: string =
+    typeof window !== 'undefined'
+      ? (window as any).servicesHost || 'app14.convodev.net'
+      : 'app14.convodev.net'
 ): string {
   const PROFILE_IMAGE_TYPE_SYSTEM = 2;
   const PROFILE_IMAGE_TYPE_CUSTOM = 1;
   const PROFILE_IMAGE_TYPE_DEFAULT = 0;
 
-  // AngularJS receives these as ints from Users service and as strings from Feed service.
-  // It compares with loose equality; normalize to match behavior.
-  const typeNum = profileImageType === undefined || profileImageType === null ? NaN : Number(profileImageType);
-  const versionNum = profileImageVersion === undefined || profileImageVersion === null ? NaN : Number(profileImageVersion);
+  const host = servicesHost || 'app14.convodev.net';
+  const baseUrl = `https://${host}/api/v1/files/`;
 
-  // Get servicesHost from window or use default (matches AngularJS config.AWS_FILE_DIR_BASE)
-  const host = servicesHost || 
-    (typeof window !== 'undefined' ? (window as any).servicesHost : undefined) || 
-    'app14.convodev.net';
-  
-  // Base URL matches AngularJS: config.AWS_FILE_DIR_BASE = "https://{servicesHost}/api/v1/files/"
-  let baseUrl = `https://${host}/api/v1/files/`;
-  
-  // For load balancing (matches AngularJS getLoadBalancedAwsFileDirBase)
-  // Note: AngularJS uses this for userSerialNo, but we'll use baseUrl for now
-  // if (userSerialNo !== undefined) {
-  //   baseUrl = config.getLoadBalancedAwsFileDirBase(userSerialNo);
-  // }
+  const typeNum = Number(profileImageType);
+  // Loose check is intentional: backend sometimes sends "0" as a string.
+  const versionIsZero = profileImageVersion == 0;
 
-  // Handle profile image type (matches AngularJS userImgUrl filter exactly)
-  if (userId && (typeNum === PROFILE_IMAGE_TYPE_SYSTEM || String(profileImageType) === '2')) {
+  if (userId && typeNum === PROFILE_IMAGE_TYPE_SYSTEM) {
     return baseUrl + `user-images/system-user/thumbnails/system-user-thumbnail-${size}.png`;
   }
   
   // Default user image if no userId, or profileImageType is 0, or profileImageVersion is 0
-  // Note: AngularJS checks profileImageVersion == 0 (loose equality, so string "0" also matches)
-  if (!userId || 
-      typeNum === PROFILE_IMAGE_TYPE_DEFAULT || 
-      String(profileImageType) === '0' ||
-      !profileImageVersion || 
-      versionNum === 0 ||
-      String(profileImageVersion) === '0') {
+  if (!userId || typeNum === PROFILE_IMAGE_TYPE_DEFAULT || profileImageVersion == null || versionIsZero) {
     return baseUrl + `user-images/default-user/thumbnails/default-user-thumbnail-${size}.png`;
   }
   
-  if (typeNum === PROFILE_IMAGE_TYPE_CUSTOM || String(profileImageType) === '1') {
+  if (typeNum === PROFILE_IMAGE_TYPE_CUSTOM) {
     return baseUrl + `user-images/${userId}/thumbnails/${userId}-thumbnail-${size}-${profileImageVersion}.jpg`;
   }
 
