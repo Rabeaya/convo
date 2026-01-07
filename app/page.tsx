@@ -3,7 +3,7 @@
 /**
  * Root Page
  * 
- * Redirects to login if not authenticated, otherwise to home
+ * Redirects to login if not authenticated, otherwise to feed (home experience)
  */
 
 import { useEffect } from 'react';
@@ -25,9 +25,9 @@ export default function RootPage() {
       const sessionResponse = sessionData as ApiResponse<SessionCheckResponse> | undefined;
       const isSignedIn = sessionResponse?.data?.isSignedIn || isAuthenticated || !!loginData;
       if (isSignedIn) {
-        router.push('/home');
+        router.replace('/feed');
       } else {
-        router.push('/login');
+        router.replace('/login');
       }
     }
   }, [isLoading, sessionData, isAuthenticated, loginData, router]);

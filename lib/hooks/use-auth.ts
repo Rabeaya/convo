@@ -109,7 +109,7 @@ export function useLogin() {
 
       // Get redirect URL from query params or use default
       const urlParams = new URLSearchParams(window.location.search);
-      const redirectTo = urlParams.get('redirect') || '/home';
+      const redirectTo = urlParams.get('redirect') || '/feed';
 
       // Redirect based on account status (matching AngularJS behavior)
       if (response.data.is_account_blocked === 1) {

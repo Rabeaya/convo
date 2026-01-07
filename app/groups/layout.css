@@ -1,0 +1,53 @@
+/* ============================================
+   Groups Directory Layout Styles
+   Specific styles for groups directory page
+   ============================================ */
+
+/* Header theme override (Groups Directory only)
+   AngularJS uses `.home-view .header-bar-container > .header-content-wrapper > div { background: #f2f4f8; }`
+   We apply the same background color here, scoped to this route segment. */
+.header-bar-container > .header-content-wrapper > div {
+  background: #f2f4f8;
+}
+
+/* Groups Directory: ensure network-logo area matches AngularJS (colors only)
+   AngularJS has a dark logo block and white text inside it. */
+.header-bar-container > .header-content-wrapper .network-logo-wrapper {
+  background: #1b2634;
+  border-bottom: 1px solid #1b2634;
+}
+
+.header-bar-container > .header-content-wrapper .network-logo-container {
+  color: #fff;
+}
+
+.header-bar-container > .header-content-wrapper .network-logo-container a,
+.header-bar-container > .header-content-wrapper .network-logo-container .name {
+  color: #fff;
+}
+
+/* Groups Directory Wrapper */
+.groups-directory-wrapper {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.groups-directory-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.groups-directory-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.groups-directory-wrapper::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.groups-directory-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+
