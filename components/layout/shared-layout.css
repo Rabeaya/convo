@@ -1,0 +1,144 @@
+/* ============================================
+   Shared Layout Styles
+   Common styles for all layouts (header, base container, etc.)
+   ============================================ */
+
+/* Base Container */
+.home-container {
+  height: 100vh;
+  max-width: 1440px;
+  min-width: 1295px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.home-container.home-container-feed {
+  min-width: 690px;
+  height: 100%;
+}
+
+/* Home Body */
+.home-body {
+  position: relative;
+  top: 60px;
+  max-width: 1440px;
+  margin: 0 auto !important;
+  background: #fff;
+  height: calc(100vh - 60px);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.home-body.home-body-feed {
+  height: calc(100% - 60px);
+}
+
+/* Center Panel Container */
+.center-panel-container {
+  display: block;
+  vertical-align: top;
+  white-space: normal;
+  width: 100%;
+  margin-left: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.center-panel-container.center-panel-feed {
+  display: inline-block;
+  width: 572px;
+  margin-left: 235px;
+}
+
+/* Left Panel Container */
+.left-panel-container {
+  padding: 0;
+  min-height: 2px;
+}
+
+/* Header Styles - Exact match from AngularJS index.php */
+.header-bar-container {
+  position: fixed;
+  width: 100%;
+  left: 0;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  min-width: 690px;
+  z-index: 102;
+  height: 60px;
+}
+
+.header-bar-container > .header-content-wrapper {
+  max-width: 1440px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.header-bar-container > .header-content-wrapper > div {
+  height: 60px;
+  position: relative;
+  background: #f5f7fc;
+}
+
+.home-view .header-bar-container > .header-content-wrapper > div {
+  background: #f2f4f8;
+}
+
+.header-bar-container > .header-content-wrapper .network-logo-wrapper {
+  max-width: 235px;
+  background: #1b2634;
+  height: 60px;
+  border-bottom: 1px solid #1b2634;
+  position: relative;
+}
+
+.header-bar-container > .header-content-wrapper .network-logo-container {
+  display: table;
+  height: 60px;
+  padding-left: 15px;
+}
+
+.header-bar-container > .header-content-wrapper .network-logo-container .logo {
+  max-width: 150px;
+  max-height: 56px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.header-bar-container > .header-content-wrapper .network-logo-container .name {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 10px;
+}
+
+.header-bar-container > .header-content-wrapper .top-search-wrapper {
+  max-width: 576px;
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1px 0 3px;
+}
+
+.header-bar-container .right-column {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 60px;
+  padding: 0 15px 0 0;
+  text-align: right;
+  line-height: 53px;
+  z-index: 1;
+}
+
+.header-bar-container .separator {
+  width: 1px;
+  border: 0;
+  display: inline-block;
+  background-color: #e0e0e0;
+  height: 31px;
+  top: 12px;
+  position: relative;
+  margin: 0px 2px 0px 15px;
+  padding-top: 20px;
+}
+

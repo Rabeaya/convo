@@ -1,52 +1,32 @@
-'use client';
-
 /**
- * Home Page
- * 
- * Main application home page after login
- * This is the feed/center panel content
+ * Deprecated Home Route
+ *
+ * `/feed` is the single source of truth for the home experience.
+ * Keep `/home` for backward compatibility, but redirect to `/feed`.
  */
 
-import { useAuthStore } from '@/lib/stores/auth-store';
-import { useSession } from '@/lib/hooks/use-auth';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import type { ApiResponse } from '@/lib/api/client';
-import type { SessionCheckResponse } from '@/lib/api/auth';
-import FeedPage from '@/app/feed/page';
+import { redirect } from 'next/navigation';
 
-export default function HomePage() {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const loginData = useAuthStore((state) => state.loginData);
-  const { data: sessionData, isLoading } = useSession();
-  const router = useRouter();
+type SearchParams = Record<string, string | string[] | undefined>;
 
-  useEffect(() => {
-    // If not authenticated and session check fails, redirect to login
-    if (!isLoading && (!isAuthenticated && !loginData && !(sessionData as ApiResponse<SessionCheckResponse> | undefined)?.data?.isSignedIn)) {
-      router.push('/login');
+function toQueryString(searchParams: SearchParams): string {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const v of value) qs.append(key, v);
+    } else {
+      qs.set(key, value);
     }
-  }, [isAuthenticated, loginData, sessionData, isLoading, router]);
-
-  if (isLoading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <div className="text-center">
-          <div style={{ fontSize: '14px', color: '#272b2c' }}>Loading...</div>
-        </div>
-      </div>
-    );
   }
+  const s = qs.toString();
+  return s ? `?${s}` : '';
+}
 
-  if (!isAuthenticated && !loginData) {
-    return null; // Will redirect
-  }
-
-  return <FeedPage />;
+export default function HomePage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  redirect(`/feed${toQueryString(searchParams)}`);
 }

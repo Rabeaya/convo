@@ -96,11 +96,11 @@ export default function LoginPage() {
       setError(decodeURIComponent(errorMessage));
     }
 
-    // If already logged in, redirect to home
+    // If already logged in, redirect to feed (home experience)
     const sessionResponse = sessionData as ApiResponse<SessionCheckResponse> | undefined;
     if (!sessionLoading && (isAuthenticated || loginData || sessionResponse?.data?.isSignedIn)) {
       const redirectUrl = searchParams.get('redirect');
-      router.push(redirectUrl || '/home');
+      router.push(redirectUrl || '/feed');
     }
   }, [searchParams, isAuthenticated, loginData, sessionData, sessionLoading, router]);
 

@@ -11,6 +11,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useGroups, processGroups } from '@/lib/hooks/use-groups';
 import { Group } from '@/lib/api/groups';
+import CreateGroupModal from '@/components/features/CreateGroupModal';
 
 const DEFAULT_NUMBER_OF_GROUPS_TO_DISPLAY = 5;
 
@@ -18,6 +19,8 @@ export default function LeftSidebar() {
   const [activeFilter, setActiveFilter] = useState('feed');
   const [privateGroupsCollapsed, setPrivateGroupsCollapsed] = useState(true);
   const [publicGroupsCollapsed, setPublicGroupsCollapsed] = useState(true);
+  const [createGroupModalOpen, setCreateGroupModalOpen] = useState(false);
+  const [createGroupType, setCreateGroupType] = useState<'public' | 'private' | null>(null);
 
   const { data: groupsData, isLoading, error } = useGroups();
 
@@ -237,7 +240,14 @@ export default function LeftSidebar() {
         <div className="row no-margin groupsItemsContainer">
           <div className="heading">
             <span>Groups/Channels</span>
-            <i className="cnv-icons-25 icons2_Add-blue" style={{ cursor: 'pointer' }}></i>
+            <i
+              className="cnv-icons-25 icons2_Add-blue"
+              style={{ cursor: 'pointer' }}
+              onClick={() => {
+                setCreateGroupType(null);
+                setCreateGroupModalOpen(true);
+              }}
+            ></i>
           </div>
 
           <ul>
@@ -272,7 +282,15 @@ export default function LeftSidebar() {
                 </li>
                 {privateGroups.length === 0 && displayedPrivateGroups.length === 0 && (
                   <li className="group-intro-item">
-                    <span style={{ cursor: 'pointer' }}>+ Create a private group</span>
+                    <span
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setCreateGroupType('private');
+                        setCreateGroupModalOpen(true);
+                      }}
+                    >
+                      + Create a private group
+                    </span>
                   </li>
                 )}
                 {privateGroups.length === 0 && displayedPrivateGroups.length === 0 && (
@@ -285,7 +303,7 @@ export default function LeftSidebar() {
                   return (
                     <li key={group.id} className="clearfix parent" style={{ marginTop: '5px', position: 'static', minHeight: '28px', padding: '0px 15px 0px 30px' }}>
                       <div className="pull-left" style={{ position: 'relative', maxWidth: '165px' }}>
-                        <i className={`cnv-icons-16 ${getGroupIconClass(group)}`} style={{ marginRight: '5px', float: 'left', display: 'block', marginTop: '0px', cursor: 'pointer' }}></i>
+                        <i className={`cnv-icons-16 ${getGroupIconClass(group)}`} style={{ marginRight: '5px', float: 'none', display: 'block', marginTop: '2px', cursor: 'pointer', flexShrink: 0 }}></i>
                         {group.unreadCount && group.unreadCount > 0 && (
                           <span className="unread-bubble" style={{ position: 'absolute', left: '10px', top: '2px', color: '#4183d7', fontSize: '20px' }}>&middot;</span>
                         )}
@@ -294,8 +312,6 @@ export default function LeftSidebar() {
                           onClick={() => setActiveFilter(`group:${group.id}`)}
                           style={{
                             marginLeft: '10px',
-                            display: 'inline-block',
-                            width: '120px',
                             color: activeFilter === `group:${group.id}` ? '#ffffff' : '#c0c6d5',
                             fontWeight: activeFilter === `group:${group.id}` ? 'bold' : 'normal',
                             textDecoration: 'none',
@@ -349,7 +365,15 @@ export default function LeftSidebar() {
                 </li>
                 {publicGroups.length === 0 && displayedPublicGroups.length === 0 && (
                   <li className="group-intro-item">
-                    <span style={{ cursor: 'pointer' }}>+ Create a public group</span>
+                    <span
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setCreateGroupType('public');
+                        setCreateGroupModalOpen(true);
+                      }}
+                    >
+                      + Create a public group
+                    </span>
                   </li>
                 )}
                 {publicGroups.length === 0 && displayedPublicGroups.length === 0 && (
@@ -362,7 +386,7 @@ export default function LeftSidebar() {
                   return (
                     <li key={group.id} className="clearfix parent" style={{ marginTop: '5px', position: 'static', minHeight: '28px', padding: '0px 15px 0px 30px' }}>
                       <div className="pull-left" style={{ position: 'relative', maxWidth: '165px' }}>
-                        <i className={`cnv-icons-16 ${getGroupIconClass(group)}`} style={{ marginRight: '5px', float: 'left', display: 'block', marginTop: '0px', cursor: 'pointer' }}></i>
+                        <i className={`cnv-icons-16 ${getGroupIconClass(group)}`} style={{ marginRight: '5px', float: 'none', display: 'block', marginTop: '2px', cursor: 'pointer', flexShrink: 0 }}></i>
                         {group.unreadCount && group.unreadCount > 0 && (
                           <span className="unread-bubble" style={{ position: 'absolute', left: '10px', top: '2px', color: '#4183d7', fontSize: '20px' }}>&middot;</span>
                         )}
@@ -371,8 +395,6 @@ export default function LeftSidebar() {
                           onClick={() => setActiveFilter(`group:${group.id}`)}
                           style={{
                             marginLeft: '10px',
-                            display: 'inline-block',
-                            width: '120px',
                             color: activeFilter === `group:${group.id}` ? '#ffffff' : '#c0c6d5',
                             fontWeight: activeFilter === `group:${group.id}` ? 'bold' : 'normal',
                             textDecoration: 'none',
@@ -440,6 +462,19 @@ export default function LeftSidebar() {
         {/* Background div for overflow fix */}
         <div className="background-div"></div>
       </div>
+
+      {/* Create Group Modal */}
+      <CreateGroupModal
+        open={createGroupModalOpen}
+        onOpenChange={setCreateGroupModalOpen}
+        createPublic={createGroupType === 'public'}
+        createPrivate={createGroupType === 'private'}
+        onGroupCreated={(groupId) => {
+          console.log('Group created:', groupId);
+          // TODO: Refresh groups list or navigate to the new group
+          setCreateGroupModalOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -50,6 +50,8 @@ export interface Account {
   account_id: string;
   account_name: string;
   account_key: string;
+  image_type?: number; // 0 = default logo, > 0 = custom image
+  image_version?: number; // Image version number
   [key: string]: unknown;
 }
 

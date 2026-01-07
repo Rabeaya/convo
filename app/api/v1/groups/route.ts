@@ -141,3 +141,64 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+    const API_VERSION = 'v1';
+    
+    // Groups endpoint uses regular API path
+    const url = `https://${SERVICES_HOST}/api/${API_VERSION}/groups`;
+    
+    // Forward cookies from the request
+    const cookieHeader = request.headers.get('cookie') || '';
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': cookieHeader,
+      },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Create Group API error:', response.status, errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      return NextResponse.json(
+        errorData,
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    
+    // Forward set-cookie headers if present
+    const setCookieHeaders = response.headers.getSetCookie();
+    const nextResponse = NextResponse.json(data, {
+      status: response.status,
+    });
+
+    if (setCookieHeaders.length > 0) {
+      setCookieHeaders.forEach((cookie) => {
+        nextResponse.headers.append('Set-Cookie', cookie);
+      });
+    }
+
+    return nextResponse;
+  } catch (error: any) {
+    console.error('Create Group API error:', error);
+    return NextResponse.json(
+      { error: `Failed to create group: ${error.message || 'Unknown error'}` },
+      { status: 500 }
+    );
+  }
+}
+

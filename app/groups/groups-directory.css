@@ -1,0 +1,492 @@
+/* ============================================
+   Groups Directory Styles
+   Exact match to AngularJS cnvGroupsDirectory.less
+   ============================================ */
+
+.groups-directory-container {
+  padding-top: 0; /* Header is handled by layout */
+  max-width: 100%; /* Full width within center panel */
+  min-width: 1295px; /* @cnv-user-group-view-min-width */
+  background: white;
+  height: 100%;
+  margin: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.groups-directory-container .loading-spinner {
+  position: absolute;
+  left: 50%;
+  margin-left: -16px;
+  top: 50%;
+  margin-top: -16px;
+}
+
+.groups-directory-container input[type="text"],
+.groups-directory-container textarea {
+  outline: none !important;
+}
+
+.groups-directory-container span.meta-txt {
+  font-size: 14px; /* @cnv-secondary-txt-size-14 */
+  color: #7b8386; /* @dimTextColor */
+}
+
+.groups-directory-container .divider {
+  background-color: #f2f4f8 !important; /* @cnv-gray-light */
+}
+
+.groups-directory-container .disabledBtn {
+  color: #7b8386; /* @gray-base */
+  background-color: #f2f4f8; /* @cnv-gray-light */
+  border: 1px solid #f2f4f8; /* @cnv-gray-light */
+}
+
+/* App Header */
+.groups-directory-container .app-header {
+  height: 105px; /* @cnv-app-large-header-height2 */
+  background-color: #1e2e3d; /* @cnv-app-header-color-dark */
+  width: 100%;
+}
+
+.groups-directory-container .app-header .app-header-left-content {
+  float: left;
+  position: relative;
+  top: 38px;
+  left: 67px;
+}
+
+.groups-directory-container .app-header .app-header-left-content .heading-txt {
+  font-size: 24px; /* @cnv-secondary-txt-size-24 */
+  font-weight: bold;
+  color: #f2f4f8; /* @cnv-gray-light */
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.groups-directory-container .app-header .app-header-right-content {
+  float: right;
+  position: relative;
+  top: 38px;
+  right: 136px;
+}
+
+.groups-directory-container .app-header button {
+  width: 200px;
+}
+
+/* Button styles for Create Group button - matching AngularJS btn-primary */
+.groups-directory-container .app-header .btn-primary {
+  color: #ffffff; /* @primary-white */
+  background-color: #4183d7; /* @convo-primary / @cnv-blue */
+  border-color: #4183d7; /* @convo-primary / @cnv-blue */
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: normal;
+  padding: 9px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #4183d7;
+  font-size: 14px;
+  line-height: 1.42857143;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  display: inline-block;
+  text-decoration: none;
+}
+
+.groups-directory-container .app-header .btn-primary:hover,
+.groups-directory-container .app-header .btn-primary:focus,
+.groups-directory-container .app-header .btn-primary:active {
+  background: #3371bd; /* @cnv-blue-dark / @btn-global */
+  border-color: #4183d7; /* @convo-primary */
+  color: #ffffff;
+}
+
+/* Sub Header */
+.groups-directory-container .app-sub-header {
+  height: 40px; /* @cnv-app-sub-header-height */
+  background-color: #f2f4f8; /* @cnv-app-header-color-light */
+}
+
+.groups-directory-container .app-sub-header a {
+  text-decoration: none;
+}
+
+.groups-directory-container .app-sub-header > a:first-child {
+  margin-left: 77px;
+}
+
+.groups-directory-container .app-sub-header > a {
+  display: inline-block;
+  vertical-align: middle;
+  width: 158px;
+  height: 44px;
+  margin-right: 75px;
+  text-align: center;
+  line-height: 40px; /* @cnv-app-sub-header-height */
+  font-size: 18px; /* @cnv-secondary-txt-size-18 */
+  color: #1e2e3d; /* @cnv-app-header-color-dark */
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.groups-directory-container .app-sub-header > a.active {
+  color: #7b8386; /* @gray-base */
+  border-bottom: 4px solid #e56564; /* @cnv-orange */
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.groups-directory-container .app-sub-header > a.disabled {
+  color: #7b8386; /* @gray-base */
+}
+
+/* View Content */
+.groups-directory-container .view-content {
+  padding: 30px 0px 0px 77px;
+  background: #fff; /* @cnv-home-body-bg */
+  min-height: calc(100vh - 60px - 105px - 40px); /* Full height minus header, app-header, sub-header */
+  padding-bottom: 30px;
+}
+
+.groups-directory-container .view-content hr {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  border: 0;
+  border-top: 1px solid #e5e5e5;
+}
+
+.groups-directory-container .view-content input.form-control {
+  width: 262px;
+  height: 35px;
+  float: right;
+  margin-top: -14px;
+  margin-right: 36px;
+  border-radius: 6px;
+  border: 1px solid #e2e8ed;
+  padding: 7px 12px;
+  font-size: 14px;
+  font-family: 'Source Sans Pro', sans-serif;
+  color: #272b2c;
+  outline: none !important;
+}
+
+.groups-directory-container .view-content input.form-control:focus {
+  border-color: #D9E4ED;
+  box-shadow: none;
+}
+
+.groups-directory-container .view-content .alert-message {
+  display: inline-block;
+  text-align: center;
+  position: relative;
+  left: 37%;
+  top: 100px;
+}
+
+.groups-directory-container .view-content .alert-message.few-groups {
+  top: 6px;
+  left: 35%;
+  margin-bottom: 50px;
+}
+
+.groups-directory-container .view-content .alert-message > span {
+  display: block;
+  font-size: 14px;
+  color: #7b8386;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.groups-directory-container .view-content .alert-message a {
+  color: #4183d7;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.groups-directory-container .view-content .alert-message a:hover {
+  text-decoration: underline;
+}
+
+.groups-directory-container .view-content .btn-container .btn {
+  color: #4183d7; /* @cnv-blue */
+  border: 2px solid #4183d7; /* @cnv-blue */
+  background: #fff; /* @btn-default-bg */
+  padding: 9px 0px;
+  font-size: 14px;
+  font-family: 'Source Sans Pro', sans-serif;
+  cursor: pointer;
+  border-radius: 3px;
+  width: 100%;
+  text-align: center;
+}
+
+.groups-directory-container .view-content .btn-container .btn.approve,
+.groups-directory-container .view-content .btn-container .btn.invite {
+  background: #4183d7; /* @cnv-blue */
+  color: #fff; /* @btn-default-bg */
+}
+
+.groups-directory-container .view-content .btn-container .btn.approve:hover,
+.groups-directory-container .view-content .btn-container .btn.invite:hover {
+  color: #fff; /* @btn-default-bg */
+  background: #3371bd; /* @cnv-blue-dark */
+}
+
+.groups-directory-container .view-content .btn-container .btn.decline {
+  color: #4183d7; /* @cnv-blue */
+}
+
+.groups-directory-container .view-content .btn-container .btn.decline:hover {
+  color: #e56564; /* @cnv-red */
+  border: 2px solid #e56564; /* @cnv-red */
+}
+
+.groups-directory-container .view-content .btn-container .btn:hover {
+  color: #3371bd; /* @cnv-blue-dark */
+  border: 2px solid #3371bd; /* @cnv-blue-dark */
+}
+
+.groups-directory-container .view-content .btn-container .btn.btn-disabled {
+  color: #7b8386; /* @gray-base */
+  background-color: #f2f4f8; /* @cnv-gray-light */
+  border: 2px solid #f2f4f8; /* @cnv-gray-light */
+  cursor: not-allowed;
+}
+
+.groups-directory-container .view-content .btn-container .btn.btn-disabled:hover {
+  color: #7b8386; /* @gray-base */
+  background-color: #f2f4f8; /* @cnv-gray-light */
+  border: 2px solid #f2f4f8; /* @cnv-gray-light */
+}
+
+.groups-directory-container .view-content .btn-container i {
+  position: relative;
+  top: 3px;
+  margin-right: 8px;
+}
+
+/* Icon hover behavior - matches AngularJS bootstrap-styles-overrides.less */
+.groups-directory-container .view-content .btn-container .btn .hover {
+  display: none;
+}
+
+.groups-directory-container .view-content .btn-container .btn .normal {
+  display: inline-block;
+}
+
+.groups-directory-container .view-content .btn-container .btn:hover .hover {
+  display: inline-block;
+}
+
+.groups-directory-container .view-content .btn-container .btn:hover .normal {
+  display: none;
+}
+
+/* Header Section */
+.groups-directory-container .view-content .header-section > div {
+  display: inline-block;
+  font-size: 18px; /* @cnv-secondary-txt-size-18 */
+  font-weight: bold;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.groups-directory-container .view-content .header-section .first-header {
+  width: 400px;
+}
+
+.groups-directory-container .view-content .header-section .first-header .header-text {
+  margin-left: 60px;
+}
+
+.groups-directory-container .view-content .header-section .first-header .drop-down {
+  margin-left: 6px;
+  position: relative;
+  top: -2px;
+}
+
+.groups-directory-container .view-content .header-section .second-header {
+  width: 300px;
+  text-align: center;
+}
+
+/* All Groups, My Groups Content */
+.groups-directory-container .view-content .all-groups,
+.groups-directory-container .view-content .my-groups {
+  width: 90%;
+  position: relative;
+}
+
+/* All Groups list - uses window scroll (virtual scroll in AngularJS) */
+.groups-directory-container .view-content .all-groups > div {
+  /* No max-height or overflow restrictions - uses page scroll */
+}
+
+/* My Groups - conditional scrollbars matching AngularJS ng-style logic */
+.groups-directory-container .view-content .my-groups #parent {
+  /* Flex container - no overflow restrictions */
+}
+
+/* Nested divs in MyGroupsView - scrollbars applied conditionally via inline styles */
+.groups-directory-container .view-content .my-groups #parent > div {
+  /* Overflow controlled by inline styles in MyGroupsView component */
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container,
+.groups-directory-container .view-content .my-groups .group-detail-container {
+  position: relative;
+  min-height: 60px;
+  margin: 5px 0px;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .dp-wrapper,
+.groups-directory-container .view-content .my-groups .group-detail-container .dp-wrapper {
+  position: absolute;
+  top: 0px;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .group-details,
+.groups-directory-container .view-content .my-groups .group-detail-container .group-details {
+  display: inline-block;
+  margin-left: 36px;
+  width: 364px;
+  word-break: break-word;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .group-details a.admin-name,
+.groups-directory-container .view-content .my-groups .group-detail-container .group-details a.admin-name {
+  color: inherit;
+  text-decoration: none;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .group-details .desc,
+.groups-directory-container .view-content .my-groups .group-detail-container .group-details .desc {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 14px;
+  color: #272b2c;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .group-details a,
+.groups-directory-container .view-content .my-groups .group-detail-container .group-details a {
+  color: #4183d7;
+  text-decoration: none;
+  font-size: 14px;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .group-details a:hover,
+.groups-directory-container .view-content .my-groups .group-detail-container .group-details a:hover {
+  text-decoration: underline;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .group-members,
+.groups-directory-container .view-content .my-groups .group-detail-container .group-members {
+  display: inline-block;
+  width: 300px;
+  text-align: center;
+  top: 47%;
+  position: absolute;
+  height: 50px;
+  margin-top: -25px;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .group-members .members-req-count,
+.groups-directory-container .view-content .my-groups .group-detail-container .group-members .members-req-count {
+  font-size: 14px;
+  color: #272b2c;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .group-members .members-req-count a,
+.groups-directory-container .view-content .my-groups .group-detail-container .group-members .members-req-count a {
+  color: #4183d7;
+  text-decoration: none;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .group-members .members-req-count a:hover,
+.groups-directory-container .view-content .my-groups .group-detail-container .group-members .members-req-count a:hover {
+  text-decoration: underline;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .btn-container,
+.groups-directory-container .view-content .my-groups .group-detail-container .btn-container {
+  float: right;
+  width: 176px;
+  position: absolute;
+  right: 39px;
+  top: 30%;
+  margin-top: -20px;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .btn-container .btn-block,
+.groups-directory-container .view-content .my-groups .group-detail-container .btn-container .btn-block {
+  padding: 9px 0px;
+  margin-top: 0px;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .spinner,
+.groups-directory-container .view-content .my-groups .group-detail-container .spinner {
+  float: right;
+  position: absolute;
+  right: 224px;
+  top: 50%;
+  margin-top: -8px;
+}
+
+.groups-directory-container .view-content .all-groups .group-detail-container .drop-down,
+.groups-directory-container .view-content .my-groups .group-detail-container .drop-down {
+  float: right;
+  position: absolute;
+  right: 8px;
+  top: 30%;
+  margin-top: -10px;
+}
+
+.groups-directory-container .view-content .all-groups .group-separator,
+.groups-directory-container .view-content .my-groups .group-separator {
+  display: inline-block;
+  background-color: #e8ebf0; /* @cnv-app-header-color-light */
+  width: 100%;
+  padding: 10px 0px 10px 23px;
+  font-weight: bold;
+  margin: 16px 0px;
+  color: #7b8386; /* @dimTextColor */
+  font-size: 14px;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.groups-directory-container .view-content .clear-fix {
+  clear: both;
+}
+
+/* Groups Requests */
+.groups-directory-container .view-content .groups-requests {
+  width: 90%;
+}
+
+.groups-directory-container .view-content .groups-requests .req-info-wrapper .dp-wrapper {
+  float: left;
+  margin-right: 20px;
+}
+
+.groups-directory-container .view-content .groups-requests .req-info-wrapper .details-wrapper {
+  display: inline-block;
+}
+
+.groups-directory-container .view-content .groups-requests .req-info-wrapper .details-wrapper span.middle {
+  display: block;
+  margin-top: 15px;
+}
+
+.groups-directory-container .view-content .groups-requests .req-info-wrapper .btn-container {
+  float: right;
+  padding-top: 3px;
+  width: 176px;
+  margin-left: 15px;
+}
+
+.groups-directory-container .view-content .groups-requests .req-info-wrapper .btn-container .btn-block {
+  padding: 9px 0px;
+  margin-top: 0px;
+}
+

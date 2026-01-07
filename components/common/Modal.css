@@ -1,0 +1,559 @@
+/* ============================================
+   Modal Styles - Exact match to AngularJS
+   ============================================ */
+
+/* Modal Backdrop */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1040;
+  background-color: #000;
+  opacity: 0.5;
+}
+
+/* Modal Container */
+.modal {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1050;
+  display: none;
+  overflow: auto;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  outline: 0;
+}
+
+.modal.in {
+  display: block;
+}
+
+.modal.fade .modal-dialog {
+  transition: transform 0.3s ease-out;
+  transform: translate(0, -25%);
+}
+
+.modal.fade.in .modal-dialog {
+  transform: translate(0, 0);
+}
+
+/* Modal Dialog */
+.cnv-modal-dialog {
+  position: relative;
+  width: 650px;
+  margin: 72px auto 0 auto;
+}
+
+/* Modal Content */
+.modal-content {
+  position: relative;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 0;
+  border-radius: 0 !important;
+  outline: none;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Modal Header */
+.modal-header {
+  background: #3371bd; /* @cnv-blue-dark */
+  height: 64px;
+  color: white;
+  padding: 15px 30px;
+  border-radius: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header h4 {
+  float: left;
+  display: block;
+  margin: 0;
+  line-height: 34px;
+  font-size: 24px; /* @cnv-secondary-txt-size-24 */
+  font-weight: normal;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+/* Group create details modal header has different padding */
+.modal-content:has(.group-create-details) .modal-header {
+  padding: 6px 30px 0px 30px !important;
+}
+
+.modal-content:has(.group-create-details) .modal-header h4 {
+  line-height: 48px !important;
+}
+
+.modal-header .close {
+  height: 100%;
+  margin: 0;
+  color: #f7f7f7;
+  opacity: 1;
+  margin-top: 0;
+  outline: 0;
+  background: transparent;
+  border: 0;
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-header .close:hover,
+.modal-header .close:focus {
+  color: #f7f7f7;
+  opacity: 0.8;
+}
+
+/* Modal Body */
+.modal-body {
+  position: relative;
+  padding: 15px 30px;
+}
+
+.group-create-details .modal-body {
+  padding: 0px;
+}
+
+.modal-body hr {
+  margin-top: 0;
+  margin-bottom: 0;
+  border: 0;
+  border-top: 1px solid #e5e5e5;
+}
+
+/* Form Groups (matching AngularJS styling) */
+.modal-body .form-group {
+  margin: 16px 0px;
+  clear: both;
+  position: relative;
+}
+
+.group-create-details .form-group {
+  position: relative;
+}
+
+.modal-body .form-group > span:first-child:not(.checkBoxLabel):not(.optional-placeholder) {
+  width: 22%;
+  display: inline-block;
+  float: left;
+  line-height: 30px;
+  font-size: 14px;
+  color: #272b2c;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: normal;
+}
+
+.modal-body .form-group > span:first-child.multi-line {
+  line-height: 15px;
+}
+
+.modal-body .form-group > span:first-child.optional-placeholder {
+  position: relative;
+  width: 22%;
+  display: inline-block;
+  float: left;
+  line-height: 30px;
+  font-size: 14px;
+  color: #272b2c;
+}
+
+.modal-body .form-group > span:first-child.optional-placeholder:before {
+  content: '(optional)';
+  margin-top: 14px;
+  display: inline-block;
+  position: absolute;
+  left: 0px;
+  top: 7px;
+  color: #ccc;
+  font-size: 12px;
+}
+
+.modal-body .form-group .checkBoxLabel {
+  width: 53%;
+  float: none;
+  line-height: normal;
+  display: inline-block;
+  font-size: 14px;
+  color: #272b2c;
+  font-weight: 600;
+  margin-right: 0;
+  vertical-align: top;
+  padding-right: 0;
+  margin-top: 0;
+  padding-top: 0;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.modal-body .form-group textarea {
+  padding: 7px;
+  resize: none;
+  border: 1px solid #e2e8ed;
+  width: 78%;
+  display: inline-block;
+  outline: none !important;
+  box-shadow: none;
+  border-radius: 3px;
+  word-break: normal;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 14px;
+  color: #272b2c;
+  background-color: #fff;
+  line-height: 1.42857143;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.modal-body .form-group textarea:focus,
+.modal-body .form-group textarea:active {
+  border-color: #D9E4ED;
+  box-shadow: none;
+  outline: none;
+}
+
+.modal-body .form-group input:not([type="checkbox"]) {
+  padding: 7px;
+  border: 1px solid #e2e8ed;
+  width: 78%;
+  display: inline-block;
+  outline: none !important;
+  box-shadow: none;
+  border-radius: 3px;
+  word-break: normal;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 14px;
+  color: #272b2c;
+  background-color: #fff;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.modal-body .form-group input:not([type="checkbox"]):focus,
+.modal-body .form-group input:not([type="checkbox"]):active {
+  border-color: #D9E4ED;
+  box-shadow: none;
+  outline: none;
+}
+
+.modal-body .form-group input[type="checkbox"].cnv-checkbox {
+  display: inline;
+  outline: none !important;
+  vertical-align: inherit !important;
+  margin-right: 0;
+  cursor: pointer;
+}
+
+.modal-body .form-group input[type="checkbox"]:not(.cnv-checkbox) {
+  vertical-align: middle;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.modal-body .form-group .meta-info {
+  display: block;
+  margin-left: 24px;
+  font-size: 14px; /* @cnv-secondary-txt-size-14 */
+  color: #7b8386; /* @dimTextColor */
+  margin-top: 5px;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: normal;
+  line-height: 1.4;
+}
+
+/* Group Create Type (Step 1) */
+.group-create-type {
+  width: 100%;
+  display: table;
+}
+
+.group-create-type > div {
+  display: table-cell;
+  padding: 10px;
+  vertical-align: top;
+}
+
+.group-create-type > div > div {
+  height: 139px;
+  width: 268px;
+  background-color: #ffffff;
+  padding: 16px 31px;
+  margin: auto;
+  border-radius: 3px;
+  box-shadow: 0px 0px 0px 1px #f2f4f8 inset; /* @cnv-gray-light */
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+  text-align: left;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: block;
+}
+
+.group-create-type > div > div:hover {
+  box-shadow: 0px 0px 0px 2px #f2f4f8 inset;
+}
+
+.group-create-type > div > div.selected {
+  box-shadow: 0px 0px 0px 3px #4183d7 inset; /* @cnv-blue */
+}
+
+.group-create-type > div > div.selected:hover {
+  box-shadow: 0px 0px 0px 3px #4183d7 inset;
+}
+
+.group-create-type > div > div > div {
+  margin: 6px 0px;
+  font-size: 18px; /* @cnv-secondary-txt-size-18 */
+  font-weight: 600;
+  color: #272b2c;
+  line-height: 1.2;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.group-create-type > div > div > div i {
+  margin-right: 14px;
+  display: inline-block;
+  vertical-align: middle;
+  float: none;
+}
+
+.group-create-type > div > div .meta {
+  display: block;
+  font-size: 14px;
+  color: #666;
+  font-weight: normal;
+  margin-top: 8px;
+  line-height: 1.4;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  max-width: 100%;
+}
+
+.group-create-type > div:first-child > div {
+  margin-left: 0px;
+}
+
+.group-create-type > div:last-child > div {
+  margin-right: 0px;
+}
+
+/* Submit Section */
+section.submit {
+  margin: 10px 0px;
+  clear: both;
+  overflow: hidden;
+}
+
+section.submit span.info-label {
+  font-size: 14px; /* @cnv-secondary-txt-size-14 */
+  color: #787878; /* @dimTextColor - exact match */
+  line-height: 13px;
+  float: left;
+  padding: 13px 0px;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: normal;
+}
+
+section.submit span.info-label a {
+  color: #4183d7;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+section.submit span.info-label a:hover {
+  text-decoration: underline;
+}
+
+section.submit button {
+  float: right;
+  min-width: 140px;
+  padding: 6px 12px;
+  border: 1px solid #4183d7;
+  border-radius: 3px;
+  font-size: 14px;
+  font-family: 'Source Sans Pro', sans-serif;
+  cursor: pointer;
+  outline: none;
+  font-weight: normal;
+  line-height: 1.42857143;
+  height: auto;
+  margin-left: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  display: inline-block;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+section.submit button.btn-primary {
+  background-color: #4183d7;
+  color: #fff;
+  border-color: #4183d7;
+}
+
+section.submit button.btn-primary:hover:not(:disabled) {
+  background-color: #3371bd;
+  border-color: #3371bd;
+}
+
+section.submit button.btn-primary:disabled {
+  background-color: #a6c5ec;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+section.submit button.btn-default {
+  background-color: #fff;
+  color: #4183d7;
+  border: 1px solid #4183d7;
+}
+
+section.submit button.btn-default:hover {
+  background-color: #f5f5f5;
+}
+
+/* Group Alert Banner */
+.group-alert-banner {
+  width: 450px;
+  float: right;
+  margin: 5px 7px;
+  background-color: #fff;
+  color: #4b4b4b;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+}
+
+.group-alert-banner a {
+  color: #4183d7;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.group-alert-banner a:hover {
+  text-decoration: underline;
+}
+
+/* Clear Fix */
+.clear-fix {
+  clear: both;
+}
+
+/* Custom Checkbox Styling (matching AngularJS .cnv-checkbox) */
+/* Global checkbox style - hidden by default */
+.cnv-checkbox {
+  display: none;
+  outline: none !important;
+}
+
+.cnv-checkbox:focus + label {
+  border-color: #4183d7;
+}
+
+.cnv-checkbox + label {
+  border-radius: 3px;
+  background: #ffffff;
+  border: 1px solid #A0A0A0;
+  color: #ffffff;
+  padding: 9px;
+  display: inline-block;
+  position: relative;
+  margin-bottom: -5px;
+  font-weight: normal;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+/* Modal-specific checkbox style - matches AngularJS createGroupModal.less */
+.group-create-details .cnv-checkbox {
+  display: inline !important; /* AngularJS uses display: inline */
+  outline: none !important;
+  vertical-align: inherit !important;
+  position: absolute;
+  right: 16px;
+  opacity: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.group-create-details .cnv-checkbox + label {
+  position: absolute;
+  right: 16px;
+  top: 0;
+  margin-bottom: -5px;
+  margin-top: 0;
+  border-radius: 3px;
+  background: #ffffff;
+  border: 1px solid #A0A0A0;
+  color: #ffffff;
+  padding: 9px;
+  display: inline-block;
+  font-weight: normal;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  vertical-align: top;
+  box-sizing: border-box;
+  line-height: 0;
+}
+
+.cnv-checkbox:checked + label:after {
+  border-radius: 0px;
+  padding: 3px 1px 3px 1px;
+  content: '\2713';
+  font-family: "symbola", Arial, sans-serif;
+  font-size: 16px;
+  position: absolute;
+  border-radius: 2px;
+  background: #4183d7;
+  top: 0px;
+  text-align: center;
+  left: 0px;
+  color: #ffffff;
+  line-height: 12px;
+  padding: 3px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cnv-checkbox:disabled + label:after {
+  background: #a6c5ec;
+}
+
+/* Body modal-open class */
+body.modal-open {
+  overflow: visible;
+}
+
+body.modal-open .modal {
+  overflow-y: auto;
+}
+
