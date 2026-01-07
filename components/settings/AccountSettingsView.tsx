@@ -1,25 +1,31 @@
 'use client';
 
 /**
- * Account Settings View Component
- * 
- * Migrated from AngularJS accountSettingsView.tpl.html and cnvMyAccSettings.js
- * Exact 1:1 structural and logical match
+ * Account Settings View
+ *
+ * AngularJS sources:
+ * - web_app/src/app/settings/templates/accountSettingsView.tpl.html
+ * - web_app/src/app/settings/cnvMyAccSettings.js
+ * - web_app/src/app/components/authCodesModal/cnvAuthCodes.tpl.html
+ * - web_app/src/app/components/authCodesModal/cnvAuthCodesModalCtrl.js
+ * - web_app/src/app/components/authCodesModal/styles.less
+ * - web_app/src/app/components/authCodesModal/styles-print.less
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLogout } from '@/lib/hooks/use-auth';
+import { useUsers } from '@/lib/hooks/use-users';
 import {
-  useGeneralSettings,
-  useResetPassword,
-  useChangeEmail,
-  useHideUserInfo,
-  useExpireAllOtherSessions,
-  useDeactivateMfa,
   useBackupCodes,
+  useChangeEmail,
+  useDeactivateMfa,
+  useExpireAllOtherSessions,
+  useGeneralSettings,
+  useHideUserInfo,
   useRemoveUserFromNetwork,
+  useResetPassword,
   type MultiFactorAuth,
 } from '@/lib/hooks/use-settings';
 import {
@@ -33,22 +39,205 @@ const SIGNUP_WITH_WORK_EMAIL = 1;
 const SIGNUP_WITH_PERSONAL_EMAIL = 2;
 const SIGNUP_WITH_PHONE = 3;
 
-// TWO_FACTOR_AUTH_URL - matches AngularJS config.TWO_FACTOR_AUTH_URL
-// This should come from settings.config.TWO_FACTOR_AUTH_URL
-// For now, using a placeholder that matches AngularJS structure
-const getTwoFactorAuthUrl = (settings: any) => {
-  return settings?.config?.TWO_FACTOR_AUTH_URL || 'https://app.convo.com/app/two_factor_auth.php';
-};
+function toInt(val: unknown, fallback = 0): number {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string' && val.trim().length) {
+    const n = Number(val);
+    if (!Number.isNaN(n)) return n;
+  }
+  return fallback;
+}
+
+function firstNonEmptyString(...vals: unknown[]): string {
+  for (const v of vals) {
+    if (typeof v === 'string' && v.trim()) return v.trim();
+    if (typeof v === 'number') return String(v);
+    if (v && typeof v === 'object') continue;
+  }
+  return '';
+}
+
+function getTwoFactorAuthUrl(): string {
+  // Angular: config.TWO_FACTOR_AUTH_URL = APP_BASE_URL + 'mfa/#/'
+  // In Next.js, match the same-origin behavior.
+  if (typeof window === 'undefined') return '/mfa/#/';
+  return `${window.location.origin}/mfa/#/`;
+}
+
+function copyToClipboard(text: string) {
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  // Fallback
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.top = '0';
+  textarea.style.left = '0';
+  textarea.style.width = '1px';
+  textarea.style.height = '1px';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  try {
+    document.execCommand('copy');
+  } finally {
+    document.body.removeChild(textarea);
+  }
+  return Promise.resolve();
+}
+
+type BackupCode = { backup_code: string; consumed_at?: unknown };
+
+function BackupCodesModal({
+  accountName,
+  backupCodes,
+  onClose,
+}: {
+  accountName: string;
+  backupCodes: BackupCode[];
+  onClose: () => void;
+}) {
+  const [copiedText, setCopiedText] = useState(false);
+  const copiedTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    document.body.classList.add('visible-dialog-only-on-print');
+    return () => {
+      document.body.classList.remove('visible-dialog-only-on-print');
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) window.clearTimeout(copiedTimeoutRef.current);
+    };
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    await copyToClipboard(backupCodes.map((obj) => obj.backup_code).join('\n'));
+    setCopiedText(true);
+    if (copiedTimeoutRef.current) window.clearTimeout(copiedTimeoutRef.current);
+    copiedTimeoutRef.current = window.setTimeout(() => setCopiedText(false), 3000);
+  }, [backupCodes]);
+
+  return (
+    <>
+      <div className="modal-backdrop in" onMouseDown={onClose} />
+      <div className="modal fade in cnv-modal backup-codes" role="dialog" aria-modal="true">
+        <div className="modal-dialog cnv-modal-dialog" role="document" style={{ maxWidth: '382px' }}>
+          <div className="modal-content">
+            <div className="modal-header" style={{ padding: '15px 24px 15px 18px' }}>
+              <h4 className="title" style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                Print out your backup codes
+              </h4>
+              <button type="button" className="close" onClick={onClose} aria-label="Close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '15px 18px' }}>
+              <p className="backup-code-note" style={{ fontSize: '13px', color: 'black' }}>
+                Print out your backup codes, and store it somewhere safe. If you lose access to your authentication device,
+                you can use one of these backup codes to login to your account. Each code may be used only once.
+              </p>
+
+              <div className="print" style={{ display: 'none' }}>
+                {accountName} two-factor authentication backup codes - Convo
+              </div>
+
+              <div className="backup-codes-wrap">
+                {copiedText && <span className="copied-text">Copied</span>}
+                <ul className="backup-codes">
+                  {backupCodes.map((bc, idx) => (
+                    <li key={`${bc.backup_code}-${idx}`}>
+                      <span className={bc.consumed_at ? 'used' : undefined}>{bc.backup_code}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="backup-codes-options">
+                  <button className="btn" type="button" onClick={() => window.print()}>
+                    Print Codes
+                  </button>
+                  <button className="btn" type="button" onClick={handleCopy}>
+                    Copy Codes
+                  </button>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button className="btn btn-primary" type="button" onClick={onClose}>
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PromptModal({
+  title,
+  message,
+  okLabel,
+  cancelLabel,
+  onOk,
+  onCancel,
+}: {
+  title: string;
+  message: string;
+  okLabel: string;
+  cancelLabel: string;
+  onOk: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <>
+      <div className="modal-backdrop in" onMouseDown={onCancel} />
+      <div className="modal fade in cnv-modal" role="dialog" aria-modal="true">
+        <div className="modal-dialog cnv-modal-dialog" role="document" style={{ width: '520px' }}>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h4>{title}</h4>
+              <button type="button" className="close" onClick={onCancel} aria-label="Close">
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div style={{ fontSize: '14px', color: '#2b2b2b', lineHeight: 1.5 }}>{message}</div>
+              <div style={{ marginTop: '20px', textAlign: 'right' }}>
+                <button type="button" className="btn btn-default" onClick={onCancel} style={{ marginRight: '10px' }}>
+                  {cancelLabel}
+                </button>
+                <button type="button" className="btn btn-primary" onClick={onOk}>
+                  {okLabel}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 
 export default function AccountSettingsView() {
-  const router = useRouter();
-  const user = useAuthStore((state) => state.user);
-  const account = useAuthStore((state) => state.account);
-  const { mutate: logout } = useLogout();
-  
-  const { data: settings, isLoading: settingsLoading } = useGeneralSettings(true);
-  const { data: backupCodesData, refetch: refetchBackupCodes } = useBackupCodes();
-  
+  const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const loginData = useAuthStore((s) => s.loginData);
+  const account = useAuthStore((s) => s.account);
+  const logout = useLogout();
+
+  const {
+    data: settings,
+    isLoading: settingsLoading,
+    isError: settingsError,
+    error: settingsErrorObj,
+    refetch: refetchSettings,
+  } = useGeneralSettings(true);
   const resetPasswordMutation = useResetPassword();
   const changeEmailMutation = useChangeEmail();
   const hideUserInfoMutation = useHideUserInfo();
@@ -56,493 +245,393 @@ export default function AccountSettingsView() {
   const deactivateMfaMutation = useDeactivateMfa();
   const removeUserMutation = useRemoveUserFromNetwork();
 
-  // Form state
+  const backupCodesQuery = useBackupCodes();
+
   const [newEmail, setNewEmail] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [passwordHighlight, setPasswordHighlight] = useState<{ fulfilled: boolean; notFulfilled: boolean }>({
+    fulfilled: false,
+    notFulfilled: false,
+  });
+  const [passwordText, setPasswordText] = useState('');
   const [passwordConstraints, setPasswordConstraints] = useState<PasswordConstraint[]>([]);
-  const [showPasswordConstraints, setShowPasswordConstraints] = useState(false);
-  
-  // Display preferences
+
   const [displayPhoneToEveryone, setDisplayPhoneToEveryone] = useState(0);
   const [displayEmailToEveryone, setDisplayEmailToEveryone] = useState(0);
-  
-  // Multi-factor auth
+
   const [multiFactorAuth, setMultiFactorAuth] = useState<MultiFactorAuth | null>(null);
-  
-  // Messages
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
 
-  const newEmailInputRef = useRef<HTMLInputElement>(null);
-  const currentPasswordInputRef = useRef<HTMLInputElement>(null);
-  const newPasswordInputRef = useRef<HTMLInputElement>(null);
+  const [bannerText, setBannerText] = useState<string | null>(null);
+  const bannerTimeoutRef = useRef<number | null>(null);
 
-  // Initialize settings and password policy - matches AngularJS initialize function
+  const [isBackupCodesModalOpen, setIsBackupCodesModalOpen] = useState(false);
+  const [isDisableAccountModalOpen, setIsDisableAccountModalOpen] = useState(false);
+
+  const currentPasswordRef = useRef<HTMLInputElement>(null);
+  const newPasswordRef = useRef<HTMLInputElement>(null);
+  const newEmailRef = useRef<HTMLInputElement>(null);
+
+  const sessionUser = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    return (window as any)?.com_convo?.sessionData?.signInResponseData?.user ?? null;
+  }, []);
+
+  const currentUserId = useMemo(() => {
+    const anyUser: any = user || {};
+    const anyLogin: any = loginData || {};
+    const anySession: any = sessionUser || {};
+    return firstNonEmptyString(
+      anyUser.user_id,
+      anyUser.userId,
+      anyLogin.user?.user_id,
+      anyLogin.user?.userId,
+      anySession.user_id,
+      anySession.userId
+    );
+  }, [loginData, sessionUser, user]);
+
+  const usersQuery = useUsers(Boolean(!((user as any)?.email) || !toInt((user as any)?.sign_up_identity, 0)));
+  const meFromUsers = useMemo(() => {
+    if (!currentUserId) return null;
+    return usersQuery.data?.usersMap?.[currentUserId] ?? null;
+  }, [currentUserId, usersQuery.data?.usersMap]);
+
+  const userEmail = useMemo(() => {
+    const anyUser: any = user || {};
+    const anyLogin: any = loginData || {};
+    const anySession: any = sessionUser || {};
+    const anyMe: any = meFromUsers || {};
+    return firstNonEmptyString(
+      anyUser.email,
+      anyUser.user_info?.email,
+      anyUser.userInfo?.email,
+      anyLogin.user?.email,
+      anyLogin.user?.user_info?.email,
+      anySession.email,
+      anySession.user_info?.email,
+      anyMe.email
+    );
+  }, [loginData, meFromUsers, sessionUser, user]);
+
+  const userPhone = useMemo(() => {
+    const anyUser: any = user || {};
+    const anyLogin: any = loginData || {};
+    const anySession: any = sessionUser || {};
+    const anyMe: any = meFromUsers || {};
+    return firstNonEmptyString(
+      anyUser.phone_no,
+      anyUser.phone,
+      anyUser.phone_number,
+      anyUser.user_info?.phone,
+      anyLogin.user?.phone_no,
+      anyLogin.user?.phone,
+      anySession.phone_no,
+      anySession.phone,
+      anyMe.phone_no,
+      anyMe.phone
+    );
+  }, [loginData, meFromUsers, sessionUser, user]);
+
+  const signUpIdentity = useMemo(() => {
+    const anyUser: any = user || {};
+    const anyLogin: any = loginData || {};
+    const anySession: any = sessionUser || {};
+    const anyMe: any = meFromUsers || {};
+    return toInt(
+      anyUser.sign_up_identity ??
+        anyUser.signUpIdentity ??
+        anyLogin.user?.sign_up_identity ??
+        anySession.sign_up_identity ??
+        anyMe.sign_up_identity,
+      0
+    );
+  }, [loginData, meFromUsers, sessionUser, user]);
+
+  const showWorkEmailSection = Boolean(
+    userEmail && (signUpIdentity === SIGNUP_WITH_WORK_EMAIL || signUpIdentity === 0)
+  );
+
+  const isAdmin = Boolean((user as any)?.isAdmin || (user as any)?.is_admin);
+  const isGuest = Boolean((user as any)?.is_guest_user);
+
+  const canEditLogin = useMemo(() => {
+    const ssoOptional = toInt((settings as any)?.sso_settings?.is_sso_optional, 0) === 1;
+    return ssoOptional || isAdmin || isGuest;
+  }, [isAdmin, isGuest, settings]);
+
+  const showBanner = useCallback((text: string) => {
+    setBannerText(text);
+    if (bannerTimeoutRef.current) window.clearTimeout(bannerTimeoutRef.current);
+    bannerTimeoutRef.current = window.setTimeout(() => setBannerText(null), 4000);
+  }, []);
+
   useEffect(() => {
-    if (settings) {
-      if (settings.password_policy) {
-        setAdminDefinedPasswordPolicy(settings.password_policy);
-        // Initialize password constraints with empty password to show all requirements
-        setPasswordConstraints(
-          classifyFulfilledAndUnfulfilledConstraintsByPassword('')
-        );
-        setShowPasswordConstraints(true);
-      }
-      
-      // Initialize MFA - matches initMultiFactorAuth
-      // Always initialize MFA, even if it's null/undefined (will show inactive state)
-      if (settings.mfa) {
-        const mfa = settings.mfa as MultiFactorAuth;
-        if (mfa.mfa_methods) {
-          mfa.mfa_methods.forEach((method) => {
-            (mfa as any)[method.method] = method;
-          });
-        }
-        setMultiFactorAuth(mfa);
-        
-        // Load backup codes if MFA is enabled - matches getBackupCodes
-        if (mfa.mfa_enabled) {
-          refetchBackupCodes();
-        }
-      } else if (settings && !settings.mfa) {
-        // Initialize with default inactive state if MFA data is not available
-        // This ensures the section always shows (matches AngularJS behavior)
-        setMultiFactorAuth({
-          mfa_enabled: false,
-          allow_deactivate: false,
-          mfa_methods: [],
+    return () => {
+      if (bannerTimeoutRef.current) window.clearTimeout(bannerTimeoutRef.current);
+    };
+  }, []);
+
+  // INITIALIZE: matches cnvMyAccSettings.initialize()
+  useEffect(() => {
+    // If settings haven't loaded yet (or errored), keep the default rendering behavior.
+    if (!settings) return;
+
+    // Password policy
+    setAdminDefinedPasswordPolicy((settings as any)?.password_policy);
+    setPasswordText('');
+    setPasswordHighlight({ fulfilled: false, notFulfilled: false });
+    setPasswordConstraints(classifyFulfilledAndUnfulfilledConstraintsByPassword(''));
+
+    // MFA
+    const mfa = (settings as any)?.mfa as MultiFactorAuth | undefined;
+    if (mfa) {
+      const next: any = { ...mfa };
+      if (next.mfa_enabled && Array.isArray(next.mfa_methods)) {
+        next.mfa_methods.forEach((method: any) => {
+          next[method.method] = method;
         });
       }
-    }
-  }, [settings, refetchBackupCodes]);
-
-  // Update backup codes in MFA state
-  useEffect(() => {
-    if (backupCodesData?.data && multiFactorAuth) {
+      setMultiFactorAuth(next);
+    } else {
+      // Angular shows the TWO-FACTOR AUTHENTICATION section in "inactive" state as long as the setting exists.
+      // Some backend payloads omit `mfa`; to keep UI parity, default to inactive object.
       setMultiFactorAuth({
-        ...multiFactorAuth,
-        backupCodes: backupCodesData.data.backup_codes,
-        accountName: backupCodesData.data.account_name,
-        num_of_unused_backup_codes: backupCodesData.data.backup_codes?.length || 0,
+        mfa_enabled: false,
+        allow_deactivate: false,
+        mfa_methods: [],
       });
     }
-  }, [backupCodesData, multiFactorAuth]);
+  }, [settings]);
 
-  // Initialize display preferences - matches AngularJS initialization
+  // Display flags init: matches $scope.displayPhoneToEveryone / displayEmailToEveryone
   useEffect(() => {
-    if (user) {
-      const signUpIdentity = (user as any).sign_up_identity;
-      const showPhone = (user as any).show_phone;
-      const showEmail = (user as any).show_email;
-      
-      if (signUpIdentity === SIGNUP_WITH_PHONE && showPhone) {
-        setDisplayPhoneToEveryone(1);
-      }
-      if (signUpIdentity === SIGNUP_WITH_PERSONAL_EMAIL && showEmail) {
-        setDisplayEmailToEveryone(1);
-      }
-    }
-  }, [user]);
+    if (!user) return;
+    setDisplayPhoneToEveryone(signUpIdentity === SIGNUP_WITH_PHONE && toInt((user as any).show_phone, 0) ? 1 : 0);
+    setDisplayEmailToEveryone(signUpIdentity === SIGNUP_WITH_PERSONAL_EMAIL && toInt((user as any).show_email, 0) ? 1 : 0);
+  }, [signUpIdentity, user]);
 
-  // Detect browser autofill for current password field
-  // Browsers autofill password fields asynchronously, so we need to check periodically
-  // Using uncontrolled input (defaultValue) allows browser autofill to work
+  // Backup codes into MFA: matches getBackupCodes()
   useEffect(() => {
-    if (!currentPasswordInputRef.current) return;
-
-    const checkAutofill = () => {
-      const input = currentPasswordInputRef.current;
-      if (input && input.value && input.value !== currentPassword) {
-        // Browser has autofilled the field, sync to state
-        setCurrentPassword(input.value);
-      }
-    };
-
-    // Check immediately
-    checkAutofill();
-
-    // Check periodically for browser autofill (browsers autofill asynchronously)
-    const interval = setInterval(checkAutofill, 100);
-    
-    // Stop checking after 3 seconds (browsers usually autofill within 1-2 seconds)
-    const timeout = setTimeout(() => clearInterval(interval), 3000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [currentPassword]);
-
-  // User info helpers - matches AngularJS userInfo methods
-  const isSignupWithWorkEmail = () => {
-    if (!user) return false;
-    const signUpIdentity = (user as any)?.sign_up_identity;
-    // Check if sign_up_identity is 1 (work email)
-    if (signUpIdentity === SIGNUP_WITH_WORK_EMAIL) {
-      return true;
+    const resp: any = backupCodesQuery.data;
+    if (!multiFactorAuth) return;
+    if (resp?.type === 1 && resp?.data) {
+      setMultiFactorAuth((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          backupCodes: resp.data.backup_codes,
+          accountName: resp.data.account_name,
+          num_of_unused_backup_codes: Array.isArray(resp.data.backup_codes) ? resp.data.backup_codes.filter((x: any) => !x.consumed_at).length : 0,
+        };
+      });
     }
-    // Fallback: if sign_up_identity is not set or is 0, but user has email, show email change section
-    // This ensures the section is visible when user has an email (matches AngularJS behavior)
-    if (signUpIdentity === undefined || signUpIdentity === null || signUpIdentity === 0) {
-      // Show if user has email and either no phone, or phone is not the primary login method
-      return userEmail && userEmail.trim() !== '' && (signUpIdentity !== SIGNUP_WITH_PHONE);
-    }
-    return false;
-  };
+  }, [backupCodesQuery.data, multiFactorAuth]);
 
-  const isSignupWithPersonalEmail = () => {
-    if (!user) return false;
-    const signUpIdentity = (user as any)?.sign_up_identity;
-    return signUpIdentity === SIGNUP_WITH_PERSONAL_EMAIL;
-  };
+  const updatePasswordConstraints = useCallback(
+    (password: string, highlight: { fulfilled: boolean; notFulfilled: boolean }) => {
+      setPasswordConstraints(classifyFulfilledAndUnfulfilledConstraintsByPassword(password));
+      setPasswordHighlight(highlight);
+    },
+    []
+  );
 
-  const isSignupWithPhone = () => {
-    if (!user) return false;
-    const signUpIdentity = (user as any)?.sign_up_identity;
-    return signUpIdentity === SIGNUP_WITH_PHONE;
-  };
+  const handleResetPassword = useCallback(() => {
+    const curPass = currentPasswordRef.current?.value || '';
+    const newPass = newPasswordRef.current?.value || '';
 
-  const isAdmin = () => {
-    return (user as any)?.isAdmin || (user as any)?.is_admin || false;
-  };
-
-  const isGuest = () => {
-    return (user as any)?.is_guest_user || false;
-  };
-
-  const canChangePassword = () => {
-    if (!settings) return false;
-    const ssoOptional = settings.sso_settings?.is_sso_optional === 1;
-    return ssoOptional || isAdmin() || isGuest();
-  };
-
-  const canChangeEmail = () => {
-    if (!settings) return false;
-    const ssoOptional = settings.sso_settings?.is_sso_optional === 1;
-    return ssoOptional || isAdmin() || isGuest();
-  };
-
-  // Email change - matches scope.changeEmail
-  const handleEmailChange = () => {
-    const trimmedEmail = newEmail.trim();
-    if (!trimmedEmail) return;
-    
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmedEmail)) {
-      setErrorMessage('Please enter a valid email address');
-      return;
-    }
-    
-    changeEmailMutation.mutate(trimmedEmail, {
-      onSuccess: (response) => {
-        if (response.type === 1) {
-          setSuccessMessage('Email address updated.');
-          setNewEmail('');
-          setErrorMessage('');
-          if (newEmailInputRef.current) {
-            newEmailInputRef.current.value = '';
-          }
-          // Update user in auth store with new email
-          const setUser = useAuthStore.getState().setUser;
-          if (user) {
-            setUser({ ...user, email: trimmedEmail } as any);
-          }
-        } else {
-          setErrorMessage(response.message || 'Failed to update email');
-        }
-      },
-      onError: (error: any) => {
-        setErrorMessage(error.message || 'Failed to update email');
-      }
-    });
-  };
-
-  // Password change - matches scope.resetPassword
-  const handlePasswordChange = () => {
-    if (!currentPassword || !newPassword) return;
-    
-    if (!checkIfAllConstraintsAreMet(newPassword)) {
-      setPasswordConstraints(
-        classifyFulfilledAndUnfulfilledConstraintsByPassword(newPassword)
-      );
-      setShowPasswordConstraints(true);
-      setErrorMessage('Password does not meet all requirements');
+    if (!checkIfAllConstraintsAreMet(newPass)) {
+      updatePasswordConstraints(newPass, { fulfilled: true, notFulfilled: true });
       return;
     }
 
     resetPasswordMutation.mutate(
-      { current_password: currentPassword, new_password: newPassword },
+      { current_password: curPass, new_password: newPass },
       {
-        onSuccess: (response) => {
-          if (response.type === 1) {
-            setSuccessMessage('Password updated.');
-            setCurrentPassword('');
-            setNewPassword('');
-            setPasswordConstraints([]);
-            setShowPasswordConstraints(false);
-            setErrorMessage('');
-            // Clear the input fields
-            if (currentPasswordInputRef.current) {
-              currentPasswordInputRef.current.value = '';
-            }
-            if (newPasswordInputRef.current) {
-              newPasswordInputRef.current.value = '';
-            }
-          } else {
-            setErrorMessage(response.message || 'Failed to update password');
+        onSuccess: (resp: any) => {
+          if (resp?.type === 1) {
+            showBanner('Password updated.');
+            if (currentPasswordRef.current) currentPasswordRef.current.value = '';
+            if (newPasswordRef.current) newPasswordRef.current.value = '';
+          } else if (resp?.type === 0 && resp?.message) {
+            showBanner(String(resp.message));
           }
+
+          updatePasswordConstraints('', { fulfilled: false, notFulfilled: false });
         },
-        onError: (error: any) => {
-          setErrorMessage(error.message || 'Failed to update password');
-        }
+        onError: (err: any) => {
+          showBanner(err?.message ? String(err.message) : 'Failed to update password.');
+          updatePasswordConstraints('', { fulfilled: false, notFulfilled: false });
+        },
       }
     );
-  };
+  }, [resetPasswordMutation, showBanner, updatePasswordConstraints]);
 
-  // Display status update - matches scope.updateDisplayStatus
-  const handleDisplayStatusUpdate = (type: 'phone' | 'email') => {
-    const value = type === 'phone' ? displayPhoneToEveryone : displayEmailToEveryone;
-    hideUserInfoMutation.mutate(
-      { type, value },
-      {
-        onSuccess: (response) => {
-          if (response.type === 1) {
-            setSuccessMessage(`${type === 'phone' ? 'Phone' : 'Email'} visibility updated.`);
-          } else {
-            setErrorMessage(response.message || `Failed to update ${type} visibility`);
-          }
-        },
-        onError: (error: any) => {
-          setErrorMessage(error.message || `Failed to update ${type} visibility`);
-        }
-      }
-    );
-  };
+  const handleChangeEmail = useCallback(() => {
+    const email = newEmailRef.current?.value || '';
+    if (!email) return;
 
-  // Sign out all other sessions - matches scope.signOutAllOtherSessions
-  const handleSignOutAllOtherSessions = () => {
-    expireSessionsMutation.mutate(undefined, {
-      onSuccess: (response) => {
-        if (response.type === 1) {
-          setSuccessMessage("You're now signed out from all sessions except this.");
+    changeEmailMutation.mutate(email, {
+      onSuccess: (resp: any) => {
+        if (resp?.type === 1) {
+          showBanner('Email address updated.');
+          if (newEmailRef.current) newEmailRef.current.value = '';
+          setNewEmail('');
+        } else if (resp?.type === 0 && resp?.message) {
+          showBanner(String(resp.message));
         }
-      }
+      },
+      onError: (err: any) => {
+        showBanner(err?.message ? String(err.message) : 'Failed to update email.');
+      },
     });
-  };
+  }, [changeEmailMutation, showBanner]);
 
-  // Deactivate MFA - matches scope.deactivateRequiredMfaForLoggedInUser
-  const handleDeactivateMfa = () => {
+  const handleUpdateDisplayStatus = useCallback(
+    (prop: 'phone' | 'email', value: number) => {
+      hideUserInfoMutation.mutate(
+        { type: prop, value },
+        {
+          onError: () => {
+            // Angular ignores errors here; keep parity (silent).
+          },
+        }
+      );
+    },
+    [hideUserInfoMutation]
+  );
+
+  const handleSignOutAllOtherSessions = useCallback(() => {
+    expireSessionsMutation.mutate(undefined, {
+      onSuccess: (resp: any) => {
+        if (resp?.type === 1) {
+          showBanner("You're now signed out from all sessions except this.");
+        }
+      },
+    });
+  }, [expireSessionsMutation, showBanner]);
+
+  const handleDeactivateMfa = useCallback(() => {
     if (!multiFactorAuth) return;
-    
     setMultiFactorAuth({ ...multiFactorAuth, deactivating: true });
-    
+
     deactivateMfaMutation.mutate(undefined, {
-      onSuccess: async (response) => {
-        if (response.type === 1) {
-          // Refetch settings to update MFA state
-          window.location.reload(); // Simple refresh for now
+      onSuccess: async (resp: any) => {
+        if (resp?.type === 1) {
+          await refetchSettings();
+          await backupCodesQuery.refetch();
+          setMultiFactorAuth((prev) => (prev ? { ...prev, deactivating: false } : prev));
         } else {
-          setMultiFactorAuth({ ...multiFactorAuth, deactivating: false });
-          setErrorMessage(response.message || 'Failed to deactivate MFA');
+          setMultiFactorAuth((prev) => (prev ? { ...prev, deactivating: false } : prev));
+          if (resp?.message) showBanner(String(resp.message));
         }
       },
       onError: () => {
-        setMultiFactorAuth({ ...multiFactorAuth, deactivating: false });
-      }
+        setMultiFactorAuth((prev) => (prev ? { ...prev, deactivating: false } : prev));
+      },
     });
-  };
+  }, [backupCodesQuery, deactivateMfaMutation, multiFactorAuth, refetchSettings, showBanner]);
 
-  // Disable account - matches scope.disableAccount
-  const handleDisableAccount = () => {
-    if (!confirm('Are you sure you want to disable your account? You will be removed from ' + 
-                 ((account as any)?.account_name || 'this network') + 
-                 ' network. Content shared by you will not be automatically deleted.')) {
-      return;
-    }
+  const messageTitle = 'Disable your account';
+  const messageText =
+    'Are you sure you want to disable your account? You will be removed from ' +
+    String((account as any)?.account_name || '') +
+    ' network. Content shared by you will not be automatically deleted.';
 
-    const userId = (user as any)?.user_id || (user as any)?.userId || '';
+  const handleDisableAccountConfirmed = useCallback(() => {
+    const userId = String((user as any)?.user_id || (user as any)?.userId || '');
+    setIsDisableAccountModalOpen(false);
     removeUserMutation.mutate(userId, {
-      onSuccess: (response) => {
-        if (response.type === 1) {
-          logout();
+      onSuccess: (resp: any) => {
+        if (resp?.type === 1) {
+          logout.mutate(undefined);
         }
-      }
+      },
     });
-  };
+  }, [logout, removeUserMutation, user]);
 
-  // Password input handlers - matches AngularJS link function handlers
-  const handleNewPasswordInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setNewPassword(value);
-    
-    // Show constraints on input - matches AngularJS behavior
-    if (value) {
-      setPasswordConstraints(
-        classifyFulfilledAndUnfulfilledConstraintsByPassword(value)
-      );
-      setShowPasswordConstraints(true);
-    } else {
-      setPasswordConstraints([]);
-      setShowPasswordConstraints(false);
-    }
-  };
+  const backupCodes = (multiFactorAuth as any)?.backupCodes as BackupCode[] | undefined;
+  const accountNameForCodes = String((multiFactorAuth as any)?.accountName || '');
 
-  // Password keyup handler - matches AngularJS on('keyup') except Tab
-  const handleNewPasswordKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Check if Tab key was pressed (keyCode 9 or key === 'Tab')
-    const isTabKey = e.key === 'Tab' || (e as any).keyCode === 9 || e.which === 9;
-    if (!isTabKey) {
-      const value = e.currentTarget.value;
-      if (value) {
-        setPasswordConstraints(
-          classifyFulfilledAndUnfulfilledConstraintsByPassword(value)
-        );
-        setShowPasswordConstraints(true);
-      }
-    }
-  };
+  const passwordPolicyEnabled = Boolean((settings as any)?.password_policy);
 
-  const handleCurrentPasswordInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentPassword(e.target.value);
-  };
+  const passwordPolicyList = useMemo(() => {
+    // Always keep a stable list in UI (Angular always renders the ul and fills it).
+    return passwordConstraints || [];
+  }, [passwordConstraints]);
 
-  const handleNewEmailInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setNewEmail(value);
-    // Clear error message when user starts typing
-    if (errorMessage) {
-      setErrorMessage('');
-    }
-  };
+  const isNewEmailBtnDisabled = !newEmail || !canEditLogin || changeEmailMutation.isPending;
+  const isPasswordInputsDisabled = !canEditLogin;
 
-  // Check if password button should be enabled - matches AngularJS logic
-  const isPasswordButtonEnabled = () => {
-    if (!currentPassword || !newPassword) return false;
-    if (!canChangePassword()) return false;
-    return checkIfAllConstraintsAreMet(newPassword);
-  };
-
-  // Show success/error messages
-  useEffect(() => {
-    if (successMessage) {
-      const timer = setTimeout(() => setSuccessMessage(''), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [successMessage]);
-
-  useEffect(() => {
-    if (errorMessage) {
-      const timer = setTimeout(() => setErrorMessage(''), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [errorMessage]);
-
-  // Get user email/phone - matches AngularJS userInfo.getEmail() and getPhone()
-  // MUST be defined before any early returns to maintain hook order
-  const userEmail = (user as any)?.email || '';
-  const userPhone = (user as any)?.phone || (user as any)?.phone_no || (user as any)?.phone_number || '';
-  
-  // Debug: Log user data to help diagnose visibility issues
-  // MUST be before early returns to maintain hook order
-  useEffect(() => {
-    if (user) {
-      console.log('AccountSettingsView - User data:', {
-        email: userEmail,
-        phone: userPhone,
-        sign_up_identity: (user as any)?.sign_up_identity,
-        isSignupWithWorkEmail: isSignupWithWorkEmail(),
-        canChangeEmail: canChangeEmail(),
-      });
-    }
-  }, [user, userEmail, userPhone]);
+  // Always render MFA section like Angular does (inactive by default), even if settings fetch failed.
+  const mfaForRender: MultiFactorAuth = (multiFactorAuth || {
+    mfa_enabled: false,
+    allow_deactivate: false,
+    mfa_methods: [],
+  }) as MultiFactorAuth;
 
   if (settingsLoading) {
     return (
-      <div style={{ padding: '40px' }}>
-        <div>Loading settings...</div>
+      <div style={{ paddingLeft: '120px' }}>
+        <div className="loading-spinner">
+          <img src="/assets/img/feed/loading-spin.svg" alt="Loading icon" />
+        </div>
       </div>
     );
   }
 
-  // Exact HTML structure match from accountSettingsView.tpl.html
   return (
     <div style={{ paddingLeft: '120px' }}>
-      {/* Success/Error Messages */}
-      {successMessage && (
-        <div style={{ 
-          padding: '10px', 
-          backgroundColor: '#d4edda', 
-          color: '#155724', 
-          marginBottom: '20px',
-          borderRadius: '4px'
-        }}>
-          {successMessage}
+      {bannerText && (
+        <div className="cnv-settings-saved-banner" role="status" aria-live="polite">
+          {bannerText}
         </div>
       )}
-      {errorMessage && (
-        <div style={{ 
-          padding: '10px', 
-          backgroundColor: '#f8d7da', 
-          color: '#721c24', 
-          marginBottom: '20px',
-          borderRadius: '4px'
-        }}>
-          {errorMessage}
+      {/* If settings failed to load, still render the page (Angular keeps UI visible); show a subtle banner */}
+      {settingsError && !bannerText && (
+        <div className="cnv-settings-saved-banner" role="status" aria-live="polite">
+          Failed to load some settings{settingsErrorObj ? `: ${(settingsErrorObj as any)?.message || ''}` : ''}.
         </div>
       )}
 
       <div className="header">My account</div>
 
       <div style={{ marginTop: '20px' }}></div>
-      <div className="subHeader">
-        MY LOGIN INFORMATION
-      </div>
-      <hr/>
+      <div className="subHeader">MY LOGIN INFORMATION</div>
+      <hr />
 
-      {/* Email Change (Work Email) - matches ng-show="userInfo.isSignupWithWorkEmail()" */}
-      {/* Show email change section if user signed up with work email OR has an email */}
-      {/* Always show if user has email to ensure visibility (matches AngularJS behavior) */}
-      {(isSignupWithWorkEmail() || (userEmail && userEmail.trim() !== '')) && (
-        <div style={{ marginTop: '20px', fontSize: '14px', color: '#2b2b2b' }}>
+      {/* Work email login */}
+      {showWorkEmailSection && (
+        <div style={{ marginTop: '20px' }}>
           Your current login email: {userEmail}
           <div style={{ marginTop: '20px' }}></div>
           <div>
-            <div style={{ display: 'inline-block', width: '120px' }}>
-              New login email
-            </div>
+            <div style={{ display: 'inline-block', width: '120px' }}>New login email</div>
             <input
-              ref={newEmailInputRef}
               id="newEmail"
+              ref={newEmailRef}
               type="text"
-              value={newEmail}
-              onChange={handleNewEmailInput}
-              disabled={!canChangeEmail()}
-              className="settings-custom"
               spellCheck={false}
+              className="settings-custom"
+              disabled={!canEditLogin}
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
             />
           </div>
           <button
             id="emailBtn"
-            onClick={handleEmailChange}
-            disabled={!newEmail.trim() || changeEmailMutation.isPending || !canChangeEmail()}
+            onClick={handleChangeEmail}
+            style={{ marginLeft: '144px', marginTop: '20px' }}
             type="button"
-            className={`btn btn-primary ${!newEmail.trim() || !canChangeEmail() ? 'disabled' : ''}`}
-            style={{
-              marginLeft: '144px',
-              marginTop: '20px'
-            }}
+            className={`btn btn-primary ${isNewEmailBtnDisabled ? 'disabled' : ''}`}
+            disabled={isNewEmailBtnDisabled}
           >
             Change email
           </button>
         </div>
       )}
 
-      {/* Phone Display Preference - matches ng-show="userInfo.isSignupWithPhone()" */}
-      {/* Show if user signed up with phone OR has a phone number */}
-      {(isSignupWithPhone() || (userPhone && userPhone.trim() !== '')) && (
-        <div style={{ marginTop: '20px', fontSize: '14px', color: '#2b2b2b' }} x-ms-format-detection="none">
+      {/* Phone login */}
+      {signUpIdentity === SIGNUP_WITH_PHONE && (
+        <div style={{ marginTop: '20px' }} x-ms-format-detection="none">
           Your current phone number: {userPhone}
           <div style={{ marginTop: '20px' }}></div>
           <div>
@@ -553,21 +642,20 @@ export default function AccountSettingsView() {
               className="cnv-checkbox"
               checked={displayPhoneToEveryone === 1}
               onChange={(e) => {
-                const newVal = e.target.checked ? 1 : 0;
-                setDisplayPhoneToEveryone(newVal);
-                handleDisplayStatusUpdate('phone');
+                const val = e.target.checked ? 1 : 0;
+                setDisplayPhoneToEveryone(val);
+                handleUpdateDisplayStatus('phone', val);
               }}
             />
             <label htmlFor="showPhoneEveryone"></label>
-            <span style={{ marginLeft: '10px', fontSize: '14px', color: '#2b2b2b' }}>Show my phone number to everyone</span>
+            <span style={{ marginLeft: '10px' }}>Show my phone number to everyone</span>
           </div>
         </div>
       )}
 
-      {/* Email Display Preference (Personal Email) - matches ng-show="userInfo.isSignupWithPersonalEmail()" */}
-      {/* Show if user signed up with personal email OR (has email AND signed up with phone) */}
-      {(isSignupWithPersonalEmail() || (userEmail && userEmail.trim() !== '' && isSignupWithPhone())) && (
-        <div style={{ marginTop: '20px', fontSize: '14px', color: '#2b2b2b' }}>
+      {/* Personal email login */}
+      {signUpIdentity === SIGNUP_WITH_PERSONAL_EMAIL && (
+        <div style={{ marginTop: '20px' }}>
           Your current login email: {userEmail}
           <div style={{ marginTop: '20px' }}></div>
           <div>
@@ -578,40 +666,27 @@ export default function AccountSettingsView() {
               className="cnv-checkbox"
               checked={displayEmailToEveryone === 1}
               onChange={(e) => {
-                const newVal = e.target.checked ? 1 : 0;
-                setDisplayEmailToEveryone(newVal);
-                handleDisplayStatusUpdate('email');
+                const val = e.target.checked ? 1 : 0;
+                setDisplayEmailToEveryone(val);
+                handleUpdateDisplayStatus('email', val);
               }}
             />
             <label htmlFor="showEmailEveryone"></label>
-            <span style={{ marginLeft: '10px', fontSize: '14px', color: '#2b2b2b' }}>Show my email to everyone</span>
+            <span style={{ marginLeft: '10px' }}>Show my email to everyone</span>
           </div>
         </div>
       )}
 
-      {/* Password Change Section */}
       <div style={{ marginTop: '20px' }}></div>
-      <div className="subHeader">
-        CHANGE PASSWORD
-      </div>
-      <hr/>
+      <div className="subHeader">CHANGE PASSWORD</div>
+      <hr />
+
       <div style={{ marginTop: '20px' }}></div>
       <div>
-        <div style={{ display: 'inline-block', width: '120px', fontSize: '14px', color: '#2b2b2b' }}>
-          Current password
-        </div>
-            <input
-              ref={currentPasswordInputRef}
-              id="curPass"
-              name="currentPassword"
-              className="settings-custom"
-              type="password"
-              defaultValue={currentPassword || ''}
-              onChange={handleCurrentPasswordInput}
-              disabled={!canChangePassword()}
-              autoComplete="current-password"
-            />
-        {canChangePassword() && (
+        <div style={{ display: 'inline-block', width: '120px' }}>Current password</div>
+        <input id="curPass" ref={currentPasswordRef} className="settings-custom" type="password" disabled={isPasswordInputsDisabled} />
+
+        {(toInt((settings as any)?.sso_settings?.is_sso_optional, 0) === 1 || isAdmin || isGuest) && (
           <div style={{ display: 'inline-block', marginLeft: '30px' }}>
             <a href="/app/forgot_password.php" target="_blank" rel="noopener noreferrer">
               Forgot your password?
@@ -619,233 +694,318 @@ export default function AccountSettingsView() {
           </div>
         )}
       </div>
+
       <div className="clearfix" style={{ display: 'inline-block', marginTop: '20px', overflow: 'hidden' }}>
         <div style={{ display: 'inline-block' }}>
-            <div style={{ display: 'inline-block', width: '120px', fontSize: '14px', color: '#2b2b2b' }}>
-              New password
-            </div>
-            <input
-              ref={newPasswordInputRef}
-              id="newPass"
-              name="newPassword"
-              className="settings-custom"
-              type="password"
-              value={newPassword}
-              onChange={handleNewPasswordInput}
-              onKeyUp={handleNewPasswordKeyUp}
-              disabled={!canChangePassword()}
-              autoComplete="new-password"
-            />
+          <div style={{ display: 'inline-block', width: '120px' }}>New password</div>
+          <input
+            id="newPass"
+            ref={newPasswordRef}
+            className="settings-custom"
+            type="password"
+            disabled={isPasswordInputsDisabled}
+            value={passwordText}
+            onChange={(e) => {
+              const v = e.target.value;
+              setPasswordText(v);
+              // input handler toggles button and highlights based on constraints
+              if (v && currentPasswordRef.current?.value && checkIfAllConstraintsAreMet(v)) {
+                // enabled via derived disabled attr below
+              }
+            }}
+            onKeyUp={(e) => {
+              if ((e as any).keyCode === 9 || e.key === 'Tab') return;
+              updatePasswordConstraints((e.currentTarget as HTMLInputElement).value, { fulfilled: true, notFulfilled: false });
+            }}
+          />
           <button
             id="passBtn"
-            style={{
-              display: 'block',
-              marginLeft: '144px',
-              marginTop: '20px'
-            }}
-            onClick={handlePasswordChange}
-            disabled={!isPasswordButtonEnabled() || resetPasswordMutation.isPending}
+            style={{ display: 'block', marginLeft: '144px', marginTop: '20px' }}
+            onClick={handleResetPassword}
             type="button"
-            className={`btn btn-primary ${!isPasswordButtonEnabled() ? 'disabled' : ''}`}
+            className={`btn btn-primary ${
+              !currentPasswordRef.current?.value || !passwordText ? 'disabled' : ''
+            }`}
+            disabled={resetPasswordMutation.isPending || !currentPasswordRef.current?.value || !passwordText}
           >
             Change password
           </button>
         </div>
-        {/* Password Policy Constraints - matches ng-show="settings != null && settings.password_policy != null" */}
-        {settings?.password_policy && (
+
+        {passwordPolicyEnabled && (
           <div id="password-policy-constraints">
             <div>Your password must:</div>
             <ul>
-              {(passwordConstraints.length > 0 ? passwordConstraints : classifyFulfilledAndUnfulfilledConstraintsByPassword(newPassword)).map((constraint, index) => (
-                <li
-                  key={index}
-                  className={`cnv-list-style ${constraint.fulfilled ? 'fulfilled' : 'not-fulfilled'}`}
-                >
-                  <div>{constraint.constraint}</div>
-                </li>
-              ))}
+              {passwordPolicyList.map((c, idx) => {
+                const fulfilled = (c as any).fulfilled === true || (c as any).fulfilled === '1';
+                const isNotFulfilled = !fulfilled;
+                const cls =
+                  'cnv-list-style' +
+                  (passwordHighlight.fulfilled && fulfilled ? ' fulfilled' : '') +
+                  (passwordHighlight.notFulfilled && isNotFulfilled ? ' not-fulfilled' : '');
+
+                return (
+                  <li key={idx} className={cls}>
+                    <div>{(c as any).constraint}</div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
       </div>
 
-      <br/><br/><br/>
+      <br />
+      <br />
+      <br />
 
-      {/* Two-Factor Authentication Section - matches ng-if="multiFactorAuth" */}
+      {/* TWO-FACTOR AUTHENTICATION (always visible like Angular; inactive by default) */}
       <div>
-        {multiFactorAuth ? (
-          <div style={{ opacity: multiFactorAuth.deactivating ? 0.6 : 1 }}>
-            <div className="meta"><b>TWO-FACTOR AUTHENTICATION</b></div>
-            <hr/>
+        <div style={{ opacity: (mfaForRender as any).deactivating ? 0.6 : 1 }}>
             <div className="meta">
-              Two-Factor authentication is{' '}
-              <b>{multiFactorAuth.mfa_enabled ? 'active' : 'inactive'}</b>
+              <b>TWO-FACTOR AUTHENTICATION</b>
             </div>
-            <br/>
-            
-            {/* MFA Not Enabled */}
-            {!multiFactorAuth.mfa_enabled && (
+            <hr />
+            <div className="meta">
+              Two-Factor authentication is <b>{mfaForRender.mfa_enabled ? 'active' : 'inactive'}</b>
+            </div>
+            <br />
+
+            {!mfaForRender.mfa_enabled && (
               <div className="meta" style={{ width: '760px' }}>
-                Protect your account with an extra layer of security by requiring access to your phone. Once configured, you'll be required to enter both your password and an authentication code from your mobile phone in order to sign in.{' '}
-                <a href="https://convo.com/help/2fa">Learn more</a>.
-                <br/>
-                    <a href={getTwoFactorAuthUrl(settings)} target="_blank" rel="noopener noreferrer">
-                      <button className="btn btn-primary" style={{ margin: '10px 0px 6px 0px' }}>
-                        Set up two-factor authentication
-                      </button>
-                    </a>
+                Protect your account with an extra layer of security by requiring access to your phone. Once configured,
+                you'll be required to enter both your password and an authentication code from your mobile phone in order
+                to sign in. <a href="https://convo.com/help/2fa">Learn more</a>.
+                <br />
+                <a href={getTwoFactorAuthUrl()}>
+                  <button className="btn btn-primary" style={{ margin: '10px 0px 6px 0px' }}>
+                    Set up two-factor authentication
+                  </button>
+                </a>
                 <div className="meta">Note: Activating two-factor authentication will sign you out of all other sessions.</div>
               </div>
             )}
 
-            {/* MFA Enabled - SMS Default */}
-            {multiFactorAuth.mfa_enabled && multiFactorAuth.SMS && multiFactorAuth.SMS.is_default && (
+            {mfaForRender.SMS && (mfaForRender.SMS as any).is_default && (
               <div className="meta">
-                Authentication codes will be sent via SMS text message to{' '}
-                <b>{multiFactorAuth.SMS.phone_number}</b>{' '}
-                <a href={`${getTwoFactorAuthUrl(settings)}?view=sms_auth`} target="_blank" rel="noopener noreferrer">Edit</a>
+                Authentication codes will be sent via SMS text message to&nbsp;<b>{(mfaForRender.SMS as any).phone_number}</b>
+                &nbsp;<a href={`${getTwoFactorAuthUrl()}?view=sms_auth`}>Edit</a>
               </div>
             )}
 
-            {/* MFA Enabled - Auth App Default with SMS */}
-            {multiFactorAuth.mfa_enabled && multiFactorAuth.AUTH_APP && multiFactorAuth.AUTH_APP.is_default && multiFactorAuth.SMS && (
+            {mfaForRender.AUTH_APP && (mfaForRender.AUTH_APP as any).is_default && mfaForRender.SMS && (
               <div className="meta">
-                Get your authentication codes via your <b>authentication app</b>{' '}
-                <a href={`${getTwoFactorAuthUrl(settings)}?view=authenticator_app`} target="_blank" rel="noopener noreferrer">Edit</a>
+                Get your authentication codes via your&nbsp;<b>authentication app</b>&nbsp;
+                <a href={`${getTwoFactorAuthUrl()}?view=authenticator_app`}>Edit</a>
               </div>
             )}
 
-            {/* MFA Enabled - Auth App Default without SMS */}
-            {multiFactorAuth.mfa_enabled && multiFactorAuth.AUTH_APP && multiFactorAuth.AUTH_APP.is_default && !multiFactorAuth.SMS && (
+            {mfaForRender.AUTH_APP && (mfaForRender.AUTH_APP as any).is_default && !mfaForRender.SMS && (
               <div className="meta">
-                Authentication codes will be sent to your <b>authentication app</b>{' '}
-                <a href={`${getTwoFactorAuthUrl(settings)}?view=authenticator_app`} target="_blank" rel="noopener noreferrer">Edit</a>
+                Authentication codes will be sent to your&nbsp;<b>authentication app</b>&nbsp;
+                <a href={`${getTwoFactorAuthUrl()}?view=authenticator_app`}>Edit</a>
               </div>
             )}
 
-            {/* MFA Enabled - SMS Backup */}
-            {multiFactorAuth.mfa_enabled && multiFactorAuth.SMS && !multiFactorAuth.SMS.is_default && (
+            {mfaForRender.SMS && !(mfaForRender.SMS as any).is_default && (
               <div className="meta">
-                Your backup phone number is <b>{multiFactorAuth.SMS.phone_number}</b>{' '}
-                <a href={`${getTwoFactorAuthUrl(settings)}?view=sms_auth`} target="_blank" rel="noopener noreferrer">Edit</a>
+                Your backup phone number is&nbsp;<b>{(mfaForRender.SMS as any).phone_number}</b>&nbsp;
+                <a href={`${getTwoFactorAuthUrl()}?view=sms_auth`}>Edit</a>
               </div>
             )}
 
-            {/* MFA Enabled - Auth App Backup */}
-            {multiFactorAuth.mfa_enabled && multiFactorAuth.AUTH_APP && !multiFactorAuth.AUTH_APP.is_default && (
+            {mfaForRender.AUTH_APP && !(mfaForRender.AUTH_APP as any).is_default && (
               <div className="meta">
-                You have registered an <b>authentication</b> app as a backup option{' '}
-                <a href={`${getTwoFactorAuthUrl(settings)}?view=authenticator_app`} target="_blank" rel="noopener noreferrer">Edit</a>
+                You have registered an&nbsp;<b>authentication</b>&nbsp;app as a backup option&nbsp;
+                <a href={`${getTwoFactorAuthUrl()}?view=authenticator_app`}>Edit</a>
               </div>
             )}
 
-            {/* Setup Backup Options */}
-            {multiFactorAuth.mfa_enabled && multiFactorAuth.SMS && !multiFactorAuth.AUTH_APP && (
-              <a href={`${getTwoFactorAuthUrl(settings)}?view=authenticator_app`} style={{ marginTop: '6px', display: 'inline-block' }} target="_blank" rel="noopener noreferrer">
+            {mfaForRender.mfa_enabled && mfaForRender.SMS && !mfaForRender.AUTH_APP && (
+              <a href={`${getTwoFactorAuthUrl()}?view=authenticator_app`} style={{ marginTop: '6px', display: 'inline-block' }}>
                 Set up a backup option
               </a>
             )}
 
-            {multiFactorAuth.mfa_enabled && !multiFactorAuth.SMS && multiFactorAuth.AUTH_APP && (
-              <a href={`${getTwoFactorAuthUrl(settings)}?view=sms_auth`} style={{ marginTop: '6px', display: 'inline-block' }} target="_blank" rel="noopener noreferrer">
+            {mfaForRender.mfa_enabled && !mfaForRender.SMS && mfaForRender.AUTH_APP && (
+              <a href={`${getTwoFactorAuthUrl()}?view=sms_auth`} style={{ marginTop: '6px', display: 'inline-block' }}>
                 Set up a backup option
               </a>
             )}
 
-            {/* Backup Codes */}
-            {multiFactorAuth.mfa_enabled && multiFactorAuth.backupCodes && multiFactorAuth.backupCodes.length > 0 && (
+            {mfaForRender.mfa_enabled && Array.isArray(backupCodes) && backupCodes.length > 0 && (
               <div style={{ margin: '16px 0px' }}>
-                <a 
-                  href="javascript:void(0);" 
+                <a
+                  href="javascript:void(0);"
                   style={{ cursor: 'pointer' }}
-                  onClick={() => {
-                    // TODO: Open backup codes modal
-                    alert('Backup codes modal - to be implemented');
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsBackupCodesModalOpen(true);
                   }}
                 >
                   <b>
-                    You have {multiFactorAuth.num_of_unused_backup_codes || multiFactorAuth.backupCodes.length} unused backup codes &gt;
+                    You have <span>{(multiFactorAuth as any).num_of_unused_backup_codes}</span> unused backup codes &gt;
                   </b>
                 </a>
               </div>
             )}
 
-            {/* Use Auth App Instead */}
-            {multiFactorAuth.mfa_enabled && (!multiFactorAuth.AUTH_APP || !multiFactorAuth.AUTH_APP.is_default) && (
-              <a href={`${getTwoFactorAuthUrl(settings)}?view=authenticator_app&default=1`} style={{ textDecoration: 'none' }} target="_blank" rel="noopener noreferrer">
+            {mfaForRender.mfa_enabled && (!mfaForRender.AUTH_APP || !(mfaForRender.AUTH_APP as any).is_default) && (
+              <a href={`${getTwoFactorAuthUrl()}?view=authenticator_app&default=1`} style={{ textDecoration: 'none' }}>
                 <button className="btn btn-primary">Use authentication app instead</button>
               </a>
             )}
 
-            {/* Use SMS Instead */}
-            {multiFactorAuth.mfa_enabled && (!multiFactorAuth.SMS || !multiFactorAuth.SMS.is_default) && (
-              <a href={`${getTwoFactorAuthUrl(settings)}?view=sms_auth&default=1`} style={{ textDecoration: 'none' }} target="_blank" rel="noopener noreferrer">
+            {mfaForRender.mfa_enabled && (!mfaForRender.SMS || !(mfaForRender.SMS as any).is_default) && (
+              <a href={`${getTwoFactorAuthUrl()}?view=sms_auth&default=1`} style={{ textDecoration: 'none' }}>
                 <button className="btn btn-primary">Use SMS instead</button>
               </a>
             )}
 
-            {/* Deactivate MFA */}
-            {multiFactorAuth.mfa_enabled && multiFactorAuth.allow_deactivate && (
-              <a
-                style={{ verticalAlign: 'middle' }}
-                href="javascript:void(0);"
-                onClick={handleDeactivateMfa}
-              >
-                &nbsp;&nbsp;&nbsp;&nbsp;{multiFactorAuth.deactivating ? 'Deactivating...' : 'Deactivate two-factor authentication'}
+            {mfaForRender.mfa_enabled && (mfaForRender as any).allow_deactivate && (
+              <a style={{ verticalAlign: 'middle' }} href="javascript:void(0);" onClick={(e) => { e.preventDefault(); handleDeactivateMfa(); }}>
+                &nbsp;&nbsp;&nbsp;&nbsp;Deactivate two-factor authentication
               </a>
             )}
           </div>
-        ) : settingsLoading ? (
-          <div className="meta">Loading two-factor authentication settings...</div>
-        ) : (
-          <div>
-            <div className="meta"><b>TWO-FACTOR AUTHENTICATION</b></div>
-            <hr/>
-            <div className="meta">
-              Two-Factor authentication is <b>inactive</b>
-            </div>
-            <br/>
-            <div className="meta" style={{ width: '760px' }}>
-              Protect your account with an extra layer of security by requiring access to your phone. Once configured, you'll be required to enter both your password and an authentication code from your mobile phone in order to sign in.{' '}
-              <a href="https://convo.com/help/2fa">Learn more</a>.
-              <br/>
-              <a href={getTwoFactorAuthUrl(settings)} target="_blank" rel="noopener noreferrer">
-                <button className="btn btn-primary" style={{ margin: '10px 0px 6px 0px' }}>
-                  Set up two-factor authentication
-                </button>
-              </a>
-              <div className="meta">Note: Activating two-factor authentication will sign you out of all other sessions.</div>
-            </div>
-          </div>
-        )}
-        
-        <br/><br/>
-        
-        {/* Sign Out All Other Sessions */}
-        <div className="meta"><b>SIGN OUT OF ALL OTHER SESSIONS</b></div>
-        <hr/>
+
+        <br />
+        <br />
+
+        <div className="meta">
+          <b>SIGN OUT OF ALL OTHER SESSIONS</b>
+        </div>
+        <hr />
         <div className="meta">Lost your phone or forgot to log out of a public computer? Sign out from everywhere except from here.</div>
-        <button
-          className="btn btn-primary"
-          onClick={handleSignOutAllOtherSessions}
-          style={{ marginTop: '10px' }}
-        >
+        <button className="btn btn-primary" onClick={handleSignOutAllOtherSessions} style={{ marginTop: '10px' }} type="button">
           Sign out all other sessions
         </button>
       </div>
 
-      {/* Disable Account */}
       <div style={{ marginTop: '40px' }}></div>
-      <hr/>
+      <hr />
       <div style={{ marginTop: '20px' }}></div>
-      <a href="javascript:void(0)" onClick={handleDisableAccount}>
+
+      <a
+        href="javascript:void(0)"
+        onClick={(e) => {
+          e.preventDefault();
+          setIsDisableAccountModalOpen(true);
+        }}
+      >
         Disable my account
       </a>
+
       <div style={{ marginTop: '10px', color: '#7b8386' }}>
-        You will be removed from this network and lose access to all of company discussion. Content shared by
-        you will not be automatically deleted.
+        You will be removed from this network and lose access to all of company discussion. Content shared by you will not be automatically deleted.
       </div>
+
+      <div style={{ marginTop: '60px' }}></div>
+
+      {isBackupCodesModalOpen && Array.isArray(backupCodes) && (
+        <BackupCodesModal accountName={accountNameForCodes} backupCodes={backupCodes} onClose={() => setIsBackupCodesModalOpen(false)} />
+      )}
+
+      {isDisableAccountModalOpen && (
+        <PromptModal
+          title={messageTitle}
+          message={messageText}
+          okLabel="Disable Account"
+          cancelLabel="Cancel"
+          onOk={handleDisableAccountConfirmed}
+          onCancel={() => setIsDisableAccountModalOpen(false)}
+        />
+      )}
+
+      <style jsx global>{`
+        /* Backup codes modal styles (ported from authCodesModal/styles.less) */
+        .cnv-modal.backup-codes .backup-codes-wrap {
+          position: relative;
+          background: #efefef;
+          border: 1px solid #e0e0e0;
+          border-radius: 3px;
+          width: 260px;
+          margin: 18px auto;
+          text-align: center;
+          padding: 15px 0px;
+        }
+        .cnv-modal.backup-codes .backup-codes-wrap .copied-text {
+          position: absolute;
+          right: 0px;
+          top: 0px;
+          padding: 4px 8px;
+          background: #d8d8d8;
+        }
+        .cnv-modal.backup-codes ul.backup-codes {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          max-height: 220px;
+          overflow: auto;
+        }
+        .cnv-modal.backup-codes ul.backup-codes li {
+          font-weight: bold;
+          padding: 0;
+        }
+        .cnv-modal.backup-codes ul.backup-codes li .used {
+          position: relative;
+          color: rgba(152, 152, 152, 1);
+        }
+        .cnv-modal.backup-codes ul.backup-codes li .used:before {
+          content: '';
+          position: absolute;
+          top: 9px;
+          left: 0px;
+          width: 100%;
+          background: #989898;
+          height: 1px;
+        }
+        .cnv-modal.backup-codes .backup-codes-options {
+          margin-top: 18px;
+        }
+        .cnv-modal.backup-codes .backup-codes-options .btn {
+          color: black;
+          min-width: 104px;
+          background: #e0e0e0;
+          border-radius: 2px;
+          margin: 0px 4px;
+        }
+        .cnv-modal.backup-codes .modal-footer {
+          border: none;
+          margin: 4px 0px;
+          padding: 0;
+        }
+
+        /* Print support (ported from styles-print.less) */
+        @media print {
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .visible-dialog-only-on-print .settings-container {
+            display: none !important;
+          }
+          .visible-dialog-only-on-print .cnv-modal.backup-codes .modal-dialog {
+            max-width: 600px !important;
+          }
+          .visible-dialog-only-on-print .cnv-modal.backup-codes .modal-header {
+            display: none !important;
+          }
+          .visible-dialog-only-on-print .cnv-modal.backup-codes .modal-body .print {
+            display: block !important;
+            text-align: center;
+          }
+          .visible-dialog-only-on-print .cnv-modal.backup-codes .backup-code-note,
+          .visible-dialog-only-on-print .cnv-modal.backup-codes .backup-codes-options {
+            display: none !important;
+          }
+          .visible-dialog-only-on-print .cnv-modal.backup-codes .modal-footer {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
+
 

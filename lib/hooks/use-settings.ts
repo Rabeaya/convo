@@ -79,7 +79,7 @@ export function useResetPassword() {
   
   return useMutation({
     mutationFn: async (data: { current_password: string; new_password: string }) => {
-      const response = await apiClient.post<ApiResponse>('/passwordreset', {
+      const response = await apiClient.post<ApiResponse>('/api/v1/passwordreset', {
         method: 'changePassword',
         current_password: data.current_password,
         new_password: data.new_password
@@ -98,7 +98,7 @@ export function useChangeEmail() {
   
   return useMutation({
     mutationFn: async (newEmail: string) => {
-      const response = await apiClient.post<ApiResponse<{ email?: string }>>('/user', {
+      const response = await apiClient.post<ApiResponse<{ email?: string }>>('/api/v1/user', {
         method: 'changeEmail',
         new_email: newEmail
       });
@@ -124,7 +124,7 @@ export function useChangeEmail() {
 export function useHideUserInfo() {
   return useMutation({
     mutationFn: async (data: { type: 'phone' | 'email'; value: number }) => {
-      const response = await apiClient.put<ApiResponse>('/user/profiles', {
+      const response = await apiClient.put<ApiResponse>('/api/v1/user/profiles', {
         method: 'showHideEmailOrPhone',
         type: data.type,
         value: data.value
@@ -138,7 +138,7 @@ export function useHideUserInfo() {
 export function useExpireAllOtherSessions() {
   return useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post<ApiResponse>('/mfa', {
+      const response = await apiClient.post<ApiResponse>('/api/v1/mfa', {
         method: 'expireAllOtherUserSessions'
       });
       return (response.data as any) || response;
@@ -152,7 +152,7 @@ export function useDeactivateMfa() {
   
   return useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post<ApiResponse>('/mfa', {
+      const response = await apiClient.post<ApiResponse>('/api/v1/mfa', {
         method: 'deactivateMfaForUser'
       });
       return (response.data as any) || response;
@@ -168,9 +168,12 @@ export function useBackupCodes() {
   return useQuery({
     queryKey: ['backupCodes'],
     queryFn: async () => {
-      const response = await apiClient.post<ApiResponse<{ backup_codes: string[]; account_name: string }>>('/mfa', {
-        method: 'getAllBackupCodesOfUser'
-      });
+      const response = await apiClient.post<ApiResponse<{ backup_codes: Array<{ backup_code: string; consumed_at?: unknown }>; account_name: string }>>(
+        '/api/v1/mfa',
+        {
+          method: 'getAllBackupCodesOfUser',
+        }
+      );
       return (response.data as any) || response;
     }
   });
@@ -180,10 +183,8 @@ export function useBackupCodes() {
 export function useRemoveUserFromNetwork() {
   return useMutation({
     mutationFn: async (userId: string) => {
-      const response = await apiClient.post<ApiResponse>('/users', {
-        method: 'removeUserFromNetwork',
-        user_id: userId
-      });
+      // Angular Users.removeUserFromNetwork calls POST accounts { method: 'removeUser', user_id }.
+      const response = await apiClient.post<ApiResponse>('/api/v1/accounts', { method: 'removeUser', user_id: userId });
       return (response.data as any) || response;
     }
   });
@@ -205,11 +206,28 @@ export function useSaveSettingByName() {
       return (response.data as any) || response;
     },
     onSuccess: async () => {
-      // IMPORTANT: `useGeneralSettings` queryKey is `['generalSettings', refetchFromServer, mode]`.
-      // We must refetch with exact=false so it matches all variants and issues an immediate GET /api/v1/settings,
-      // matching Angular's getGeneralSettings(true) behavior after saves.
-      queryClient.invalidateQueries({ queryKey: ['generalSettings'], exact: false });
-      await queryClient.refetchQueries({ queryKey: ['generalSettings'], exact: false, type: 'active' });
+      // Angular explicitly calls getGeneralSettings(true) after some saves (e.g., sharing_options_list),
+      // which triggers an immediate GET /settings. Do the same unconditionally for parity.
+      // Also update any cached generalSettings variants so UIs rehydrate correctly.
+      try {
+        const response = await apiClient.get<GeneralSettings | { data: GeneralSettings }>(SETTINGS_API_URL_NORMAL);
+
+        // Mirror useGeneralSettings' normalization (NORMAL mode).
+        // IMPORTANT: Do NOT unwrap `network_notifications_settings` here; that's ADMIN-mode only and would drop `sso_settings`, `mfa`, etc.
+        let next: any = response.data;
+        // Common shapes: { type, data }, { data: {...} }, or direct {...}
+        if (next && typeof next === 'object' && 'data' in next) {
+          next = (next as any).data;
+        }
+        if (next && typeof next === 'object' && 'type' in next && 'data' in next) {
+          next = (next as any).data;
+        }
+
+        queryClient.setQueriesData({ queryKey: ['generalSettings'], exact: false }, next);
+      } finally {
+        // Still invalidate so anything else depending on generalSettings gets a chance to refetch.
+        queryClient.invalidateQueries({ queryKey: ['generalSettings'], exact: false });
+      }
     },
   });
 }

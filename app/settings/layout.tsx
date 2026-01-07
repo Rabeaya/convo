@@ -30,8 +30,11 @@ export default function SettingsLayout({
           background: white;
           margin: 0 auto;
           min-width: 1160px;
-          height: auto;
-          min-height: 100%;
+          /* Ensure the settings view uses its own stable scroll container.
+             This prevents the window scrollbar from disappearing after UI overlays (e.g. autocomplete). */
+          height: 100vh;
+          box-sizing: border-box;
+          overflow: hidden;
         }
         .settings-container .left-panel-container {
           padding: 0;
@@ -106,7 +109,8 @@ export default function SettingsLayout({
           min-width: 1200px;
           overflow-x: hidden;
           overflow-y: auto;
-          height: 100%;
+          height: calc(100vh - 60px);
+          scrollbar-gutter: stable;
         }
         .settings-container .view-content > div:not(.cnv-advanced-search) {
           max-width: 1205px;
