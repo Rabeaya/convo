@@ -48,14 +48,15 @@ export interface ApiResponse<T = any> {
   data?: T;
 }
 
+const SETTINGS_API_URL_NORMAL = '/api/v1/settings';
+const SETTINGS_API_URL_ADMIN = '/admin/networknotificationsetting?method=readNetworkSettingsTemplate';
+
 // Get general settings - matches settingsService.getGeneralSettings
 export function useGeneralSettings(refetchFromServer = false, mode: 'NORMAL' | 'ADMIN' = 'NORMAL') {
   return useQuery({
     queryKey: ['generalSettings', refetchFromServer, mode],
     queryFn: async () => {
-      const settingUrl = mode === 'ADMIN' 
-        ? '/admin/networknotificationsetting?method=readNetworkSettingsTemplate'
-        : '/settings';
+      const settingUrl = mode === 'ADMIN' ? SETTINGS_API_URL_ADMIN : SETTINGS_API_URL_NORMAL;
       const response = await apiClient.get<GeneralSettings | { data: GeneralSettings }>(settingUrl);
       // AngularJS returns { type: 1, data: {...} } format
       // For admin mode, it may return { data: { network_notifications_settings: {...} } }
@@ -198,8 +199,8 @@ export function useSaveSettingByName() {
       const settings: Record<string, any> = {};
       settings[settingName] = value;
       
-      // POST to /settings endpoint (matches AngularJS saveGeneralSettings)
-      const response = await apiClient.post<ApiResponse>('/settings', settings);
+      // POST to backend via Next.js API proxy (matches AngularJS saveGeneralSettings)
+      const response = await apiClient.post<ApiResponse>(SETTINGS_API_URL_NORMAL, settings);
       
       // Invalidate general settings if sharing options changed
       if (settingName === 'sharing_options_list' || settingName === 'reset_to_default_sharing_options') {
@@ -221,7 +222,11 @@ export function useCustomizeFeedSettings(refetchFromServer = false) {
       sharing_options_list: generalSettings?.sharing_options_list || [],
       profile_groups_settings: generalSettings?.profile_groups_settings || [],
       regular_groups_settings: generalSettings?.regular_groups_settings || [],
+      // Share link preference (not present in older Angular template in this repo, but requested for parity with newer UI)
+      share_link_of_new_posts_in_chat:
+        (generalSettings as any)?.share_link_of_new_posts_in_chat ?? (generalSettings as any)?.share_link_in_chat ?? (generalSettings as any)?.shareLinkInChat,
     } : undefined,
     isLoading,
   };
 }
+

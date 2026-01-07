@@ -24,6 +24,17 @@ export class ApiClient {
     this.baseURL = baseURL;
   }
 
+  private getServicesHostHeader(): Record<string, string> {
+    // Used by our Next.js API proxy routes to know which Convo host to call.
+    // Default is set to the dev host requested by the user.
+    const servicesHost =
+      (typeof window !== 'undefined' && (window as any)?.servicesHost) ||
+      process.env.NEXT_PUBLIC_SERVICES_HOST ||
+      'app3.app06.convodev.net';
+
+    return servicesHost ? { 'x-services-host': String(servicesHost) } : {};
+  }
+
   /**
    * Make a GET request
    */
@@ -37,6 +48,7 @@ export class ApiClient {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...this.getServicesHostHeader(),
       },
     });
 
@@ -55,6 +67,7 @@ export class ApiClient {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...this.getServicesHostHeader(),
       },
       body: data ? JSON.stringify(data) : undefined,
     });
@@ -74,6 +87,7 @@ export class ApiClient {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...this.getServicesHostHeader(),
       },
       body: data ? JSON.stringify(data) : undefined,
     });
@@ -92,6 +106,7 @@ export class ApiClient {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...this.getServicesHostHeader(),
       },
     });
 
@@ -105,7 +120,14 @@ export class ApiClient {
     endpoint: string,
     params?: Record<string, string | number | boolean>
   ): string {
-    const url = new URL(`${this.baseURL}${endpoint}`, window.location.origin);
+    const origin =
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_SERVICES_HOST
+          ? `https://${process.env.NEXT_PUBLIC_SERVICES_HOST}`
+          : 'http://localhost';
+
+    const url = new URL(`${this.baseURL}${endpoint}`, origin);
     
     if (params) {
       Object.entries(params).forEach(([key, value]) => {

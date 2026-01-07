@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     });
     
     const responseText = await response.text();
-    let data;
+    let data: unknown;
     
     try {
       data = JSON.parse(responseText);
@@ -70,19 +70,34 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Forward the response with cookies
-    const responseHeaders = new Headers();
-    
-    // Forward set-cookie headers if present
-    const setCookieHeader = response.headers.get('set-cookie');
-    if (setCookieHeader) {
-      responseHeaders.set('set-cookie', setCookieHeader);
+    // Forward the response with cookies.
+    // Important for local dev: cookies from https://app*.convodev.net often include Domain and Secure/SameSite=None,
+    // which browsers will reject on http://localhost. We rewrite them so they can be stored for localhost,
+    // then our other /api/v1/* proxy routes will forward them back upstream.
+
+    const host = request.headers.get('host') || '';
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+
+    const nextResponse = NextResponse.json(data, { status: response.status });
+
+    const setCookies = response.headers.getSetCookie();
+    if (setCookies.length > 0) {
+      setCookies.forEach((cookie) => {
+        let rewritten = cookie;
+
+        if (isLocalhost) {
+          // Remove Domain so cookie becomes host-only (localhost).
+          rewritten = rewritten.replace(/;\s*Domain=[^;]+/i, '');
+          // Browsers reject SameSite=None without Secure; for localhost over http, downgrade to Lax and drop Secure.
+          rewritten = rewritten.replace(/;\s*SameSite=None/gi, '; SameSite=Lax');
+          rewritten = rewritten.replace(/;\s*Secure/gi, '');
+        }
+
+        nextResponse.headers.append('Set-Cookie', rewritten);
+      });
     }
-    
-    return NextResponse.json(data, {
-      status: response.status,
-      headers: responseHeaders,
-    });
+
+    return nextResponse;
   } catch (error: any) {
     console.error('Login proxy error:', error);
     return NextResponse.json(

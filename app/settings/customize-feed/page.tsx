@@ -47,3 +47,4 @@ export default function CustomizeFeedPage() {
     </div>
   );
 }
+

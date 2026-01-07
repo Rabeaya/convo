@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
 const API_VERSION = 'v1';
+
+function resolveServicesHost(request: NextRequest): string {
+  return (
+    request.headers.get('x-services-host') ||
+    process.env.NEXT_PUBLIC_SERVICES_HOST ||
+    process.env.SERVICES_HOST ||
+    'app3.app06.convodev.net'
+  );
+}
 
 export async function GET(request: NextRequest) {
   try {
     // Groups endpoint uses regular API path, not feed services
-    const url = `https://${SERVICES_HOST}/api/${API_VERSION}/groups`;
+    const servicesHost = resolveServicesHost(request);
+    const url = `https://${servicesHost}/api/${API_VERSION}/groups`;
     
     // Forward cookies from the request
     const cookieHeader = request.headers.get('cookie') || '';

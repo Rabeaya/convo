@@ -92,3 +92,4 @@ export function checkIfAllConstraintsAreMet(password: string): boolean {
 export function getPasswordComplexityConstraintsBitMap() {
   return passwordComplexityConstraints;
 }
+

@@ -243,3 +243,4 @@ function stringToColor(str: string): string {
   
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
+

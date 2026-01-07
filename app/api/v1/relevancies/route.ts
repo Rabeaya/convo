@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+function resolveServicesHost(request: NextRequest): string {
+  return (
+    request.headers.get('x-services-host') ||
+    process.env.NEXT_PUBLIC_SERVICES_HOST ||
+    process.env.SERVICES_HOST ||
+    'app3.app06.convodev.net'
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +23,8 @@ export async function POST(request: NextRequest) {
 
     // Relevancies endpoint uses analytics path (same domain)
     // The endpoint is "analytics/relevancies" which gets routed to analytics/api/relevancies
-    const url = `https://${SERVICES_HOST}/analytics/api/relevancies`;
+    const servicesHost = resolveServicesHost(request);
+    const url = `https://${servicesHost}/analytics/api/relevancies`;
     
     // Forward cookies from the request
     const cookieHeader = request.headers.get('cookie') || '';
