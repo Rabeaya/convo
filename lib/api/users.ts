@@ -106,8 +106,8 @@ export const usersService = new UsersService();
  */
 export function getUserProfileImageUrl(
   userId: string | undefined,
-  profileImageType: number | undefined,
-  profileImageVersion: number | undefined,
+  profileImageType: number | string | undefined,
+  profileImageVersion: number | string | undefined,
   size: string = '48x48',
   servicesHost?: string,
   userSerialNo?: number
@@ -115,6 +115,11 @@ export function getUserProfileImageUrl(
   const PROFILE_IMAGE_TYPE_SYSTEM = 2;
   const PROFILE_IMAGE_TYPE_CUSTOM = 1;
   const PROFILE_IMAGE_TYPE_DEFAULT = 0;
+
+  // AngularJS receives these as ints from Users service and as strings from Feed service.
+  // It compares with loose equality; normalize to match behavior.
+  const typeNum = profileImageType === undefined || profileImageType === null ? NaN : Number(profileImageType);
+  const versionNum = profileImageVersion === undefined || profileImageVersion === null ? NaN : Number(profileImageVersion);
 
   // Get servicesHost from window or use default (matches AngularJS config.AWS_FILE_DIR_BASE)
   const host = servicesHost || 
@@ -131,22 +136,22 @@ export function getUserProfileImageUrl(
   // }
 
   // Handle profile image type (matches AngularJS userImgUrl filter exactly)
-  if (userId && profileImageType === PROFILE_IMAGE_TYPE_SYSTEM) {
+  if (userId && (typeNum === PROFILE_IMAGE_TYPE_SYSTEM || String(profileImageType) === '2')) {
     return baseUrl + `user-images/system-user/thumbnails/system-user-thumbnail-${size}.png`;
   }
   
   // Default user image if no userId, or profileImageType is 0, or profileImageVersion is 0
   // Note: AngularJS checks profileImageVersion == 0 (loose equality, so string "0" also matches)
   if (!userId || 
-      profileImageType === PROFILE_IMAGE_TYPE_DEFAULT || 
-      profileImageType === 0 || 
+      typeNum === PROFILE_IMAGE_TYPE_DEFAULT || 
+      String(profileImageType) === '0' ||
       !profileImageVersion || 
-      profileImageVersion === 0 ||
+      versionNum === 0 ||
       String(profileImageVersion) === '0') {
     return baseUrl + `user-images/default-user/thumbnails/default-user-thumbnail-${size}.png`;
   }
   
-  if (profileImageType === PROFILE_IMAGE_TYPE_CUSTOM || profileImageType === 1) {
+  if (typeNum === PROFILE_IMAGE_TYPE_CUSTOM || String(profileImageType) === '1') {
     return baseUrl + `user-images/${userId}/thumbnails/${userId}-thumbnail-${size}-${profileImageVersion}.jpg`;
   }
 

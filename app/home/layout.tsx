@@ -67,8 +67,8 @@ export default function HomeLayout({
               width: '572px',
               margin: '0 auto',
               textAlign: 'left',
-            }}>
-              {children}
+        }}>
+          {children}
             </div>
           </div>
 

@@ -153,94 +153,74 @@ export function queryPublishableUsersAndGroups(
   maxResults: number = 10,
   currentUserId?: string
 ): UserListItem[] {
-  const results: UserListItem[] = [];
-  const queryLower = query ? query.toLowerCase() : '';
-  
-  // Helper to check if text matches query (with highlighting support)
-  const matchesQuery = (text: string): boolean => {
-    if (!query || query.trim().length === 0) return true;
-    return text.toLowerCase().includes(queryLower);
-  };
-  
-  // Process users
-  const publishableUsers = users.filter(user => {
-    const userId = (user as any).user_id || (user as any).userId;
-    return (user as any).publishable && 
-           user.status !== 'INVITED' && 
-           userId !== currentUserId;
-  });
-  
-  // Process groups (filter publishable groups)
-  const publishableGroups = (groups || []).filter(group => {
-    // Filter groups that can be published to (matches AngularJS logic)
-    return group.isListable !== false;
-  });
-  
-  // If no query, return top ranked items
-  if (!query || query.trim().length === 0) {
-    const userItems = publishableUsers
-      .sort((a, b) => ((b as any).rank || 0) - ((a as any).rank || 0))
-      .slice(0, Math.floor(maxResults / 2))
-      .map(user => createUserListItem(user, currentUserId))
-      .filter(item => item !== null);
-    
-    const groupItems = publishableGroups
-      .sort((a, b) => ((b as any).rank || 0) - ((a as any).rank || 0))
-      .slice(0, Math.floor(maxResults / 2))
-      .map(group => createGroupListItem(group));
-    
-    return [...userItems, ...groupItems].slice(0, maxResults);
+  // AngularJS usersGroupsListProvider.queryPublishableUsersAndGroups:
+  // - returns [] if !query
+  // - scans users first, then groups (each list already sorted by relevancy)
+  // - adds item if label or desc label matches regex, and sets formattedlabel/formatteddesclabel with <b> highlighting
+
+  if (!query || !query.trim().length) {
+    return [];
   }
-  
-  // Filter users by query
-  const matchingUsers = publishableUsers
-    .filter(user => {
-      const fullName = getUserFullName(user).toLowerCase();
-      const email = ((user as any).email || '').toLowerCase();
-      return matchesQuery(fullName) || matchesQuery(email);
+
+  const escapeRegexChars = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(([\\s,<>():._])|^)(${escapeRegexChars(query)})`, 'gi');
+
+  const highlight = (text: string) => {
+    if (!text) return '';
+    return text.replace(regex, (_m, p1, _p2, p3) => `${p1}<b>${p3}</b>`);
+  };
+
+  const results: UserListItem[] = [];
+
+  // Users first (include INVITED users at the end like Angular does, but keep them searchable)
+  const publishableUsers = (users || [])
+    .filter((u: any) => {
+      const id = u.user_id || u.userId || u.id;
+      return !!u.publishable && id !== currentUserId;
     })
-    .map(user => {
-      const item = createUserListItem(user, currentUserId);
-      if (item) {
-        // Add formatted labels with highlighting (simplified - AngularJS uses regex)
-        const fullName = getUserFullName(user);
-        const email = (user as any).email || '';
-        item.formattedlabel = fullName; // Would highlight matches in real implementation
-        item.formatteddesclabel = email;
-        item.desclabel = email;
-      }
-      return item;
-    })
-    .filter(item => item !== null);
-  
-  // Filter groups by query
-  const matchingGroups = publishableGroups
-    .filter(group => {
-      const title = (group.title || group.name || '').toLowerCase();
-      return matchesQuery(title);
-    })
-    .map(group => {
-      const item = createGroupListItem(group);
-      item.formattedlabel = group.title || group.name || ''; // Would highlight matches
-      return item;
+    .slice()
+    .sort((a: any, b: any) => {
+      const aInv = a.status === 'INVITED' ? 1 : 0;
+      const bInv = b.status === 'INVITED' ? 1 : 0;
+      if (aInv !== bInv) return aInv - bInv; // invited last
+      return (b.rank || 0) - (a.rank || 0); // higher rank first
     });
-  
-  // Combine and sort by relevance (matches first, then by rank)
-  const allItems = [...matchingUsers, ...matchingGroups].sort((a, b) => {
-    // Items that start with query come first
-    const aStarts = a.label.toLowerCase().startsWith(queryLower) ? 1 : 0;
-    const bStarts = b.label.toLowerCase().startsWith(queryLower) ? 1 : 0;
-    if (aStarts !== bStarts) return bStarts - aStarts;
-    
-    // Then by rank
-    const rankDiff = (b.rank || 0) - (a.rank || 0);
-    if (rankDiff !== 0) return rankDiff;
-    
-    // Finally alphabetically
-    return a.label.localeCompare(b.label);
-  });
-  
-  return allItems.slice(0, maxResults);
+
+  for (let i = 0; i < publishableUsers.length && results.length < maxResults; i++) {
+    const u: any = publishableUsers[i];
+    const item = createUserListItem(u as any, currentUserId);
+    if (!item) continue;
+
+    const formattedLabel = highlight(item.label || '');
+    const formattedDesc = highlight(item.desclabel || '');
+
+    // Only include if match exists in label or desc (Angular checks formatted != original)
+    if (formattedLabel !== (item.label || '') || formattedDesc !== (item.desclabel || '')) {
+      item.formattedlabel = formattedLabel;
+      item.formatteddesclabel = formattedDesc || item.formatteddesclabel || item.desclabel || '';
+      (item as any).invited = u.status === 'INVITED';
+      results.push(item);
+    }
+  }
+
+  // Then groups
+  const publishableGroups = (groups || [])
+    .filter((g: any) => g.isListable !== false)
+    .slice()
+    .sort((a: any, b: any) => (b.rank || 0) - (a.rank || 0));
+
+  for (let i = 0; i < publishableGroups.length && results.length < maxResults; i++) {
+    const g: any = publishableGroups[i];
+    const item = createGroupListItem(g);
+    const formattedLabel = highlight(item.label || '');
+    if (formattedLabel !== (item.label || '')) {
+      item.formattedlabel = formattedLabel;
+      item.formatteddesclabel = 'Group';
+      results.push(item);
+    }
+  }
+
+  return results;
 }
 
 /**

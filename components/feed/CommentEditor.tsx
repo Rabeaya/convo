@@ -26,6 +26,16 @@ interface CommentEditorProps {
     version?: string;
     [key: string]: any;
   }>;
+  // Matches AngularJS commentsService.postComment replyEventData
+  replyEventData?: { citem_uid: string; from_user: string } | null;
+  // Matches AngularJS commentEditorCtrl.snippetData wrapper (for text selection snippets)
+  snippetData?: any | null;
+  // Matches AngularJS collaborationInfo (used for snippet replies and normal replies)
+  collaborationInfo?: { replied_to_comment_id?: string; replied_to_user_id?: string; parent_resource_index?: number } | null;
+  onSnippetCleared?: () => void;
+  onReplyContextCleared?: () => void;
+  onCommentWillPost?: (optimisticComment: any) => void;
+  onCommentPostFailed?: (conversationUID: string, error: unknown) => void;
   onCommentPosted?: (comment: any) => void;
   relatedPermissions?: {
     canComment: boolean;
@@ -40,6 +50,13 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
     feedId,
     resourceType = '',
     hierarchy,
+    replyEventData,
+    snippetData,
+    collaborationInfo,
+    onSnippetCleared,
+    onReplyContextCleared,
+    onCommentWillPost,
+    onCommentPostFailed,
     onCommentPosted,
     relatedPermissions = { canComment: true }
   }, ref) {
@@ -223,22 +240,73 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
 
     setIsPosting(true);
 
+    // Generate stable conversation UID (matches AngularJS utils.generateUniqueId pattern)
+    const conversationUID = `cnv_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
     try {
+      // Optimistic comment insert (matches Angular initNewComment: immediate UI)
+      if (onCommentWillPost) {
+        const safeText = commentText
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\n/g, '<br/>');
+
+        onCommentWillPost({
+          is_posting: true,
+          posting_failed: false,
+          uid: conversationUID,
+          citem_uid: conversationUID,
+          app_instance_id: appInstanceId,
+          resource_id: resourceId,
+          from_user: userId,
+          comment_text: `<p>${safeText}</p>`,
+          creation_timestamp: Date.now(),
+          update_timestamp: Date.now(),
+          update_kind: 0,
+          like_info: { liked_by: null, liked_by_me: false, likes_count: 0, like_timestamp: 0 },
+          resource_link: {
+            resource_path: null,
+            collaboration_info: snippetData
+              ? {
+                  parent_resource_index: 0,
+                  snippet_data: snippetData?.snippetData || snippetData,
+                  ...(collaborationInfo || {}),
+                }
+              : replyEventData
+                  ? {
+                      parent_resource_index: 0,
+                      replied_to_comment_id: replyEventData.citem_uid,
+                      replied_to_user_id: replyEventData.from_user,
+                    }
+                  : { parent_resource_index: 0 },
+          },
+        });
+      }
+
       const response = await commentsService.postComment(
-        commentText,
+        // AngularJS posts HTML from Quill; we emulate minimal HTML wrapper for parity.
+        `<p>${commentText
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\n/g, '<br/>')}</p>`,
         feedId || null,
         resourceId,
         resourceType,
         appInstanceId,
         false, // attachContext
-        null, // snippetData
+        snippetData || null, // snippetData wrapper
         null, // onCommentAttachment
         null, // attachedFiles
         null, // link
         authToken,
         userId,
         accountId,
-        hierarchy // Pass hierarchy for resource_path construction
+                   hierarchy, // Pass hierarchy for resource_path construction
+                   collaborationInfo || null, // collaborationInfo (snippet + reply)
+                   replyEventData || null, // replyEventData (non-snippet reply)
+                   conversationUID
       );
 
       if (response.data) {
@@ -246,6 +314,12 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
         setCommentText('');
         setActive(false);
         setFocused(false);
+                   if (onReplyContextCleared) {
+                     onReplyContextCleared();
+                   }
+                   if (snippetData && onSnippetCleared) {
+                     onSnippetCleared();
+                   }
 
         // Notify parent
         if (onCommentPosted) {
@@ -254,6 +328,9 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
       }
     } catch (error) {
       console.error('Failed to post comment:', error);
+      if (onCommentPostFailed) {
+        onCommentPostFailed(conversationUID, error);
+      }
       // Keep the text so user can retry
     } finally {
       setIsPosting(false);
@@ -351,6 +428,29 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite',
               }}></span>
+            </div>
+          )}
+
+          {/* Snippet preview (Angular: cnvCommentEditor.tpl.html .note-snippet) */}
+          {snippetData && (
+            <div className="note-snippet">
+              <div className={`content ${snippetData.classes || 'comment_snippet'}`}>
+                <span>
+                  {String(
+                    snippetData?.snippetData?.data?.text ||
+                      snippetData?.data?.text ||
+                      ''
+                  ).slice(0, 100)}
+                </span>
+                <i
+                  className="cross"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSnippetCleared?.();
+                  }}
+                ></i>
+              </div>
             </div>
           )}
 

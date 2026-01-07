@@ -8,7 +8,7 @@
  * Exact UI match with AngularJS version
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FeedItem as FeedItemType } from '@/lib/api/feed';
 import { User } from '@/lib/api/auth';
 import CommentsPanel from './CommentsPanel';
@@ -22,6 +22,10 @@ import { itemsService } from '@/lib/api/items';
 import { promptModal } from '@/lib/utils/modal';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useQueryClient } from '@tanstack/react-query';
+import CommentOnThisTooltip from '@/components/common/CommentOnThisTooltip';
+import { clearNativeSelection, getSelectionDataWithin } from '@/lib/utils/text-selection';
+import { rmAllSelections, selectTextNested } from '@/lib/utils/text-selections-engine';
+import NoteSnippetPlaybackBanner from '@/components/feed/NoteSnippetPlaybackBanner';
 
 interface FeedItemProps {
   item: FeedItemType;
@@ -68,11 +72,90 @@ export default function FeedItem({ item }: FeedItemProps) {
   const { users, groups } = useFeedContext();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+  const snippetReplySetterRef = useRef<((snippetWrapper: any, collaborationInfo: any | null, initialText?: string) => void) | null>(null);
+  const noteDetailsRef = useRef<HTMLDivElement>(null);
+  const feedItemRef = useRef<HTMLDivElement>(null);
+  const [selTooltip, setSelTooltip] = useState<{ portalTarget: HTMLElement; top: number; left: number; beginIndex: number; endIndex: number; text: string } | null>(null);
+  const [snippetBanner, setSnippetBanner] = useState<{ visible: boolean; commentId: string; highlightTop: number } | null>(null);
+
+  // IMPORTANT: Memoize the innerHTML object so React does NOT re-apply innerHTML on unrelated state changes.
+  // If React re-applies, it wipes our DOM-injected highlight spans (Angular parity requires direct DOM mutation).
+  const noteDetailsHtml = useMemo(() => {
+    const html = localItem.search_fragment || localItem.details || '';
+    return { __html: html };
+  }, [localItem.search_fragment, localItem.details]);
+
+  // Reposition selection tooltip on scroll (Angular keeps it visible and moves it)
+  useEffect(() => {
+    if (!selTooltip) return;
+    const onScroll = () => {
+      const noteEl = noteDetailsRef.current;
+      if (!noteEl) return;
+      const data = getSelectionDataWithin(noteEl);
+      if (!data) return;
+      setSelTooltip((prev) =>
+        prev
+          ? {
+              ...prev,
+              top: data.rect.top + window.scrollY - 40,
+              left: data.rect.left + window.scrollX + data.rect.width / 2,
+            }
+          : prev
+      );
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('mousewheel', onScroll as any, { passive: true } as any);
+    return () => {
+      window.removeEventListener('scroll', onScroll as any);
+      window.removeEventListener('mousewheel', onScroll as any);
+    };
+  }, [selTooltip]);
 
   // Update local item when prop changes
   useEffect(() => {
     setLocalItem(item);
   }, [item]);
+
+  const hideSelectionTooltip = () => {
+    setSelTooltip(null);
+    clearNativeSelection();
+  };
+
+  const handlePostSnippetPlayback = (snippetData: any, commentId: string) => {
+    const noteEl = noteDetailsRef.current;
+    const itemEl = feedItemRef.current;
+    if (!noteEl || !itemEl) return;
+    if (!snippetData) return;
+
+    const feedScroller = document.getElementById('feedScroller') as HTMLElement | null;
+    const scrollContainer = feedScroller || document.documentElement;
+
+    // Angular: textSelections.rmAllSelections() before playback
+    rmAllSelections();
+
+    selectTextNested({
+      commentId,
+      data: snippetData,
+      nodes: noteEl,
+      scrollContainer,
+      highlight: true,
+      highlightRemoveTime: null,
+      selectionOffset: 150,
+      getContent: () => noteEl.textContent || '',
+      complete: () => {
+        // Match Angular: element.find('.sel-text-highlight').position()
+        const hl = noteEl.querySelector(`.${'sel-text-highlight'}`) as HTMLElement | null;
+        if (!hl) return;
+        let highlightTop = 0;
+        let cur: HTMLElement | null = hl;
+        while (cur && cur !== itemEl) {
+          highlightTop += cur.offsetTop;
+          cur = cur.offsetParent as HTMLElement | null;
+        }
+        setSnippetBanner({ visible: true, commentId, highlightTop });
+      },
+    });
+  };
 
   const handleLikeClick = async (action: 'like' | 'unlike') => {
     try {
@@ -305,12 +388,39 @@ export default function FeedItem({ item }: FeedItemProps) {
     <div 
       className={`feed-item-container row ${isDimmed ? 'dim-feed-item' : ''}`}
       id={localItem.feed_id}
+      ref={feedItemRef}
       style={{
         padding: '0px',
         position: 'relative',
         margin: '15px 0 15px 0',
       }}
     >
+      {snippetBanner?.visible && (
+        <NoteSnippetPlaybackBanner
+          visible={true}
+          feedId={localItem.feed_id || null}
+          resourceId={localItem.resource_id}
+          appInstanceId={localItem.app_instance_id}
+          commentId={snippetBanner.commentId}
+          highlightTop={snippetBanner.highlightTop}
+          onDismiss={() => {
+            setSnippetBanner(null);
+            rmAllSelections();
+          }}
+          onBackToComments={() => {
+            setSnippetBanner(null);
+            rmAllSelections();
+            const feedScroller = document.getElementById('feedScroller');
+            const commentsContainer = feedItemRef.current?.querySelector('.comments-collection') as HTMLElement | null;
+            if (feedScroller && commentsContainer) {
+              const scRect = feedScroller.getBoundingClientRect();
+              const cRect = commentsContainer.getBoundingClientRect();
+              const top = (feedScroller as HTMLElement).scrollTop + (cRect.top - scRect.top) - 100;
+              (feedScroller as HTMLElement).scrollTo({ top, behavior: 'smooth' });
+            }
+          }}
+        />
+      )}
       {/* Profile Picture Container */}
       <div 
         className={`dp-container ${isEdited ? 'edited' : 'normal'} ${isDimmed ? 'dim-feed-item' : ''}`}
@@ -562,16 +672,38 @@ export default function FeedItem({ item }: FeedItemProps) {
 
             {/* Note Details */}
             {item.show_post_contents === 1 && (
-              <div className="note-details" style={{
+              <div
+                className="note-details"
+                ref={noteDetailsRef}
+                onMouseUp={() => {
+                  // Angular mkTxtSnippet triggers on mouseup with setTimeout 0
+                  setTimeout(() => {
+                    const noteEl = noteDetailsRef.current;
+                    if (!noteEl) return;
+                    const data = getSelectionDataWithin(noteEl);
+                    if (!data) return;
+                    if (data.beginIndex >= data.endIndex) return;
+                    if (!data.text || data.text.trim() === '') return;
+
+                    // Tooltip is appended to <body> in Angular; position is absolute in page coords.
+                    setSelTooltip({
+                      portalTarget: document.body,
+                      top: data.rect.top + window.scrollY - 40,
+                      left: data.rect.left + window.scrollX + data.rect.width / 2,
+                      beginIndex: data.beginIndex,
+                      endIndex: data.endIndex,
+                      text: data.text,
+                    });
+                  }, 0);
+                }}
+                style={{
                 wordWrap: 'break-word',
-                position: 'relative',
                 paddingRight: '20px',
                 marginTop: '0px',
                 color: '#272b2c', // @text-color - matches AngularJS
-              }}>
-                <span dangerouslySetInnerHTML={{ 
-                  __html: item.search_fragment || item.details || '' 
-                }}></span>
+              }}
+              >
+                <span dangerouslySetInnerHTML={noteDetailsHtml}></span>
               </div>
             )}
 
@@ -672,9 +804,39 @@ export default function FeedItem({ item }: FeedItemProps) {
             item={localItem}
             showCommentsPanel={showCommentsPanel}
             onToggleComments={() => setShowCommentsPanel(!showCommentsPanel)}
+            snippetReplySetterRef={snippetReplySetterRef}
+            onPostSnippetPlayback={handlePostSnippetPlayback}
           />
         )}
       </div>
+
+      {selTooltip && (
+        <CommentOnThisTooltip
+          portalTarget={selTooltip.portalTarget}
+          position={{ top: selTooltip.top, left: selTooltip.left }}
+          onClose={hideSelectionTooltip}
+          onClick={() => {
+            const snippetId = `cnv_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+            const snippetWrapper = {
+              snippetData: {
+                type: 'scrybe.components.snippet.NotesSnippet',
+                data: {
+                  beginIndex: selTooltip.beginIndex,
+                  endIndex: selTooltip.endIndex,
+                  text: selTooltip.text,
+                  snippetId,
+                },
+              },
+              fileViewerTextAnnotation: true,
+              classes: 'detail_snippet',
+            };
+
+            // Angular: showAndActivateCommentsPanel('', true)
+            snippetReplySetterRef.current?.(snippetWrapper, null, '');
+            hideSelectionTooltip();
+          }}
+        />
+      )}
 
       {/* Feed Divider - Always show (matches AngularJS) */}
       <hr className="feed-divider" style={{

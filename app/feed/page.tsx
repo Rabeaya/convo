@@ -19,6 +19,16 @@ export default function FeedPage() {
   const [updatesNotifText] = useState(''); // Will be set when feed polling is implemented
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isLoadingMoreRef = useRef(false);
+  const hasNextPageRef = useRef<boolean>(!!hasNextPage);
+  const isFetchingNextPageRef = useRef<boolean>(!!isFetchingNextPage);
+
+  useEffect(() => {
+    hasNextPageRef.current = !!hasNextPage;
+  }, [hasNextPage]);
+
+  useEffect(() => {
+    isFetchingNextPageRef.current = !!isFetchingNextPage;
+  }, [isFetchingNextPage]);
 
   const handleFeedItemsUpdatesAvailableNotifClick = useCallback(() => {
     // Scroll to top
@@ -30,7 +40,43 @@ export default function FeedPage() {
   // Uses window scroll like AngularJS directive, but also supports feedScroller container
   useEffect(() => {
     const feedScroller = document.getElementById('feedScroller');
-    const scrollElement = feedScroller || window;
+
+    const isNearBottom = () => {
+      let scrollHeight: number;
+      let documentHeight: number;
+
+      if (feedScroller) {
+        scrollHeight = feedScroller.scrollTop + feedScroller.clientHeight;
+        documentHeight = feedScroller.scrollHeight;
+      } else {
+        scrollHeight = window.scrollY + window.innerHeight;
+        documentHeight = document.documentElement.scrollHeight;
+      }
+
+      return scrollHeight > documentHeight - 500;
+    };
+
+    const maybeFetchMore = async () => {
+      if (isLoadingMoreRef.current || !hasNextPageRef.current || isFetchingNextPageRef.current) {
+        return;
+      }
+      if (!isNearBottom()) {
+        return;
+      }
+
+      // Matches AngularJS cnvFeed.loadMoreFeed recursion: after append, if still near bottom, keep loading.
+      isLoadingMoreRef.current = true;
+      try {
+        await fetchNextPage();
+      } finally {
+        isLoadingMoreRef.current = false;
+      }
+
+      // Re-check shortly after DOM updates
+      setTimeout(() => {
+        void maybeFetchMore();
+      }, 100);
+    };
 
     const handleScroll = () => {
       if (scrollTimeoutRef.current) {
@@ -38,30 +84,7 @@ export default function FeedPage() {
       }
 
       scrollTimeoutRef.current = setTimeout(() => {
-        if (isLoadingMoreRef.current || !hasNextPage || isFetchingNextPage) {
-          return;
-        }
-
-        // Check if scrolled near bottom (within 500px, matching AngularJS)
-        let scrollHeight: number;
-        let documentHeight: number;
-
-        if (feedScroller) {
-          // Use feedScroller container scroll
-          scrollHeight = feedScroller.scrollTop + feedScroller.clientHeight;
-          documentHeight = feedScroller.scrollHeight;
-        } else {
-          // Use window scroll (fallback)
-          scrollHeight = window.scrollY + window.innerHeight;
-          documentHeight = document.documentElement.scrollHeight;
-        }
-
-        if (scrollHeight > documentHeight - 500) {
-          isLoadingMoreRef.current = true;
-          fetchNextPage().finally(() => {
-            isLoadingMoreRef.current = false;
-          });
-        }
+        void maybeFetchMore();
       }, 250); // Throttle like AngularJS (250ms)
     };
 

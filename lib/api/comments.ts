@@ -136,6 +136,7 @@ export interface PostCommentRequest {
   resource_id: string;
   resource_type?: string;
   conversation_uid: string;
+  citem_uid?: string;
   app_instance_id: number;
   resource_link?: {
     resource_path?: any;
@@ -259,6 +260,24 @@ export class CommentsService {
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Get a single comment (AngularJS: Comments.getComment)
+   * - First tries server fetch (via fetchDiscussions) and then searches returned list.
+   */
+  async getComment(
+    feedId: string | null,
+    resourceId: string,
+    appInstanceId: number,
+    commentId: string,
+    authToken: string,
+    userId: string,
+    accountId: string
+  ): Promise<ApiResponse<Comment | null>> {
+    const res = await this.getComments_newApi(feedId, resourceId, appInstanceId, true, 0, null, authToken, userId, accountId);
+    const found = (res.data.comments || []).find((c) => c.uid == commentId) || null;
+    return { data: found, status: res.status };
   }
 
   /**
@@ -405,10 +424,13 @@ export class CommentsService {
     authToken: string,
     userId: string,
     accountId: string,
-    hierarchy?: Array<{ uid: string; type: string; title?: string }>
+    hierarchy?: Array<{ uid: string; type: string; title?: string }>,
+    collaborationInfo?: { replied_to_comment_id?: string; replied_to_user_id?: string; parent_resource_index?: number } | null,
+    replyEventData?: { citem_uid: string; from_user: string } | null,
+    conversationUID?: string
   ): Promise<ApiResponse<any>> {
-    // Generate conversation UID if not provided
-    const conversationUID = this.generateUniqueId();
+    // Generate conversation UID if not provided (matches AngularJS: utils.generateUniqueId)
+    const convUid = conversationUID || this.generateUniqueId();
 
     // Simple comment (no snippet) - matches AngularJS else branch exactly
     // Construct resource_path from hierarchy if available
@@ -455,7 +477,9 @@ export class CommentsService {
       feed_id: feedId || undefined,
       resource_id: resourceId,
       resource_type: resourceType || undefined,
-      conversation_uid: conversationUID,
+      conversation_uid: convUid,
+      // AngularJS sets citem_uid = conversationUID for addComment
+      citem_uid: convUid,
       app_instance_id: appInstanceId,
       resource_link: {
         resource_path: resourcePath,
@@ -466,18 +490,42 @@ export class CommentsService {
       },
     };
 
-    // If snippetData exists, update resource_link structure
+    // If snippetData exists, update resource_link structure (Angular: includes resource_path AND collaboration_info.snippet_data)
     if (snippetData) {
       requestData.resource_link = {
         collaboration_info: {
           snippet_data: snippetData.snippetData || snippetData,
           parent_resource_index: 0,
         },
+        resource_path: resourcePath,
       };
 
       if (onCommentAttachment) {
         requestData.resource_link.collaboration_info!.on_comment_attachment = true;
       }
+    }
+
+    // Add replied_to info (matches AngularJS commentsService.postComment collaborationInfo handling)
+    if (collaborationInfo && requestData.resource_link && requestData.resource_link.collaboration_info) {
+      if (collaborationInfo.replied_to_comment_id) {
+        requestData.resource_link.collaboration_info.replied_to_comment_id = collaborationInfo.replied_to_comment_id;
+      }
+      if (collaborationInfo.replied_to_user_id) {
+        requestData.resource_link.collaboration_info.replied_to_user_id = collaborationInfo.replied_to_user_id;
+      }
+      if (typeof collaborationInfo.parent_resource_index === 'number') {
+        requestData.resource_link.collaboration_info.parent_resource_index = collaborationInfo.parent_resource_index;
+      }
+    }
+
+    // Reply button behavior: replyEventData overrides collaboration_info ONLY in non-snippet branch (matches AngularJS)
+    // For snippet replies, Angular uses collaborationInfo (not replyEventData) so we preserve snippet_data.
+    if (replyEventData && requestData.resource_link && !snippetData) {
+      requestData.resource_link.collaboration_info = {
+        parent_resource_index: 0,
+        replied_to_comment_id: replyEventData.citem_uid,
+        replied_to_user_id: replyEventData.from_user,
+      };
     }
 
     // Add files if provided

@@ -91,10 +91,16 @@ export default function UserProfileImage({
   const backgroundColor = stringToColor(userName);
 
   // Check if we should show initials immediately (no profile image data)
-  const shouldShowInitialsImmediately = !userProfileType || 
-    userProfileType === 0 || 
-    !userProfileVersion || 
-    userProfileVersion === 0;
+  // AngularJS treats profile type/version as number or string and does loose checks.
+  const profileTypeNum = userProfileType === undefined || userProfileType === null ? NaN : Number(userProfileType as any);
+  const profileVersionNum = userProfileVersion === undefined || userProfileVersion === null ? NaN : Number(userProfileVersion as any);
+  const shouldShowInitialsImmediately =
+    !userId ||
+    profileTypeNum === 0 ||
+    String(userProfileType) === '0' ||
+    !userProfileVersion ||
+    profileVersionNum === 0 ||
+    String(userProfileVersion) === '0';
 
   // If we know it's a default image, show initials immediately
   if (shouldShowInitialsImmediately) {
