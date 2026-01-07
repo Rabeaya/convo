@@ -5,7 +5,7 @@ function resolveServicesHost(request: NextRequest): string {
     request.headers.get('x-services-host') ||
     process.env.NEXT_PUBLIC_SERVICES_HOST ||
     process.env.SERVICES_HOST ||
-    'app3.app06.convodev.net'
+    'app5.app06.convodev.net'
   );
 }
 

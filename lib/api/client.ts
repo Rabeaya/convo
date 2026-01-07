@@ -30,7 +30,7 @@ export class ApiClient {
     const servicesHost =
       (typeof window !== 'undefined' && (window as any)?.servicesHost) ||
       process.env.NEXT_PUBLIC_SERVICES_HOST ||
-      'app3.app06.convodev.net';
+      'app5.app06.convodev.net';
 
     return servicesHost ? { 'x-services-host': String(servicesHost) } : {};
   }

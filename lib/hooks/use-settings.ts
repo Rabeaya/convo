@@ -202,13 +202,15 @@ export function useSaveSettingByName() {
       // POST to backend via Next.js API proxy (matches AngularJS saveGeneralSettings)
       const response = await apiClient.post<ApiResponse>(SETTINGS_API_URL_NORMAL, settings);
       
-      // Invalidate general settings if sharing options changed
-      if (settingName === 'sharing_options_list' || settingName === 'reset_to_default_sharing_options') {
-        queryClient.invalidateQueries({ queryKey: ['generalSettings'] });
-      }
-      
       return (response.data as any) || response;
-    }
+    },
+    onSuccess: async () => {
+      // IMPORTANT: `useGeneralSettings` queryKey is `['generalSettings', refetchFromServer, mode]`.
+      // We must refetch with exact=false so it matches all variants and issues an immediate GET /api/v1/settings,
+      // matching Angular's getGeneralSettings(true) behavior after saves.
+      queryClient.invalidateQueries({ queryKey: ['generalSettings'], exact: false });
+      await queryClient.refetchQueries({ queryKey: ['generalSettings'], exact: false, type: 'active' });
+    },
   });
 }
 

@@ -68,6 +68,14 @@ function getUserGroupSearchRegex(str: string): RegExp {
   return new RegExp(`(([\\s,<>():._])|^)(${escapeRegexChars(str)})`, 'gi');
 }
 
+function getUserGroupSearchTestRegex(str: string): RegExp {
+  // IMPORTANT:
+  // Angular uses the "gi" regex mostly via String.replace (safe).
+  // In React we must NOT use a global regex with RegExp.test() because `g` mutates `lastIndex`,
+  // causing suggestions to "randomly" not match (often looking like no dropdown / users missing).
+  return new RegExp(`(([\\s,<>():._])|^)(${escapeRegexChars(str)})`, 'i');
+}
+
 function normalizeBoolean(val: unknown): boolean {
   if (typeof val === 'boolean') return val;
   if (typeof val === 'number') return val === 1;
@@ -217,6 +225,53 @@ function isSameTag(a: TagItem, b: TagItem): boolean {
   return a.type === b.type && a.id === b.id;
 }
 
+function uniqueStrings(arr: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const s of arr) {
+    if (!s) continue;
+    if (seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+}
+
+function idVariants(id: string, prefix: string): string[] {
+  const raw = String(id || '').trim();
+  if (!raw) return [];
+
+  const stripped = raw.startsWith(prefix) ? raw.slice(prefix.length) : raw;
+  const prefixed = raw.startsWith(prefix) ? raw : `${prefix}${raw}`;
+  return uniqueStrings([raw, stripped, prefixed]);
+}
+
+function resolveUserFromMap(usersMap: Record<string, any>, id: string): any | null {
+  for (const k of idVariants(id, 'usr-')) {
+    if (usersMap[k]) return usersMap[k];
+  }
+  // Some APIs use unprefixed UUIDs even when settings store `usr-...`
+  // Try a last-resort scan by comparing possible ids.
+  const stripped = id.startsWith('usr-') ? id.slice(4) : id;
+  if (stripped && usersMap[stripped]) return usersMap[stripped];
+  return null;
+}
+
+function resolveGroupFromMap(groupsMap: Record<string, any>, id: string): any | null {
+  // Angular considers groups "g_" or "grp-" prefixed. We try both styles plus raw.
+  const raw = String(id || '').trim();
+  const variants = uniqueStrings([
+    ...idVariants(raw, 'grp-'),
+    ...idVariants(raw, 'g_'),
+    raw,
+  ]);
+
+  for (const k of variants) {
+    if (groupsMap[k]) return groupsMap[k];
+  }
+  return null;
+}
+
 const HISTORY_KEY_USERS_AND_GROUPS = 'cnv_customize_feed_users_groups_history_v1';
 const HISTORY_KEY_GROUPS = 'cnv_customize_feed_groups_history_v1';
 
@@ -251,6 +306,72 @@ function saveHistory(key: string, item: TagItem) {
   } catch {
     // ignore
   }
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(t);
+  }, [delayMs, value]);
+  return debounced;
+}
+
+type FeedPollFilter = {
+  type: 'AND_CHAIN';
+  description: string;
+  numberOfFilters: number;
+  nature: 'PERMANENT';
+  id: string;
+  filters: Array<{
+    type: 'text';
+    value: string;
+    description: string;
+    nature: 'PERMANENT';
+  }>;
+};
+
+function buildTextSearchFilter(query: string): FeedPollFilter {
+  const q = query.trim();
+  const f = {
+    type: 'text' as const,
+    value: q,
+    description: q,
+    nature: 'PERMANENT' as const,
+  };
+
+  return {
+    type: 'AND_CHAIN',
+    description: '',
+    numberOfFilters: 1,
+    nature: 'PERMANENT',
+    id: '123',
+    filters: [f],
+  };
+}
+
+function normalizeNumberish(v: unknown): number | null {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string' && v.trim().length) {
+    const n = Number(v);
+    if (!Number.isNaN(n)) return n;
+  }
+  return null;
+}
+
+function isPublishableGroupForPosting(group: any): boolean {
+  // Angular usersGroupsListProvider.fillGroups() includes groups where members can post:
+  // members_can_post === 1 OR member_can_post_in_this_group === 1 (with some legacy key variants).
+  const mcp =
+    normalizeNumberish(group?.members_can_post) ??
+    normalizeNumberish(group?.memberCanPost) ??
+    1;
+  const mcpitg =
+    normalizeNumberish(group?.member_can_post_in_this_group) ??
+    normalizeNumberish(group?.memberCanPostInThisGroup) ??
+    1;
+
+  return mcp === 1 || mcpitg === 1;
 }
 
 export default function CustomizeFeedView() {
@@ -295,6 +416,14 @@ export default function CustomizeFeedView() {
 
   const [showSavedBanner, setShowSavedBanner] = useState(false);
   const bannerTimeoutRef = useRef<number | null>(null);
+  const hasLocalEditsRef = useRef(false);
+  const lastSettingsSnapshotRef = useRef<string>('');
+
+  // Search queries for the two dropdown inputs (debounced 300ms as requested)
+  const [defaultRecipientsQuery, setDefaultRecipientsQuery] = useState('');
+  const [hideGroupsQuery, setHideGroupsQuery] = useState('');
+  const debouncedDefaultRecipientsQuery = useDebouncedValue(defaultRecipientsQuery, 300);
+  const debouncedHideGroupsQuery = useDebouncedValue(hideGroupsQuery, 300);
 
   const updateSavedBanner = useCallback(() => {
     setShowSavedBanner(true);
@@ -322,6 +451,22 @@ export default function CustomizeFeedView() {
     const s = settingsData as CustomizeFeedSettingsData | undefined;
     if (!s) return;
 
+    const snapshot = JSON.stringify({
+      sharing_options: s.sharing_options,
+      sharing_options_list: s.sharing_options_list,
+      regular_groups_settings: s.regular_groups_settings,
+      share_link_of_new_posts_in_chat: (s as any).share_link_of_new_posts_in_chat,
+    });
+
+    // If user just edited locally and the server payload hasn't changed, don't overwrite the UI state.
+    // This fixes "can't add/remove" and "checkbox not working" symptoms caused by stale settings re-hydration.
+    if (hasLocalEditsRef.current && snapshot === lastSettingsSnapshotRef.current) {
+      return;
+    }
+
+    lastSettingsSnapshotRef.current = snapshot;
+    hasLocalEditsRef.current = false;
+
     setInitialized(true);
 
     // sharing options list -> tag items
@@ -330,11 +475,11 @@ export default function CustomizeFeedView() {
     for (const item of sharingList) {
       if (!item || !item.share_to) continue;
       if (item.type === 'USER') {
-        const u = usersMap[String(item.share_to)];
+        const u = resolveUserFromMap(usersMap, String(item.share_to));
         if (u) list.push(makeUserTagItem(u, isAdmin, loggedInUserId));
         else list.push({ type: 'USER', id: String(item.share_to), label: String(item.share_to), classes: 'user' });
       } else if (item.type === 'GROUP') {
-        const g = groupsMap[String(item.share_to)];
+        const g = resolveGroupFromMap(groupsMap, String(item.share_to));
         if (g) list.push(makeGroupTagItem(g));
         else list.push({ type: 'GROUP', id: String(item.share_to), label: String(item.share_to), desclabel: 'Group' });
       }
@@ -389,6 +534,7 @@ export default function CustomizeFeedView() {
 
   const handleSharingOptionAdded = useCallback(
     (item: TagItem) => {
+      hasLocalEditsRef.current = true;
       const sharingObj: SharingOption = { type: item.type, share_to: item.id };
       saveSettingByName('sharing_options_list', { added_sharing_options: [sharingObj] }, true);
       saveHistory(HISTORY_KEY_USERS_AND_GROUPS, item);
@@ -398,6 +544,7 @@ export default function CustomizeFeedView() {
 
   const handleSharingOptionRemoved = useCallback(
     (item: TagItem) => {
+      hasLocalEditsRef.current = true;
       const sharingObj: SharingOption = { type: item.type, share_to: item.id };
       saveSettingByName('sharing_options_list', { removed_sharing_options: [sharingObj] }, true);
     },
@@ -405,6 +552,7 @@ export default function CustomizeFeedView() {
   );
 
   const handleResetToDefault = useCallback(() => {
+    hasLocalEditsRef.current = true;
     saveSettingMutation.mutate(
       { settingName: 'reset_to_default_sharing_options', value: 1 },
       {
@@ -424,11 +572,11 @@ export default function CustomizeFeedView() {
           for (const item of listFromResponse as SharingOption[]) {
             if (!item || !item.share_to) continue;
             if (item.type === 'USER') {
-              const u = usersMap[String(item.share_to)];
+              const u = resolveUserFromMap(usersMap, String(item.share_to));
               if (u) tags.push(makeUserTagItem(u, isAdmin, loggedInUserId));
               else tags.push({ type: 'USER', id: String(item.share_to), label: String(item.share_to), classes: 'user' });
             } else if (item.type === 'GROUP') {
-              const g = groupsMap[String(item.share_to)];
+              const g = resolveGroupFromMap(groupsMap, String(item.share_to));
               if (g) tags.push(makeGroupTagItem(g));
               else tags.push({ type: 'GROUP', id: String(item.share_to), label: String(item.share_to), desclabel: 'Group' });
             }
@@ -441,6 +589,7 @@ export default function CustomizeFeedView() {
 
   const handleUpdateCheckboxSettings = useCallback(
     (checked: boolean) => {
+      hasLocalEditsRef.current = true;
       // Angular template has settingQA commented out, so behavior is toggling 0 <-> 2.
       const valBit = checked ? 2 : 0;
       setSharingOptions(valBit);
@@ -451,6 +600,7 @@ export default function CustomizeFeedView() {
 
   const handleHideGroupsFromFeed = useCallback(() => {
     if (!groupList.length) return;
+    hasLocalEditsRef.current = true;
 
     const listToHide: Array<{ id: string; hide_from_feed: number }> = [];
     const newHiddenGroups = [...hiddenGroups];
@@ -481,57 +631,54 @@ export default function CustomizeFeedView() {
     );
   }, [groupList, hiddenGroups, hiddenGroupsMap, queryClient, saveSettingMutation]);
 
-  const getAutoCompleteUserAndGroupsItems = useCallback(
-    async (query: string, numSelected: number) => {
-      const q = query || '';
-      const maxResults = Math.max(0, (numSelected || 0) + 4);
+  const defaultRecipientsSuggestions = useMemo(() => {
+    const q = debouncedDefaultRecipientsQuery.trim();
+    const maxResults = Math.max(0, userAndGroupList.length + 4);
 
-      const history = loadHistory(HISTORY_KEY_USERS_AND_GROUPS).filter((h) => !userAndGroupList.some((t) => isSameTag(t, h)));
+    const history = loadHistory(HISTORY_KEY_USERS_AND_GROUPS)
+      .filter((h) => !userAndGroupList.some((t) => isSameTag(t, h)))
+      .slice(0, maxResults);
 
-      // Exclude invited users (Angular passes PUBLISHABLE_INVITED_USERS_MAP to exclude)
-      const usersFiltered = publishableUsers
-        .filter((u) => u.status !== 'INVITED')
-        .map((u) => makeUserTagItem(u, isAdmin, loggedInUserId))
-        .filter((u) => !userAndGroupList.some((t) => isSameTag(t, u)));
+    const regx = q ? getUserGroupSearchTestRegex(q) : null;
 
-      const groupsFiltered = groups.map((g) => makeGroupTagItem(g)).filter((g) => !userAndGroupList.some((t) => isSameTag(t, g)));
+    // Angular CustomizeFeed uses usersGroupsListProvider.query(USERS_AND_GROUPS, ...)
+    // which is based on publishable users + publishable groups.
+    const usersItems = publishableUsers
+      .filter((u) => u.status !== 'INVITED')
+      .map((u) => makeUserTagItem(u, isAdmin, loggedInUserId))
+      .filter((it) => !userAndGroupList.some((t) => isSameTag(t, it)))
+      .filter((it) => (!regx ? true : regx.test(it.label || '') || regx.test(it.desclabel || '')));
 
-      const combined = [...history, ...usersFiltered, ...groupsFiltered];
+    const groupsItems = groups
+      .filter((g) => isPublishableGroupForPosting(g))
+      .map((g) => makeGroupTagItem(g))
+      .filter((it) => !userAndGroupList.some((t) => isSameTag(t, it)))
+      .filter((it) => (!regx ? true : regx.test(it.label || '')));
 
-      if (!q.trim()) return combined.slice(0, maxResults);
+    return uniqueByKey([...history, ...usersItems, ...groupsItems], (t) => `${t.type}:${t.id}`).slice(0, maxResults);
+  }, [debouncedDefaultRecipientsQuery, groups, isAdmin, loggedInUserId, publishableUsers, userAndGroupList]);
 
-      const regx = getUserGroupSearchRegex(q);
-      const matched = combined.filter((item) => regx.test(item.label || '') || regx.test(item.desclabel || ''));
-      return matched.slice(0, maxResults);
-    },
-    [groups, isAdmin, loggedInUserId, publishableUsers, userAndGroupList]
-  );
+  const hideGroupsSuggestions = useMemo(() => {
+    const q = debouncedHideGroupsQuery.trim();
+    const maxResults = 4 + groupList.length;
 
-  const getAutoCompleteGroupsItems = useCallback(
-    async (query: string) => {
-      const q = query || '';
-      const maxResults = 4 + groupList.length;
+    const history = loadHistory(HISTORY_KEY_GROUPS)
+      .filter((h) => h.type === 'GROUP')
+      .filter((h) => !hiddenGroupsMap[h.id])
+      .filter((h) => !groupList.some((t) => isSameTag(t, h)))
+      .slice(0, maxResults);
 
-      const history = loadHistory(HISTORY_KEY_GROUPS)
-        .filter((h) => h.type === 'GROUP')
-        .filter((h) => !hiddenGroupsMap[h.id])
-        .filter((h) => !groupList.some((t) => isSameTag(t, h)));
+    const regx = q ? getUserGroupSearchTestRegex(q) : null;
 
-      const list = groups
-        .map((g) => makeGroupTagItem(g))
-        .filter((g) => !hiddenGroupsMap[g.id])
-        .filter((g) => !groupList.some((t) => isSameTag(t, g)));
+    const groupsItems = groups
+      .filter((g) => isPublishableGroupForPosting(g))
+      .map((g) => makeGroupTagItem(g))
+      .filter((it) => !hiddenGroupsMap[it.id])
+      .filter((it) => !groupList.some((t) => isSameTag(t, it)))
+      .filter((it) => (!regx ? true : regx.test(it.label || '')));
 
-      const combined = [...history, ...list];
-
-      if (!q.trim()) return combined.slice(0, maxResults);
-
-      const regx = getUserGroupSearchRegex(q);
-      const matched = combined.filter((item) => regx.test(item.label || ''));
-      return matched.slice(0, maxResults);
-    },
-    [groupList, groups, hiddenGroupsMap]
-  );
+    return uniqueByKey([...history, ...groupsItems], (t) => `${t.type}:${t.id}`).slice(0, maxResults);
+  }, [debouncedHideGroupsQuery, groupList, groups, hiddenGroupsMap]);
 
   if (!initialized || settingsLoading) {
     return (
@@ -565,17 +712,23 @@ export default function CustomizeFeedView() {
         <div className="to-field-cont">
           <TagsInput
             tags={userAndGroupList}
-            placeholder={userAndGroupList.length ? '' : 'Type the name of a group or teammate'}
+            placeholder={userAndGroupList.length ? '' : 'Type the name of a group or team'}
             loadHistoryOnFocus={true}
             autoSelectFirstSuggestion={true}
             historyKey={HISTORY_KEY_USERS_AND_GROUPS}
-            getSuggestions={(q) => getAutoCompleteUserAndGroupsItems(q, userAndGroupList.length)}
+            suggestions={defaultRecipientsSuggestions}
+            onQueryChange={setDefaultRecipientsQuery}
+            onFocusFetch={() => {
+              // Keep lists fresh like Angular's usersGroupsListProvider (which refreshes via Users/Groups services).
+              queryClient.refetchQueries({ queryKey: ['users'] });
+              queryClient.refetchQueries({ queryKey: ['groups'] });
+            }}
             onAdd={(item) => {
-              if (!userAndGroupList.some((t) => isSameTag(t, item))) setUserAndGroupList([...userAndGroupList, item]);
+              setUserAndGroupList((prev) => (prev.some((t) => isSameTag(t, item)) ? prev : [...prev, item]));
               handleSharingOptionAdded(item);
             }}
             onRemove={(item) => {
-              setUserAndGroupList(userAndGroupList.filter((t) => !isSameTag(t, item)));
+              setUserAndGroupList((prev) => prev.filter((t) => !isSameTag(t, item)));
               handleSharingOptionRemoved(item);
             }}
           />
@@ -623,6 +776,7 @@ export default function CustomizeFeedView() {
           id="shareLinkAskChk"
           checked={alwaysAskShareLink}
           onChange={(e) => {
+            hasLocalEditsRef.current = true;
             const checked = e.target.checked;
             setAlwaysAskShareLink(checked);
 
@@ -657,6 +811,7 @@ export default function CustomizeFeedView() {
               checked={!alwaysAskShareLink && defaultShareLinkSetting === 2}
               disabled={alwaysAskShareLink}
               onChange={() => {
+                hasLocalEditsRef.current = true;
                 setDefaultShareLinkSetting(2);
                 setAlwaysAskShareLink(false);
                 saveSettingByName('share_link_of_new_posts_in_chat', 2, true);
@@ -676,6 +831,7 @@ export default function CustomizeFeedView() {
               checked={!alwaysAskShareLink && defaultShareLinkSetting === 3}
               disabled={alwaysAskShareLink}
               onChange={() => {
+                hasLocalEditsRef.current = true;
                 setDefaultShareLinkSetting(3);
                 setAlwaysAskShareLink(false);
                 saveSettingByName('share_link_of_new_posts_in_chat', 3, true);
@@ -708,11 +864,15 @@ export default function CustomizeFeedView() {
             loadHistoryOnFocus={true}
             autoSelectFirstSuggestion={true}
             historyKey={HISTORY_KEY_GROUPS}
-            getSuggestions={(q) => getAutoCompleteGroupsItems(q)}
-            onAdd={(item) => {
-              if (!groupList.some((t) => isSameTag(t, item))) setGroupList([...groupList, item]);
+            suggestions={hideGroupsSuggestions}
+            onQueryChange={setHideGroupsQuery}
+            onFocusFetch={() => {
+              queryClient.refetchQueries({ queryKey: ['groups'] });
             }}
-            onRemove={(item) => setGroupList(groupList.filter((t) => !isSameTag(t, item)))}
+            onAdd={(item) => {
+              setGroupList((prev) => (prev.some((t) => isSameTag(t, item)) ? prev : [...prev, item]));
+            }}
+            onRemove={(item) => setGroupList((prev) => prev.filter((t) => !isSameTag(t, item)))}
           />
         </div>
         <button
@@ -926,7 +1086,10 @@ interface TagsInputProps {
   loadHistoryOnFocus: boolean;
   autoSelectFirstSuggestion: boolean;
   historyKey: string;
-  getSuggestions: (query: string) => Promise<TagItem[]>;
+  getSuggestions?: (query: string) => Promise<TagItem[]>;
+  suggestions?: TagItem[];
+  onQueryChange?: (query: string) => void;
+  onFocusFetch?: () => void;
   onAdd: (item: TagItem) => void;
   onRemove: (item: TagItem) => void;
 }
@@ -938,6 +1101,9 @@ function TagsInput({
   autoSelectFirstSuggestion,
   historyKey,
   getSuggestions,
+  suggestions: suggestionsProp,
+  onQueryChange,
+  onFocusFetch,
   onAdd,
   onRemove,
 }: TagsInputProps) {
@@ -945,18 +1111,32 @@ function TagsInput({
   const [suggestions, setSuggestions] = useState<TagItem[]>([]);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [focused, setFocused] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (!suggestionsProp) return;
+    setSuggestions(suggestionsProp);
+    setActiveIndex(0);
+    // Only show dropdown when the input is focused (Angular behavior).
+    setOpen(focused && suggestionsProp.length > 0);
+  }, [focused, suggestionsProp]);
+
   const refresh = useCallback(
     async (q: string) => {
+      if (onQueryChange) {
+        onQueryChange(q);
+        return;
+      }
+      if (!getSuggestions) return;
       const items = await getSuggestions(q);
       setSuggestions(items);
       setActiveIndex(0);
       setOpen(true);
     },
-    [getSuggestions]
+    [getSuggestions, onQueryChange]
   );
 
   useEffect(() => {
@@ -965,6 +1145,7 @@ function TagsInput({
       if (menuRef.current?.contains(t)) return;
       if (inputRef.current?.contains(t)) return;
       setOpen(false);
+      setFocused(false);
     };
     document.addEventListener('mousedown', onDocMouseDown);
     return () => document.removeEventListener('mousedown', onDocMouseDown);
@@ -1040,7 +1221,15 @@ function TagsInput({
             {tag.label}
             <button
               type="button"
-              onClick={() => onRemove(tag)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRemove(tag);
+              }}
               style={{
                 marginLeft: '4px',
                 background: 'none',
@@ -1067,8 +1256,18 @@ function TagsInput({
           }}
           onKeyDown={onKeyDown}
           onFocus={async () => {
+            setFocused(true);
+            onFocusFetch?.();
+            // If we already have suggestions precomputed, open immediately on focus (no debounce delay).
+            if (suggestions.length > 0) setOpen(true);
             if (!loadHistoryOnFocus) return;
             await refresh(inputValue);
+          }}
+          onBlur={() => {
+            // Clicking a suggestion doesn't blur (we preventDefault on menu mousedown),
+            // but tabbing away should close the dropdown.
+            setFocused(false);
+            setOpen(false);
           }}
           placeholder={placeholder}
           style={{
@@ -1096,6 +1295,10 @@ function TagsInput({
               aria-selected={idx === activeIndex}
               onMouseEnter={() => setActiveIndex(idx)}
               onMouseDown={(e) => {
+                // keep focus in input (like ng-tags-input)
+                e.preventDefault();
+              }}
+              onClick={(e) => {
                 e.preventDefault();
                 commit(item);
               }}
