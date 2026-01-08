@@ -112,8 +112,8 @@ export default function UserProfileImage({
     setShowInitials(false);
   };
 
-  const w = typeof width === 'string' ? width : `${width}px`;
-  const h = typeof height === 'string' ? height : `${height}px`;
+  const w = normalizeCssSize(width);
+  const h = normalizeCssSize(height);
   const hNum = typeof height === 'string' ? parseInt(height) : height;
 
   // Always render image first, fallback to initials on error
@@ -176,6 +176,14 @@ export default function UserProfileImage({
 }
 
 // Helper functions
+function normalizeCssSize(value: number | string): string {
+  if (typeof value === 'number') return `${value}px`;
+  const trimmed = value.trim();
+  // If it's a numeric string (e.g. "24"), treat it as px. Otherwise assume caller provided a valid CSS unit (e.g. "24px", "2rem").
+  if (/^\d+(\.\d+)?$/.test(trimmed)) return `${trimmed}px`;
+  return trimmed;
+}
+
 function getUserProfileImageSize(size: number): string {
   // Map size to image size variant (matching AngularJS UserProfileImage constants)
   // Sizes: 24, 48, 64, 84, 184

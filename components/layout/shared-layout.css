@@ -126,8 +126,11 @@
   height: 60px;
   padding: 0 15px 0 0;
   text-align: right;
-  line-height: 53px;
+  line-height: 60px;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .header-bar-container .separator {
@@ -140,6 +143,15 @@
   position: relative;
   margin: 0px 2px 0px 15px;
   padding-top: 20px;
+}
+
+/* In the header right-column we use flex centering; undo legacy offset/padding so the separator is truly centered */
+.header-bar-container .right-column .separator {
+  position: static;
+  top: auto;
+  padding-top: 0;
+  margin: 0px 2px 0px 15px;
+  align-self: center;
 }
 
 /* ============================================
@@ -172,5 +184,30 @@
 .header-bar-container .user-menu-dropdown-widget .dropdown-menu.dropdown-main-menu > li > a.menu-item-wrapper:active .subtext,
 .header-bar-container .user-menu-dropdown-widget .dropdown-menu.dropdown-main-menu > li > a.menu-item-wrapper:focus .subtext {
   color: #ffffff !important;
+}
+
+/* Header icon hover swaps (match Angular: show light by default, dark on hover) */
+.header-bar-container .dark-bell-icon .bell-wrapper .icons_Notifications-c2c2c2 {
+  display: inline-block;
+}
+.header-bar-container .dark-bell-icon .bell-wrapper .icons_Notifications-lightgray,
+.header-bar-container .dark-bell-icon .bell-wrapper .icons_Notifications-darkgray {
+  display: none;
+}
+.header-bar-container .dark-bell-icon .bell-wrapper:hover .icons_Notifications-c2c2c2 {
+  display: none;
+}
+.header-bar-container .dark-bell-icon .bell-wrapper:hover .icons_Notifications-darkgray {
+  display: inline-block;
+}
+
+.header-bar-container .user-menu-dropdown-widget .dropdown-toggle .icons2_Dropdown-darkgray {
+  display: none;
+}
+.header-bar-container .user-menu-dropdown-widget .dropdown-toggle:hover .icons2_Dropdown-darkgray {
+  display: inline-block;
+}
+.header-bar-container .user-menu-dropdown-widget .dropdown-toggle:hover .icons2_Dropdown-lightgray {
+  display: none;
 }
 
