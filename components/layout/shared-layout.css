@@ -142,3 +142,35 @@
   padding-top: 20px;
 }
 
+/* ============================================
+   Header User Menu Dropdown (profile menu)
+   Ported from AngularJS dropdown styles/override rules
+   ============================================ */
+
+.header-bar-container .profilePictureHeader {
+  /* Make sure the avatar looks crisp and matches legacy circle treatment */
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+/* Hover/active styles for dropdown menu items (legacy behavior) */
+.header-bar-container .user-menu-dropdown-widget .dropdown-menu.dropdown-main-menu > li:hover,
+.header-bar-container .user-menu-dropdown-widget .dropdown-menu.dropdown-main-menu > li:focus-within {
+  background: var(--cnv-dropdown-item-hover);
+}
+
+.header-bar-container .user-menu-dropdown-widget .dropdown-menu.dropdown-main-menu > li > a.menu-item-wrapper:hover,
+.header-bar-container .user-menu-dropdown-widget .dropdown-menu.dropdown-main-menu > li > a.menu-item-wrapper:active,
+.header-bar-container .user-menu-dropdown-widget .dropdown-menu.dropdown-main-menu > li > a.menu-item-wrapper:focus {
+  color: #ffffff !important;
+  background: none !important;
+  text-decoration: none !important;
+  outline: none;
+}
+
+.header-bar-container .user-menu-dropdown-widget .dropdown-menu.dropdown-main-menu > li > a.menu-item-wrapper:hover .subtext,
+.header-bar-container .user-menu-dropdown-widget .dropdown-menu.dropdown-main-menu > li > a.menu-item-wrapper:active .subtext,
+.header-bar-container .user-menu-dropdown-widget .dropdown-menu.dropdown-main-menu > li > a.menu-item-wrapper:focus .subtext {
+  color: #ffffff !important;
+}
+

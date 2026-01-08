@@ -63,9 +63,15 @@ export function useGeneralSettings(refetchFromServer = false, mode: 'NORMAL' | '
       if (mode === 'ADMIN' && response.data && 'network_notifications_settings' in (response.data as any)) {
         return (response.data as any).network_notifications_settings;
       }
-      // Normal mode returns data directly or nested in data.data
-      if (response.data && 'data' in response.data) {
-        return (response.data as any).data;
+      // Normal mode returns either:
+      // - { type, data } (Angular-style)
+      // - { data: {...} } (some proxies)
+      // - direct {...}
+      // Be strict to avoid accidentally unwrapping legitimate settings fields named `data`.
+      if (response.data && typeof response.data === 'object') {
+        const any = response.data as any;
+        if ('type' in any && 'data' in any) return any.data;
+        if (!('type' in any) && 'data' in any && any.data && typeof any.data === 'object') return any.data;
       }
       return response.data || response;
     },

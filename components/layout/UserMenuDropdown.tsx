@@ -12,7 +12,6 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useLogout } from '@/lib/hooks/use-auth';
 import UserProfileImage from '@/components/common/UserProfileImage';
-import { ChevronDown } from 'lucide-react';
 
 interface MenuOption {
   label?: string;
@@ -257,7 +256,8 @@ export default function UserMenuDropdown() {
             margin: 0,
           }}
         >
-          <ChevronDown size={16} style={{ color: '#9b9b9b', verticalAlign: 'middle' }} />
+          {/* Match AngularJS icon: <i class="cnv-icons-16 icons_Dropdown_incircle-lightgray"></i> */}
+          <i className="cnv-icons-16 icons_Dropdown_incircle-lightgray" style={{ verticalAlign: 'middle' }} />
         </a>
         <ul 
           ref={menuRef}

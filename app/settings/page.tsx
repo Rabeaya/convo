@@ -22,6 +22,7 @@ import { useSearchParams } from 'next/navigation';
 import SettingsLeftPanel from '@/components/settings/SettingsLeftPanel';
 import AccountSettingsView from '@/components/settings/AccountSettingsView';
 import CustomizeFeedView from '@/components/settings/CustomizeFeedView';
+import NotificationsSettingsView from '@/components/settings/NotificationsSettingsView';
 
 const ACCOUNT_SETTINGS_VIEW = 'myAccountSettings';
 const NOTIFICATION_VIEW = 'notificationsSettings';
@@ -101,7 +102,7 @@ export default function SettingsPage() {
         )}
 
         {selectedView === NOTIFICATION_VIEW && (
-          <div>Notifications Settings - To be migrated</div>
+          <NotificationsSettingsView />
         )}
 
         {selectedView === CUSTOMIZE_FEED_VIEW && (

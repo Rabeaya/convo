@@ -41,6 +41,7 @@ const SIGNUP_WITH_PHONE = 3;
 
 function toInt(val: unknown, fallback = 0): number {
   if (typeof val === 'number') return val;
+  if (typeof val === 'boolean') return val ? 1 : 0;
   if (typeof val === 'string' && val.trim().length) {
     const n = Number(val);
     if (!Number.isNaN(n)) return n;
@@ -60,8 +61,7 @@ function firstNonEmptyString(...vals: unknown[]): string {
 function getTwoFactorAuthUrl(): string {
   // Angular: config.TWO_FACTOR_AUTH_URL = APP_BASE_URL + 'mfa/#/'
   // In Next.js, match the same-origin behavior.
-  if (typeof window === 'undefined') return '/mfa/#/';
-  return `${window.location.origin}/mfa/#/`;
+  return '/mfa/#/';
 }
 
 function copyToClipboard(text: string) {
@@ -350,11 +350,46 @@ export default function AccountSettingsView() {
     userEmail && (signUpIdentity === SIGNUP_WITH_WORK_EMAIL || signUpIdentity === 0)
   );
 
-  const isAdmin = Boolean((user as any)?.isAdmin || (user as any)?.is_admin);
-  const isGuest = Boolean((user as any)?.is_guest_user);
+  const isAdmin = useMemo(() => {
+    const anyUser: any = user || {};
+    const anyLogin: any = loginData || {};
+    const anySession: any = sessionUser || {};
+    const anyMe: any = meFromUsers || {};
+    return Boolean(
+      anyUser.isAdmin ??
+        anyUser.is_admin ??
+        anyLogin.user?.isAdmin ??
+        anyLogin.user?.is_admin ??
+        anySession.isAdmin ??
+        anySession.is_admin ??
+        anyMe.isAdmin ??
+        anyMe.is_admin
+    );
+  }, [loginData, meFromUsers, sessionUser, user]);
+
+  const isGuest = useMemo(() => {
+    const anyUser: any = user || {};
+    const anyLogin: any = loginData || {};
+    const anySession: any = sessionUser || {};
+    const anyMe: any = meFromUsers || {};
+    return Boolean(
+      anyUser.is_guest_user ??
+        anyLogin.user?.is_guest_user ??
+        anySession.is_guest_user ??
+        anyMe.is_guest_user
+    );
+  }, [loginData, meFromUsers, sessionUser, user]);
 
   const canEditLogin = useMemo(() => {
-    const ssoOptional = toInt((settings as any)?.sso_settings?.is_sso_optional, 0) === 1;
+    // Angular disables only when SSO is enforced (is_sso_optional == 0) AND user isn't admin/guest.
+    // If backend omits this field, default to optional (enabled) to avoid incorrectly locking the UI.
+    const ssoOptional =
+      toInt(
+        (settings as any)?.sso_settings?.is_sso_optional ??
+          (settings as any)?.ssoSettings?.is_sso_optional ??
+          (settings as any)?.sso_settings?.sso_optional,
+        1
+      ) === 1;
     return ssoOptional || isAdmin || isGuest;
   }, [isAdmin, isGuest, settings]);
 
@@ -777,7 +812,7 @@ export default function AccountSettingsView() {
                 you'll be required to enter both your password and an authentication code from your mobile phone in order
                 to sign in. <a href="https://convo.com/help/2fa">Learn more</a>.
                 <br />
-                <a href={getTwoFactorAuthUrl()}>
+                <a href={getTwoFactorAuthUrl()} target="_blank" rel="noopener noreferrer">
                   <button className="btn btn-primary" style={{ margin: '10px 0px 6px 0px' }}>
                     Set up two-factor authentication
                   </button>
