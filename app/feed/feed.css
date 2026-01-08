@@ -377,6 +377,488 @@
   position: relative;
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.inline-insert-wrapper {
+  margin-bottom: 12px;
+}
+
+.inline-insert-cont {
+  position: relative;
+  margin: 0px;
+  border-radius: 4px;
+  border: 1px solid #eee;
+  background: #fff;
+  padding: 6px;
+}
+
+.inline-insert-cont.active {
+  border-color: #e0e0e0 !important;
+  padding: 0 !important;
+}
+
+.inline-insert-cont .dummy-text-area {
+  border-radius: 4px;
+  padding: 0px;
+  height: 40px; /* Angular @inline-insert-collapsed-textbox-height */
+  cursor: text;
+  color: #bfc3c4;
+  font-size: 14px;
+  font-family: 'Source Sans Pro', sans-serif;
+  display: flex;
+  align-items: center;
+}
+
+.inline-insert-cont .dummy-area-cont {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: #fff;
+  position: relative;
+}
+
+.inline-insert-cont #inlineInsertPlaceholderText {
+  color: #bfc3c4;
+  font-size: 14px;
+  line-height: 40px;
+  flex: 1;
+}
+
+.inline-insert-cont .inlineInsertAttachmentIconWhenClosed {
+  cursor: pointer;
+  opacity: 0.8;
+  position: absolute;
+  top: 17px;
+  right: 15px;
+  z-index: 1;
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.inline-insert-cont .sharing-state-overlay {
+  position: absolute;
+  z-index: 5;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(226, 232, 237, 0.45);
+  text-align: center;
+}
+
+.inline-insert-cont .sharing-state-overlay .inline-insert-spinner {
+  border: 4px solid #e1e1e1;
+  border-top: 4px solid #aaa;
+  width: 30px;
+  height: 30px;
+  margin: auto;
+  top: 50%;
+  position: relative;
+  margin-top: -15px;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.inline-insert-cont .to-field-cont {
+  position: relative;
+  z-index: 2;
+  border-radius: 4px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.inline-insert-cont .inline-insert-toolbar-placeholder {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0px 8px;
+}
+
+/* Align editor content start with title input text start (title has 8px left padding). */
+.inline-insert-cont .inline-insert-editor {
+  padding: 0 8px;
+}
+
+/* Quill snow CSS is loaded dynamically and may load AFTER feed.css.
+   Use a more specific selector + !important so inline-insert alignment matches Angular. */
+.inline-insert-cont .inline-insert-editor .ql-container.ql-snow {
+  border: none !important;
+  /* Remove Quill container padding; we provide consistent padding via `.inline-insert-editor`. */
+  padding: 0 !important;
+}
+
+.inline-insert-cont .inline-insert-editor .ql-container.ql-snow .ql-editor {
+  min-height: 85px;
+  max-height: 250px;
+  /* Remove padding so the editor content aligns flush-left (your Angular parity target). */
+  padding: 0 !important;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 14px;
+  line-height: 23px;
+  color: #272b2c;
+}
+
+.inline-insert-cont .inline-insert-editor #ql-editor-1.ql-editor {
+  padding: 0 !important;
+}
+
+.inline-insert-cont .inline-insert-editor .ql-container.ql-snow .ql-editor:focus {
+  outline: none;
+}
+
+/* Quill placeholder rendering (attached to `.ql-line` per request). */
+.inline-insert-cont .inline-insert-editor .ql-container.ql-snow .ql-editor.ql-blank .ql-line::after {
+  content: attr(data-placeholder);
+  color: #bfc3c4; /* legacy: #inlineInsertPlaceholderText */
+  font-style: normal;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.inline-insert-cont .inline-insert-editor .ql-container.ql-snow .ql-editor .ql-line {
+  position: relative; /* anchor ::after */
+}
+
+.inline-insert-cont .to-field {
+  position: relative;
+  padding: 0px;
+}
+
+.inline-insert-cont .to-tags {
+  min-height: 45px;
+  border: 1px solid #ced2dc;
+  border-radius: 4px;
+  padding: 6px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.inline-insert-cont .to-tags .pre-placeholder {
+  color: #bbb;
+  margin-right: 6px;
+}
+
+.inline-insert-cont .to-tags .tag {
+  display: inline-flex;
+  align-items: center;
+  background: #f2f4f8;
+  border: 1px solid #dde2ea;
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+
+.inline-insert-cont .to-tags .tag-label {
+  font-size: 13px;
+  color: #2b2b2b;
+}
+
+.inline-insert-cont .to-tags .tag-remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #7b8386;
+  margin-left: 6px;
+  font-size: 14px;
+  line-height: 14px;
+}
+
+.inline-insert-cont .to-tags .to-input {
+  border: none;
+  outline: none;
+  min-width: 180px;
+  flex: 1;
+  font-size: 14px;
+  color: #272b2c;
+  background: transparent;
+}
+
+.inline-insert-cont .to-autocomplete {
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  top: calc(100% - 2px);
+  background: #fff;
+  border: 1px solid #dde2ea;
+  border-top: none;
+  z-index: 50;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  max-height: 210px;
+  overflow: auto;
+}
+
+.inline-insert-cont .to-suggestion {
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  color: #272b2c;
+}
+
+.inline-insert-cont .to-suggestion.active,
+.inline-insert-cont .to-suggestion:hover {
+  background: #339fb8;
+  color: #fff;
+}
+
+.inline-insert-cont .to-suggestion .meta {
+  color: inherit;
+  opacity: 0.75;
+}
+
+/* ============================================================
+   InlineInsert: Autocomplete dropdown (Angular tags-input parity)
+   Based on Angular:
+   - `cnvInlineInsert.tpl.html` (autocomplete markup)
+   - `common/listItemRenderers/styles.less` (img-label-list-item)
+   - `override.less` (selected row background)
+   ============================================================ */
+.inline-insert-cont .to-field-cont .autocomplete {
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  top: calc(100% - 2px);
+  background: #fff;
+  border: 1px solid #dde2ea;
+  border-top: none;
+  z-index: 50;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  max-height: 210px;
+  overflow: auto;
+}
+
+.inline-insert-cont .to-field-cont .autocomplete .suggestion-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.inline-insert-cont .to-field-cont .autocomplete .suggestion-item {
+  cursor: pointer;
+  border: none;
+}
+
+/* Angular override: selected row background */
+.inline-insert-cont .to-field-cont .autocomplete .suggestion-item.selected {
+  background-color: #f4f4f4;
+}
+
+/* Port from Angular `common/listItemRenderers/styles.less` (scoped) */
+.inline-insert-cont .to-field-cont .autocomplete .img-label-list-item {
+  display: inline-block;
+  width: 100%;
+  position: relative;
+  padding: 6px 2px 1px 41px;
+  box-sizing: border-box;
+  height: 48px;
+  white-space: nowrap;
+}
+
+.inline-insert-cont .to-field-cont .autocomplete .img-label-list-item > span {
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.inline-insert-cont .to-field-cont .autocomplete .img-label-list-item > span.sec-label {
+  font-size: 12px;
+  color: #aaa;
+  padding-bottom: 3px;
+  max-width: 420px;
+  display: inline-block;
+}
+
+.inline-insert-cont .rich-note-insert {
+  position: relative;
+}
+
+.inline-insert-cont .note-title-field {
+  width: 100%;
+  outline: none;
+  margin: 0px;
+  border: none;
+  padding: 5px 36px 5px 8px;
+  line-height: 30px;
+  font-weight: bold;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 14px;
+}
+
+.inline-insert-cont .inline-insert-textarea {
+  width: 100%;
+  min-height: 85px;
+  max-height: 250px;
+  padding: 8px;
+  border: none;
+  outline: none;
+  resize: vertical;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 14px;
+  line-height: 23px;
+  color: #272b2c;
+}
+
+.inline-insert-cont .bottom-bar-cont {
+  position: relative;
+  padding: 4px 0px;
+  padding-right: 10px;
+  min-height: 49px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.inline-insert-cont .bottom-bar-cont .btn {
+  margin-top: 5px;
+  float: right;
+  padding: 4px 10px;
+}
+
+.inline-insert-cont #poll-icon {
+  width: 22px;
+  height: 22px;
+  margin: 10px;
+  display: inline-block;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.inline-insert-cont ul.polloptions {
+  list-style: none;
+  position: absolute;
+  margin: 0;
+  padding: 10px 0;
+  background: white;
+  border-radius: 5px;
+  border: 1px solid lightgray;
+  z-index: 60;
+}
+
+.inline-insert-cont ul.polloptions li {
+  padding: 5px 20px;
+  color: #272b2c;
+}
+
+.inline-insert-cont ul.polloptions li:hover {
+  background-color: #339fb8;
+  cursor: pointer;
+  color: #ffffff;
+}
+
+.inline-insert-cont .add-controls {
+  font-size: small;
+  display: inline-block;
+  padding: 0 0 0 6px;
+  margin: 5px 0px;
+}
+
+.inline-insert-cont .add-controls > div,
+.inline-insert-cont .add-controls > label {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.inline-insert-cont .add-controls > div {
+  margin: 0px 2px;
+  padding: 0px;
+  width: 30px;
+  height: 30px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 18px 18px;
+  cursor: pointer !important;
+  opacity: 0.5;
+}
+
+.inline-insert-cont .add-controls > div:hover,
+.inline-insert-cont .add-controls > div.pressed {
+  opacity: 1;
+  transition: opacity .2s;
+  background-color: #fcfcfc;
+  border-radius: 3px;
+  border: 1px solid #e0e0e0;
+}
+
+.inline-insert-cont .add-controls .separator {
+  width: 1px;
+  height: 22px;
+  background-color: #e0e0e0;
+  margin: 0px 4px 0px 4px;
+}
+
+.inline-insert-cont .add-controls .attachIconInlineInsert {
+  position: relative;
+  overflow: hidden;
+}
+
+.inline-insert-cont .add-controls .attachIconInlineInsert input.file-input {
+  position: absolute;
+  opacity: 0;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.inline-insert-cont .giphy-action-container {
+  opacity: 1;
+  border: 1px solid transparent;
+}
+
+.inline-insert-cont .inLineInsertGiphy.giphy {
+  width: 30px;
+  height: 30px;
+}
+
+.inline-insert-cont .inline-insert-attachments {
+  border-top: 1px solid #e0e0e0;
+  padding: 8px;
+}
+
+.inline-insert-cont .inline-insert-attachment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.inline-insert-cont .inline-insert-attachment .name {
+  flex: 1;
+  font-size: 12px;
+  color: #2b2b2b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inline-insert-cont .inline-insert-attachment .status {
+  font-size: 12px;
+  color: #7b8386;
+  min-width: 80px;
+  text-align: right;
+}
+
+.inline-insert-cont .inline-insert-attachment .remove {
+  border: none;
+  background: transparent;
+  color: rgb(51, 113, 189);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+
+.inline-insert-cont .clear {
+  clear: both;
+}
+
 .dim-feed-item {
   opacity: 0.5;
 }

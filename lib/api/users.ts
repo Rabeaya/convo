@@ -199,9 +199,10 @@ export function getUserInitials(user: User | UsersApiUser | null | undefined): s
  * Simple hash-based color generation
  */
 export function stringToColor(str: string): string {
+  const safe = String(str ?? '');
   let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < safe.length; i++) {
+    hash = safe.charCodeAt(i) + ((hash << 5) - hash);
   }
   
   const hue = hash % 360;
