@@ -235,7 +235,7 @@ export default function UserMenuDropdown() {
           position: 'relative',
           display: 'inline-block',
           verticalAlign: 'middle',
-          top: '3px',
+          top: 0,
         }}
       >
         <a 
@@ -256,8 +256,9 @@ export default function UserMenuDropdown() {
             margin: 0,
           }}
         >
-          {/* Match AngularJS icon: <i class="cnv-icons-16 icons_Dropdown_incircle-lightgray"></i> */}
-          <i className="cnv-icons-16 icons_Dropdown_incircle-lightgray" style={{ verticalAlign: 'middle' }} />
+          {/* Use a true dropdown caret icon */}
+          <i className="cnv-icons-16 icons2_Dropdown-lightgray" aria-hidden="true" style={{ verticalAlign: 'middle' }} />
+          <i className="cnv-icons-16 icons2_Dropdown-darkgray" aria-hidden="true" style={{ verticalAlign: 'middle' }} />
         </a>
         <ul 
           ref={menuRef}

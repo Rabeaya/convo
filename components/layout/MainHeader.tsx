@@ -164,7 +164,10 @@ export default function MainHeader() {
             }}>
               <div className="bell-wrapper">
                 <span className="bell-hit-area">
-                  <i className="cnv-icons-16 icons_Notifications-lightgray"></i>
+                  {/* Match Angular: render multiple variants and swap on hover via CSS */}
+                  <i className="cnv-icons-16 icons_Notifications-c2c2c2" aria-hidden="true"></i>
+                  <i className="cnv-icons-16 icons_Notifications-lightgray" aria-hidden="true"></i>
+                  <i className="cnv-icons-16 icons_Notifications-darkgray" aria-hidden="true"></i>
                 </span>
               </div>
             </div>

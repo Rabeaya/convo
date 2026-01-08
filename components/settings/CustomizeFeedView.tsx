@@ -795,10 +795,16 @@ export default function CustomizeFeedView() {
         </div>
       </div>
 
-      <div style={{ marginTop: '20px' }}>
-        <div className="header">
-          <u>Default setting</u>
-        </div>
+      <div
+        className="default-setting-header"
+        style={{
+          marginTop: '20px',
+          fontSize: '14px',
+          fontWeight: 600,
+          color: '#2b2b2b',
+        }}
+      >
+        Default setting
       </div>
 
       <div style={{ marginTop: '10px' }}>
@@ -1116,13 +1122,17 @@ function TagsInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // IMPORTANT:
+  // If suggestions come from parent props, do NOT mirror them into local state.
+  // Parents can create a new array each render, and mirroring that in an effect can cause update loops.
+  const effectiveSuggestions = suggestionsProp ?? suggestions;
+  const isMenuOpen = open && focused && effectiveSuggestions.length > 0;
+
+  // Reset active index when the list changes (guarded to avoid unnecessary updates).
   useEffect(() => {
-    if (!suggestionsProp) return;
-    setSuggestions(suggestionsProp);
-    setActiveIndex(0);
-    // Only show dropdown when the input is focused (Angular behavior).
-    setOpen(focused && suggestionsProp.length > 0);
-  }, [focused, suggestionsProp]);
+    if (activeIndex !== 0) setActiveIndex(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestionsProp, suggestions.length]);
 
   const refresh = useCallback(
     async (q: string) => {
@@ -1166,14 +1176,14 @@ function TagsInput({
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (!open) {
+      if (!isMenuOpen) {
         if (e.key === 'Backspace' && !inputValue && tags.length) onRemove(tags[tags.length - 1]);
         return;
       }
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActiveIndex((idx) => Math.min(idx + 1, Math.max(0, suggestions.length - 1)));
+        setActiveIndex((idx) => Math.min(idx + 1, Math.max(0, effectiveSuggestions.length - 1)));
         return;
       }
       if (e.key === 'ArrowUp') {
@@ -1189,9 +1199,9 @@ function TagsInput({
 
       const isCommit = e.key === 'Enter' || e.key === ',';
       if (isCommit) {
-        if (autoSelectFirstSuggestion && suggestions.length) {
+        if (autoSelectFirstSuggestion && effectiveSuggestions.length) {
           e.preventDefault();
-          commit(suggestions[Math.max(0, Math.min(activeIndex, suggestions.length - 1))]);
+          commit(effectiveSuggestions[Math.max(0, Math.min(activeIndex, effectiveSuggestions.length - 1))]);
         } else {
           e.preventDefault();
         }
@@ -1199,7 +1209,7 @@ function TagsInput({
         onRemove(tags[tags.length - 1]);
       }
     },
-    [activeIndex, autoSelectFirstSuggestion, commit, inputValue, onRemove, open, suggestions, tags]
+    [activeIndex, autoSelectFirstSuggestion, commit, effectiveSuggestions, inputValue, isMenuOpen, onRemove, tags]
   );
 
   return (
@@ -1259,7 +1269,7 @@ function TagsInput({
             setFocused(true);
             onFocusFetch?.();
             // If we already have suggestions precomputed, open immediately on focus (no debounce delay).
-            if (suggestions.length > 0) setOpen(true);
+            if (effectiveSuggestions.length > 0) setOpen(true);
             if (!loadHistoryOnFocus) return;
             await refresh(inputValue);
           }}
@@ -1285,9 +1295,9 @@ function TagsInput({
         />
       </div>
 
-      {open && suggestions.length > 0 && (
+      {isMenuOpen && (
         <div ref={menuRef} className="cnv-autocomplete-menu" role="listbox" aria-label="Suggestions">
-          {suggestions.map((item, idx) => (
+          {effectiveSuggestions.map((item, idx) => (
             <div
               key={`${item.type}:${item.id}`}
               className="cnv-autocomplete-item"
