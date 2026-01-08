@@ -129,6 +129,8 @@ export interface FeedPollResponse {
   groups?: Record<string, any>;
   pinned_items?: any[];
   custom_filters?: any[];
+  // Angular feedService.pollFeed sets/reads this field
+  last_feed_poll_timestamp?: string;
   account_revision_number?: number;
   account_user_revision_number?: number;
   account_contacts_revision_number?: number;

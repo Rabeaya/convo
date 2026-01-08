@@ -24,9 +24,10 @@ function getModalRoot(): Root {
 }
 
 function cleanupModal() {
-  const container = document.getElementById('modal-container');
-  if (container) {
-    container.innerHTML = '';
+  // IMPORTANT: never mutate container.innerHTML directly; it breaks React's root and leaks effects.
+  // Render an empty tree so effects clean up (body overflow, keydown listeners) and future modals keep working.
+  if (modalRoot) {
+    modalRoot.render(<></>);
   }
 }
 

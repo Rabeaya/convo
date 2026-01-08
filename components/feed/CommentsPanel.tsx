@@ -46,6 +46,54 @@ const sortCommentsByTimestamp = (comments: Comment[]): Comment[] => {
   return [...comments].sort((a, b) => (a.creation_timestamp || 0) - (b.creation_timestamp || 0));
 };
 
+const mergePreferRicherComment = (existing: Comment | undefined, incoming: Comment): Comment => {
+  if (!existing) return incoming;
+
+  const eUpdate = Number((existing as any).update_timestamp ?? (existing as any).creation_timestamp ?? 0);
+  const iUpdate = Number((incoming as any).update_timestamp ?? (incoming as any).creation_timestamp ?? 0);
+
+  // Deleted comments should be removed from UI (Angular default behavior)
+  // We still merge here defensively, but callers should filter them out.
+  if ((incoming as any).update_kind === 2) return { ...existing, ...incoming };
+
+  // Newer server updates should win, but keep missing rich fields from existing
+  const newer = Number.isFinite(iUpdate) && Number.isFinite(eUpdate) && iUpdate > eUpdate;
+  const merged: any = { ...existing, ...incoming };
+
+  const eText = String((existing as any).comment_text || '');
+  const iText = String((incoming as any).comment_text || '');
+
+  if (!newer) {
+    // Common case: feed item conversations are partial; don't clobber full text/truncation fields.
+    if (iText.length < eText.length) merged.comment_text = (existing as any).comment_text;
+    if (!merged.summary && (existing as any).summary) merged.summary = (existing as any).summary;
+    if (!merged.comment_text_less && (existing as any).comment_text_less) merged.comment_text_less = (existing as any).comment_text_less;
+    if (!merged.comment_text_less_snippet && (existing as any).comment_text_less_snippet) merged.comment_text_less_snippet = (existing as any).comment_text_less_snippet;
+    if (merged.has_more_text == null && (existing as any).has_more_text != null) merged.has_more_text = (existing as any).has_more_text;
+    if (merged.has_more_text_snippet == null && (existing as any).has_more_text_snippet != null) merged.has_more_text_snippet = (existing as any).has_more_text_snippet;
+  }
+
+  // If an optimistic comment was inserted with `is_posting: true`, and server data arrives without it,
+  // make sure we clear the posting flags so timestamp/like/dropdown appear (Angular: handlePostCommentSuccess).
+  if ((existing as any).is_posting && !(incoming as any).is_posting) {
+    merged.is_posting = false;
+    merged.posting_failed = false;
+  }
+
+  // Preserve local-only preview fields on files (preLocalData) if server omits them
+  if (Array.isArray((existing as any).files) && Array.isArray((incoming as any).files)) {
+    const eFiles: any[] = (existing as any).files;
+    const iFiles: any[] = (incoming as any).files;
+    merged.files = iFiles.map((f, idx) => {
+      const ef = eFiles[idx];
+      if (ef?.preLocalData && !f?.preLocalData) return { ...f, preLocalData: ef.preLocalData };
+      return f;
+    });
+  }
+
+  return merged as Comment;
+};
+
 const LATEST_COMMENTS_ONLY_COUNT = 2; // Exact match from AngularJS
 const PAGE_SIZE = 10; // Exact match from AngularJS
 
@@ -109,7 +157,13 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
         // Update or add comments from feed item
         item.conversations?.forEach((comment: Comment) => {
           if (comment.uid) {
-            existingCommentsMap.set(comment.uid, comment);
+            // Angular: remove deleted comments from UI list
+            if ((comment as any).update_kind === 2) {
+              existingCommentsMap.delete(comment.uid);
+              return;
+            }
+            const existing = existingCommentsMap.get(comment.uid);
+            existingCommentsMap.set(comment.uid, mergePreferRicherComment(existing, comment));
           }
         });
         
@@ -172,9 +226,13 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
         // Merge and deduplicate comments by uid (matches AngularJS mergeComments behavior)
         const existingCommentsMap = new Map(comments.map(c => [c.uid, c]));
         newComments.forEach((comment: Comment) => {
-          if (comment.uid) {
-            existingCommentsMap.set(comment.uid, comment);
+          if (!comment.uid) return;
+          if ((comment as any).update_kind === 2) {
+            existingCommentsMap.delete(comment.uid);
+            return;
           }
+          const existing = existingCommentsMap.get(comment.uid);
+          existingCommentsMap.set(comment.uid, mergePreferRicherComment(existing, comment));
         });
         const mergedComments = Array.from(existingCommentsMap.values());
         setAllComments(sortCommentsByTimestamp(mergedComments));
@@ -198,9 +256,9 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
           // Deduplicate and sort all comments by timestamp (oldest first, newest at bottom)
           const allCommentsMap = new Map<string, Comment>();
           (allResponse.data.comments || []).forEach((comment: Comment) => {
-            if (comment.uid) {
-              allCommentsMap.set(comment.uid, comment);
-            }
+            if (!comment.uid) return;
+            if ((comment as any).update_kind === 2) return;
+            allCommentsMap.set(comment.uid, comment);
           });
           const deduplicatedComments = Array.from(allCommentsMap.values());
           setAllComments(sortCommentsByTimestamp(deduplicatedComments));
@@ -548,10 +606,19 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
     // For now, local state in CommentItem provides immediate UI feedback
   };
 
-  const handleCommentDeleted = (commentId: string) => {
-    // CommentItem marks the comment as deleted in its local state
-    // This provides immediate UI feedback
-    // Parent can handle query invalidation if needed
+  const handleCommentDeleted = (commentId: string, opts?: { hardRemove?: boolean }) => {
+    const hardRemove = opts?.hardRemove !== false;
+
+    // Matches Angular default (non-admin): remove from current list immediately.
+    if (hardRemove) {
+      setAllComments((prev) => prev.filter((c) => c.uid !== commentId));
+      setLocalTotalComments((prev) => Math.max(0, prev - 1));
+      setLoadedCommentsCount((prev) => Math.max(LATEST_COMMENTS_ONLY_COUNT, prev - 1));
+    }
+
+    // Angular emits Comments:unHideAll after delete
+    setThreadPlayback(emptyThreadPlayback);
+    rmAllSelections();
   };
 
   const handleCommentPosted = async (newComment: any) => {
@@ -596,7 +663,12 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
               // Update or add comments from poll response
               convs.forEach((comment: Comment) => {
                 if (comment.uid) {
-                  existingCommentsMap.set(comment.uid, comment);
+                  if ((comment as any).update_kind === 2) {
+                    existingCommentsMap.delete(comment.uid);
+                    return;
+                  }
+                  const existing = existingCommentsMap.get(comment.uid);
+                  existingCommentsMap.set(comment.uid, mergePreferRicherComment(existing, comment));
                 }
               });
               

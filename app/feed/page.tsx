@@ -12,19 +12,176 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useFeed } from '@/lib/hooks/use-feed';
 import FeedItem from '@/components/feed/FeedItem';
 import { FeedProvider } from '@/lib/contexts/FeedContext';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { feedService, type FeedPollRequest, type FeedPollResponse, type FeedFetchResponse } from '@/lib/api/feed';
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 
 export default function FeedPage() {
   const { feedItems, isLoading, error, users, groups, fetchNextPage, hasNextPage, isFetchingNextPage } = useFeed();
+  const { loginData, user, account } = useAuthStore();
+  const queryClient = useQueryClient();
   const [showUpdatesNotif, setShowUpdatesNotif] = useState(false);
-  const [updatesNotifText] = useState(''); // Will be set when feed polling is implemented
+  const [updatesNotifText, setUpdatesNotifText] = useState(''); // Angular: "X updates"
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isLoadingMoreRef = useRef(false);
+  const lastPollTsRef = useRef<string | undefined>(undefined);
+  const pollingRef = useRef(false);
+  const pendingNewItemsCountRef = useRef<number>(0);
 
   const handleFeedItemsUpdatesAvailableNotifClick = useCallback(() => {
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setShowUpdatesNotif(false);
+    pendingNewItemsCountRef.current = 0;
+    setUpdatesNotifText('');
+    // Best parity with Angular "swap/merge pending": refetch from server to include new items without corrupting pagination offsets.
+    queryClient.invalidateQueries({ queryKey: ['feed'] });
   }, []);
+
+  // -----------------------
+  // Angular parity: auto feed polling
+  // - periodic (FEED_POLL_INTERVAL: 60s default, 15s for TNW)
+  // - on tab activated/focus
+  // - uses last_feed_poll_timestamp to get deltas
+  // -----------------------
+  useEffect(() => {
+    if (!loginData || !user || !account) return;
+
+    const userId = (user as any).user_id || (user as any).userId;
+    const accountId = (account as any).account_id;
+    const authToken = (loginData as any).xmpp_session_token;
+
+    // Angular: 60s on normal accounts
+    const FEED_POLL_INTERVAL = Number(process.env.NEXT_PUBLIC_FEED_POLL_INTERVAL_MS || 60000);
+
+    const isAtTop = () => {
+      const feedScroller = document.getElementById('feedScroller');
+      if (feedScroller) return feedScroller.scrollTop <= 5;
+      return window.scrollY <= 5;
+    };
+
+    const doPoll = async (trigger: string) => {
+      if (pollingRef.current) return;
+      if (document.visibilityState === 'hidden') return;
+      pollingRef.current = true;
+      try {
+        const request: FeedPollRequest = {
+          authToken,
+          userID: userId,
+          accountID: accountId,
+          filter: null,
+          includeChats: false,
+          includeDrafts: false,
+          applyHighlight: true,
+          mark_notifications: 1,
+          client: 'w2',
+          postDisplayOption: 'latestActivity',
+          lastFeedPollTimestamp: lastPollTsRef.current,
+        };
+
+        const res = await feedService.pollFeed(request);
+        const data: FeedPollResponse = res.data;
+
+        // Track last poll ts like Angular: last_feed_poll_timestamp
+        const nextTs =
+          (data as any).last_feed_poll_timestamp ||
+          (data as any).lastFeedPollTimestamp ||
+          (data as any).last_feed_poll_ts;
+        if (nextTs) lastPollTsRef.current = String(nextTs);
+
+        const incoming = data.feed_items || [];
+        if (incoming.length === 0) return;
+
+        // Update existing items in-place (comments/likes/etc) without changing pagination length.
+        // New items are counted and shown via "X updates" banner until user scrolls top/clicks.
+        const existingIds = new Set(feedItems.map((it) => it.feed_id));
+        let newCount = 0;
+
+        queryClient.setQueriesData(
+          { queryKey: ['feed'] },
+          (old: unknown) => {
+            const o: any = old;
+            if (!o) return old;
+            if (!o.pages) return old;
+
+            const inf = o as InfiniteData<FeedFetchResponse>;
+            const updatedMap = new Map<string, any>();
+            incoming.forEach((it) => {
+              if (!it?.feed_id) return;
+              updatedMap.set(it.feed_id, it);
+            });
+
+            const nextPages = inf.pages.map((p) => {
+              const items = (p.feed_items || []).map((it: any) => {
+                const u = updatedMap.get(it.feed_id);
+                if (!u) return it;
+                return {
+                  ...it,
+                  ...u,
+                  conversations: u.conversations || it.conversations,
+                  conversations_count: u.conversations_count ?? it.conversations_count,
+                };
+              });
+
+              return {
+                ...p,
+                // Merge users/groups from poll into each page (cheap + keeps context updated)
+                users: { ...(p.users || {}), ...(data.users || {}) },
+                groups: { ...(p.groups || {}), ...(data.groups || {}) },
+                feed_items: items,
+                pinned_items: (data.pinned_items as any) || p.pinned_items,
+              };
+            });
+
+            return { ...inf, pages: nextPages };
+          }
+        );
+
+        // Count new items not currently in list
+        for (const it of incoming) {
+          if (!it?.feed_id) continue;
+          if (!existingIds.has(it.feed_id)) newCount++;
+        }
+
+        if (newCount > 0) {
+          if (isAtTop()) {
+            // If user is at top, refresh immediately
+            pendingNewItemsCountRef.current = 0;
+            setShowUpdatesNotif(false);
+            setUpdatesNotifText('');
+            queryClient.invalidateQueries({ queryKey: ['feed'] });
+          } else {
+            pendingNewItemsCountRef.current += newCount;
+            const c = pendingNewItemsCountRef.current;
+            setUpdatesNotifText(`${c} update${c === 1 ? '' : 's'}`);
+            setShowUpdatesNotif(true);
+          }
+        }
+      } catch (e) {
+        // keep silent like Angular periodic poll
+      } finally {
+        pollingRef.current = false;
+      }
+    };
+
+    // Initial poll on mount (Angular: TAB_ACTIVATED)
+    doPoll('TAB_ACTIVATED');
+
+    const intervalId = window.setInterval(() => doPoll('PERIODIC'), FEED_POLL_INTERVAL);
+
+    const onVis = () => {
+      if (document.visibilityState === 'visible') doPoll('TAB_ACTIVATED');
+    };
+    const onFocus = () => doPoll('NATIVE_APP_FOCUS');
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [loginData, user, account, queryClient, feedItems]);
 
   // Infinite scroll implementation - matches AngularJS onFeedScrolledBottom directive
   // Uses window scroll like AngularJS directive, but also supports feedScroller container

@@ -90,30 +90,26 @@ export default function PromptModal({
         alignItems: 'center',
         justifyContent: 'center',
       }}
-      onClick={(e) => {
-        // Close on backdrop click (matches AngularJS backdrop: 'static' behavior)
-        if (e.target === e.currentTarget) {
-          onCancel();
-        }
-      }}
     >
-      <div
-        ref={modalRef}
-        className="modal prompt-modal"
-        style={{
-          backgroundColor: '#fff',
-          borderRadius: '4px',
-          minWidth: '400px',
-          maxWidth: '600px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
-          zIndex: 1051,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {/* Angular uses bootstrap modal structure + `windowClass: 'prompt-modal'` */}
+      <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-dialog" style={{ margin: 0 }}>
+          <div
+            ref={modalRef}
+            className="modal-content"
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: '4px',
+              minWidth: '400px',
+              maxWidth: '600px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            }}
+          >
         {/* Modal Header - matches AngularJS promptModal.tpl.html */}
         <div className="modal-header" style={{
           padding: '15px 20px',
-          borderBottom: '1px solid #e5e5e5',
+          background: '#1e2e3d',
+          color: '#fff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -125,6 +121,7 @@ export default function PromptModal({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
+            color: '#fff',
           }}>
             {showHeaderIcon && !customHeaderIcon && (
               <span className="cnv-icons-20 info-white" style={{
@@ -152,8 +149,8 @@ export default function PromptModal({
                 border: 'none',
                 fontSize: '28px',
                 lineHeight: '1',
-                color: '#000',
-                opacity: 0.5,
+                color: '#fff',
+                opacity: 0.7,
                 cursor: 'pointer',
                 padding: 0,
                 width: '30px',
@@ -229,6 +226,8 @@ export default function PromptModal({
               {cancelBtnLabel}
             </button>
           )}
+        </div>
+          </div>
         </div>
       </div>
     </div>

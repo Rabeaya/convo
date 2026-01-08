@@ -1,6 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap');
 @import "tailwindcss";
 
+/* Ensure emoji + giphy icons exist like Angular's cnvEmoji.less + cnvGiphy.less */
+.comment-action-bar .emoji-popup-btn {
+  background-image: url("/assets/img/Emoji-icons/Unselected/2x/emoji-hover-icon-thick-02.svg");
+  background-size: 18px 18px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.comment-action-bar .gif-attachment.giphy {
+  background-image: url("/assets/img/giphy/2xMouseoverClick.svg");
+  background-size: 18px 18px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -430,6 +444,57 @@ body {
   height: 10px;
 }
 
+.feed_item .action_line {
+  color: #596d97;
+  margin: 5px 0;
+}
+
+.feed-item-container .action_line {
+  margin: 4px 0 0 0;
+}
+
+/* Angular feed.less: `.comment .comment_txt .text { display:inline; }`
+   In React our container is a <div>. Keep this rule for inline spans only to avoid collapsing the whole container. */
+.comment .comment_txt span.text {
+  display: inline;
+}
+
+.comment_txt .comment-inner {
+  display: block;
+}
+
+.comment .comment_txt {
+  font-size: 15px;   /* Angular UI baseline */
+  line-height: 18px; /* Angular comment-inner note (prevents emoji crop + matches spacing) */
+  overflow-wrap: anywhere; /* helps huge unbroken strings wrap like in Angular */
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Ensure all nested HTML (p/span/a) also breaks long unbroken strings */
+.comment .comment_txt * {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.comment .comment_txt p {
+  display: block;
+  margin-bottom: 3px;
+  min-height: 16px;
+}
+
+.comment .comment_txt font {
+  display: block;
+}
+
+.truncate-placeholder {
+  margin-left: 3px;
+  color: rgb(51, 113, 189);
+  cursor: pointer;
+  word-break: break-word;
+}
+
 .show-all-cont {
   position: absolute;
   text-align: center;
@@ -680,10 +745,37 @@ body {
 }
 
 .note-snippet .content.comment_snippet {
-  background: #dde2ea; /* @cnv-smart-comment-select-tab-bg */
-  border-radius: 3px;
+  /* Per requirement: show torn-edge while composing snippet comments too (match paper style) */
+  background: #fff;
   padding: 8px 10px;
   border: none;
+}
+
+.note-snippet .content.comment_snippet:after {
+  content: '';
+  width: 100%;
+  display: block;
+  height: 6px;
+  position: absolute;
+  background-image: var(--cnv-torn-edge-url);
+  bottom: -6px;
+  left: 0;
+  background-repeat-y: no-repeat;
+  background-repeat-x: repeat;
+}
+
+.note-snippet .content.comment_snippet:before {
+  content: '';
+  width: 100%;
+  display: block;
+  height: 13px;
+  position: absolute;
+  background-image: var(--cnv-snippet-corner-url);
+  top: 0;
+  right: 0;
+  background-repeat: no-repeat;
+  background-position: right;
+  background-size: 13px 13px;
 }
 
 .note-snippet .content.detail_snippet {

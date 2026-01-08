@@ -15,6 +15,7 @@ import { useFeedContext } from '@/lib/contexts/FeedContext';
 import UserProfileImage from '@/components/common/UserProfileImage';
 import LikeButton from './LikeButton';
 import CommentDropdown from './CommentDropdown';
+import CommentEditor from './CommentEditor';
 import { likeService } from '@/lib/api/feed';
 import { commentsService } from '@/lib/api/comments';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -24,6 +25,7 @@ import { promptModal } from '@/lib/utils/modal';
 import { getFileExtension, getSmallFileIconClassByType } from '@/lib/utils/file-icons';
 import CommentOnThisTooltip from '@/components/common/CommentOnThisTooltip';
 import { clearNativeSelection, getSelectionDataWithin } from '@/lib/utils/text-selection';
+import { limitHtmlText } from '@/lib/utils/html-truncate';
 
 function ViewAllCommentsGap({ onClick }: { onClick: () => void }) {
   const [visible, setVisible] = useState(false);
@@ -67,7 +69,7 @@ interface CommentItemProps {
   // Mirrors Angular: clicking a non-comment snippet calls Feed:selectText
   onPostSnippetPlayback?: (snippetData: any, commentId: string) => void;
   onCommentUpdated?: (comment: Comment) => void;
-  onCommentDeleted?: (commentId: string) => void;
+  onCommentDeleted?: (commentId: string, opts?: { hardRemove?: boolean }) => void;
   relatedPermissions?: {
     canComment: boolean;
   };
@@ -109,10 +111,62 @@ export default function CommentItem({
   const { user, loginData, account } = useAuthStore();
   const [localComment, setLocalComment] = useState(comment);
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState('');
   const [showMore, setShowMore] = useState(false); // mirrors AngularJS $scope.showMore
   const commentInnerRef = useRef<HTMLDivElement>(null);
   const [selTooltip, setSelTooltip] = useState<{ portalTarget: HTMLElement; top: number; left: number; beginIndex: number; endIndex: number; text: string } | null>(null);
+
+  // Keep localComment in sync with incoming prop updates (poll/load-more/edit/like merges).
+  // Angular mutates a single object in its store; in React we mirror that by adopting newer/more-complete updates.
+  useEffect(() => {
+    setLocalComment((prev) => {
+      if (!prev || prev.uid !== comment.uid) return comment;
+
+      const prevUpdate = Number((prev as any).update_timestamp ?? (prev as any).creation_timestamp ?? 0);
+      const nextUpdate = Number((comment as any).update_timestamp ?? (comment as any).creation_timestamp ?? 0);
+
+      // If server says deleted, always adopt
+      if ((comment as any).update_kind === 2) return { ...prev, ...comment };
+
+      // Prefer newer updates
+      if (Number.isFinite(nextUpdate) && Number.isFinite(prevUpdate) && nextUpdate > prevUpdate) {
+        return { ...prev, ...comment };
+      }
+
+      // Otherwise merge without losing richer fields (common when feed item conversations are partial).
+      const prevText = String((prev as any).comment_text || '');
+      const nextText = String((comment as any).comment_text || '');
+
+      const merged: any = { ...prev, ...comment };
+
+      if (nextText.length < prevText.length) {
+        merged.comment_text = prev.comment_text;
+      }
+      if (!merged.summary && (prev as any).summary) merged.summary = (prev as any).summary;
+      if (!merged.comment_text_less && (prev as any).comment_text_less) merged.comment_text_less = (prev as any).comment_text_less;
+      if (!merged.comment_text_less_snippet && (prev as any).comment_text_less_snippet) merged.comment_text_less_snippet = (prev as any).comment_text_less_snippet;
+      if (merged.has_more_text == null && (prev as any).has_more_text != null) merged.has_more_text = (prev as any).has_more_text;
+      if (merged.has_more_text_snippet == null && (prev as any).has_more_text_snippet != null) merged.has_more_text_snippet = (prev as any).has_more_text_snippet;
+
+      // Preserve any local-only preview fields on files (preLocalData) when server omits them
+      if (Array.isArray((prev as any).files) && Array.isArray((comment as any).files)) {
+        const prevFiles: any[] = (prev as any).files;
+        const nextFiles: any[] = (comment as any).files;
+        merged.files = nextFiles.map((f, idx) => {
+          const pf = prevFiles[idx];
+          if (pf?.preLocalData && !f?.preLocalData) return { ...f, preLocalData: pf.preLocalData };
+          return f;
+        });
+      }
+
+      // Clear optimistic posting flags once server data arrives
+      if ((prev as any).is_posting && !(comment as any).is_posting) {
+        merged.is_posting = false;
+        merged.posting_failed = false;
+      }
+
+      return merged;
+    });
+  }, [comment]);
 
   // Reposition selection tooltip on scroll (Angular keeps it visible and moves it)
   useEffect(() => {
@@ -143,13 +197,32 @@ export default function CommentItem({
   
   const currentUserId = (user as any)?.user_id || (user as any)?.userId;
   const isCurrentUser = currentUserId === localComment.from_user;
-  const isAdminMode = (user as any)?.isAdminMode?.() || false;
+  // NOTE: Even if user is admin, Angular feed comments panel removes deleted comments by default in normal view.
+  // Keep this for dropdown permissions only.
+  const isAdminMode =
+    (user as any)?.isAdminMode?.() ||
+    (user as any)?.admin_mode === 1 ||
+    (user as any)?.adminMode === 1 ||
+    false;
   const hasOrigin = !!(localComment as any).origin;
   
   const isDeleted = localComment.update_kind === 2;
+  // Angular default behavior: deleted comments are not shown in the comments panel.
+  if (isDeleted) {
+    return null;
+  }
   const hasThread = !!localComment.resource_link?.collaboration_info?.replied_to_user_id && !!localComment.thread_root_comment_id;
-  const isEdited = localComment.update_timestamp > localComment.creation_timestamp;
-  const isReplied = localComment.update_kind === 3 && localComment.update_timestamp === localComment.creation_timestamp;
+  const creationTsNum = Number((localComment as any).creation_timestamp);
+  const updateTsNum = Number((localComment as any).update_timestamp);
+  const isEdited =
+    Number.isFinite(updateTsNum) && Number.isFinite(creationTsNum)
+      ? updateTsNum > creationTsNum
+      : String((localComment as any).update_timestamp) > String((localComment as any).creation_timestamp);
+  const isReplied =
+    localComment.update_kind === 3 &&
+    (Number.isFinite(updateTsNum) && Number.isFinite(creationTsNum)
+      ? updateTsNum === creationTsNum
+      : String((localComment as any).update_timestamp) === String((localComment as any).creation_timestamp));
   const isThreadPlaybackActive = !!threadPlayback?.active;
   // AngularJS toggles Hide thread based on per-comment flag set when replied-comment-pointer is applied.
   const isCurrentlyPlayingCommentSnippet = isThreadPlaybackActive && !!threadPlayback?.isRepliedPointer;
@@ -162,7 +235,10 @@ export default function CommentItem({
   }, [threadPlayback?.active, threadPlayback?.currentlyPlayingSnippetForComment, localComment.uid]);
   
   // Format timestamp - matches AngularJS dateAgo filter
-  const timestampText = formatDateAgo(localComment.update_timestamp);
+  // Some optimistic/server comments can have missing or string timestamps; guard like Angular (which always shows something).
+  const rawTs: any = (localComment as any).update_timestamp ?? (localComment as any).creation_timestamp;
+  const tsNum = Number(rawTs);
+  const timestampText = formatDateAgo(Number.isFinite(tsNum) ? tsNum : Date.now());
 
   // Comment truncation logic mirrors AngularJS:
   // - prefer `summary` if present
@@ -170,18 +246,67 @@ export default function CommentItem({
   const lessHtml = useMemo(() => {
     if (localComment.summary) return localComment.summary;
     // snippet variant if present
-    if (localComment.resource_link?.collaboration_info?.snippet_data && localComment.comment_text_less_snippet) {
-      return localComment.comment_text_less_snippet;
+    const hasSnippet = !!localComment.resource_link?.collaboration_info?.snippet_data;
+
+    // Angular outer gate: only uses *_less fields if has_more_text is true
+    if (localComment.has_more_text) {
+      if (hasSnippet) {
+        if (localComment.comment_text_less_snippet) return localComment.comment_text_less_snippet;
+        // Fallback: Angular initNewComment computes this via limitHtmlText(130) for snippet-comments
+        const res = limitHtmlText(localComment.comment_text || '', 130, true) as any;
+        return res?.htmlStr || localComment.comment_text || '';
+      }
+      if (localComment.comment_text_less) return localComment.comment_text_less;
+      // Fallback: Angular initNewComment computes this via limitHtmlText(300)
+      const res = limitHtmlText(localComment.comment_text || '', 300, true) as any;
+      return res?.htmlStr || localComment.comment_text || '';
     }
-    return localComment.comment_text_less || localComment.comment_text || '';
+
+    return localComment.comment_text || '';
   }, [localComment]);
 
   const fullHtml = useMemo(() => localComment.comment_text || '', [localComment]);
 
   // IMPORTANT: Memoize innerHTML objects so React does NOT re-apply innerHTML on state updates
   // (otherwise it wipes the DOM-injected highlight spans used for snippet playback).
-  const lessInnerHtml = useMemo(() => ({ __html: lessHtml }), [lessHtml]);
-  const fullInnerHtml = useMemo(() => ({ __html: fullHtml }), [fullHtml]);
+  const stripTruncatePlaceholders = useCallback((html: string) => {
+    return String(html || '').replace(/<span[^>]*class="[^"]*truncate-placeholder[^"]*"[^>]*>[\s\S]*?<\/span>/gi, '');
+  }, []);
+
+  const lessHtmlWithToggle = useMemo(() => {
+    const base = stripTruncatePlaceholders(lessHtml);
+    if (!base) return base;
+    if (!(
+      !!localComment.summary ||
+      !!localComment.has_more_text ||
+      (!!localComment.resource_link?.collaboration_info?.snippet_data && !!localComment.has_more_text_snippet)
+    )) return base;
+
+    // Angular cnvComment.js: appends to the root `.comment-inner` (not inside <p>),
+    // which makes "... more" appear on its own line after the last paragraph.
+    const toggle = localComment.summary
+      ? `<span>...</span><span class="truncate-placeholder hover_underline">more</span>`
+      : `<span class="truncate-placeholder hover_underline">more</span>`;
+
+    return `${base}${toggle}`;
+  }, [lessHtml, localComment, stripTruncatePlaceholders]);
+
+  const fullHtmlWithToggle = useMemo(() => {
+    const base = stripTruncatePlaceholders(fullHtml);
+    if (!base) return base;
+    if (!(
+      !!localComment.summary ||
+      !!localComment.has_more_text ||
+      (!!localComment.resource_link?.collaboration_info?.snippet_data && !!localComment.has_more_text_snippet)
+    )) return base;
+
+    const toggle = `<span class="truncate-placeholder hover_underline">less</span>`;
+    // Same as Angular: appended after full HTML so "less" naturally drops to its own line.
+    return `${base}${toggle}`;
+  }, [fullHtml, localComment, stripTruncatePlaceholders]);
+
+  const lessInnerHtml = useMemo(() => ({ __html: lessHtmlWithToggle }), [lessHtmlWithToggle]);
+  const fullInnerHtml = useMemo(() => ({ __html: fullHtmlWithToggle }), [fullHtmlWithToggle]);
   const hasMore =
     !!localComment.summary ||
     !!localComment.has_more_text ||
@@ -250,49 +375,26 @@ export default function CommentItem({
 
   const handleEdit = () => {
     setIsEditing(true);
-    setEditText(localComment.comment_text);
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditText('');
   };
 
-  const handleSaveEdit = async () => {
-    try {
-      const response = await commentsService.editComment(
-        localComment.uid,
-        localComment.citem_uid,
-        editText,
-        resourceId,
-        appInstanceId,
-        false, // attachContext
-        null, // snippetData
-        null, // onCommentAttachment
-        null, // attachedFiles
-        null, // link
-        localComment
-      );
-
-      // Update local comment immediately
-      const updatedComment: Comment = {
-        ...localComment,
-        comment_text: editText,
-        update_timestamp: Date.now(),
-        update_kind: 1, // edited
+  const editSnippetWrapper = useMemo(() => {
+    const sd = (localComment.resource_link?.collaboration_info as any)?.snippet_data;
+    if (!sd) return null;
+    // Mirror Angular _initSnippetDataForEdit
+    if (sd.type === 'scrybe.components.snippet.NotesSnippet') {
+      const source = sd?.data?.source;
+      return {
+        classes: source === 'comment' ? 'comment_snippet' : 'detail_snippet',
+        fileViewerTextAnnotation: true,
+        snippetData: sd,
       };
-      setLocalComment(updatedComment);
-      setIsEditing(false);
-      
-      if (onCommentUpdated) {
-        onCommentUpdated(updatedComment);
-      }
-    } catch (error) {
-      console.error('Failed to edit comment:', error);
-      // Revert on error
-      setIsEditing(false);
     }
-  };
+    return sd;
+  }, [localComment]);
 
   const handleDelete = () => {
     // Show confirmation modal (matches AngularJS alertsService.promptModal)
@@ -308,17 +410,8 @@ export default function CommentItem({
             appInstanceId
           );
 
-          // Update local comment to show as deleted
-          const deletedComment: Comment = {
-            ...localComment,
-            update_kind: 2, // deleted
-            update_timestamp: Date.now(),
-          };
-          setLocalComment(deletedComment);
-          
-          if (onCommentDeleted) {
-            onCommentDeleted(localComment.uid);
-          }
+          // Angular feed comments panel: remove immediately from list.
+          onCommentDeleted?.(localComment.uid, { hardRemove: true });
         } catch (error) {
           console.error('Failed to delete comment:', error);
         }
@@ -382,7 +475,7 @@ export default function CommentItem({
     const ro = new ResizeObserver(() => measure());
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [showMore]);
 
   return (
     <div 
@@ -397,12 +490,18 @@ export default function CommentItem({
       style={{
         backgroundColor: '#f2f4f8',
         position: 'relative',
-        maxHeight: isHiddenByThreadPlayback ? '0px' : `${measuredMaxHeight}px`,
+        // Angular parity:
+        // - Normal comments are NOT height-capped (so "more/less" expands naturally).
+        // - Height-capping + slide animation is only used during thread playback hide/show.
+        maxHeight:
+          isHiddenByThreadPlayback
+            ? '0px'
+            : (threadPlayback?.active ? `${measuredMaxHeight}px` : undefined),
         // IMPORTANT: When visible, allow overflow so `.show-all-cont` (bottom:-8px) isn't clipped.
         // When hidden (thread playback), clip like Angular's slideUp.
         overflow: isHiddenByThreadPlayback ? 'hidden' : 'visible',
         opacity: isHiddenByThreadPlayback ? 0 : 1,
-        transition: 'max-height 700ms ease, opacity 250ms ease',
+        transition: threadPlayback?.active ? 'max-height 700ms ease, opacity 250ms ease' : 'opacity 250ms ease',
         pointerEvents: isHiddenByThreadPlayback ? 'none' : 'auto',
       }}
       onMouseEnter={() => setIsHovered(true)}
@@ -446,104 +545,17 @@ export default function CommentItem({
           </a>
         </span>
 
-        {/* Comment Body */}
-        <div className="comment_body" style={{
-          marginTop: '6px',
-          display: 'block',
-          overflow: 'hidden',
-          verticalAlign: 'middle',
-          padding: '0px',
-          marginRight: '20px',
-        }}>
-          {isEditing ? (
-            /* Edit Mode */
-            <div style={{ marginLeft: '60px' }}>
-              <textarea
-                value={editText}
-                onChange={(e) => setEditText(e.target.value)}
-                style={{
-                  width: '100%',
-                  minHeight: '60px',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '3px',
-                  fontSize: '14px',
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                }}
-                autoFocus
-              />
-              <div style={{ marginTop: '8px' }}>
-                <button
-                  onClick={handleSaveEdit}
-                  style={{
-                    padding: '6px 12px',
-                    marginRight: '8px',
-                    backgroundColor: 'rgb(51, 113, 189)', // Theme color
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                  }}
-                >
-                  Save
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#f5f5f5',
-                    color: '#272b2c',
-                    border: '1px solid #ddd',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* View Mode */
-            <>
-          {/* Comment Text */}
-          <div
-            className="comment_txt"
-            ref={commentInnerRef}
-            onMouseUp={() => {
-              // Mirrors Angular: commentTextMouseUpHandler -> mkTxtSnippet (setTimeout 0)
-              setTimeout(() => {
-                if (!relatedPermissions.canComment) return;
-                const root = commentInnerRef.current;
-                if (!root) return;
-                const inner = root.querySelector('.comment-inner') as HTMLElement | null;
-                if (!inner) return;
-                const data = getSelectionDataWithin(inner);
-                if (!data) return;
-                if (data.beginIndex >= data.endIndex) return;
-                if (!data.text || data.text.trim() === '') return;
-
-                // Tooltip is appended to <body> in Angular; keep it stable during scroll.
-                setSelTooltip({
-                  portalTarget: document.body,
-                  top: data.rect.top + window.scrollY - 40,
-                  left: data.rect.left + window.scrollX + data.rect.width / 2,
-                  beginIndex: data.beginIndex,
-                  endIndex: data.endIndex,
-                  text: data.text,
-                });
-              }, 0);
-            }}
-            style={{
-            wordWrap: 'break-word',
-            overflow: 'hidden',
-            position: 'relative',
+        {/* View Mode (Angular: `.comment_body` only when NOT editing) */}
+        {!isEditing && (
+          <div className="comment_body" style={{
+            marginTop: '6px',
             display: 'block',
-          }}
-          >
-            {/* File hierarchy snippet (mirrors Angular: commentData.resource_link.resource_path.hierarchy.length > 1) */}
+            overflow: 'hidden',
+            verticalAlign: 'middle',
+            padding: '0px',
+            marginRight: '20px',
+          }}>
+            {/* File hierarchy snippet (Angular: shown ABOVE .comment_txt, not inside it) */}
             {hasFileHierarchySnippet && fileHierarchyTitle && (
               <div className="img-snippet" style={{ marginBottom: '6px' }}>
                 {fileExt && (
@@ -561,194 +573,207 @@ export default function CommentItem({
               </div>
             )}
 
-            {hasThread && (
-              <span className="reply-arrow" />
+            {/* Comment Text (Angular: .comment_txt contains ONLY reply-arrow + comment-inner placeholders) */}
+            <div
+              className="comment_txt"
+              ref={commentInnerRef}
+              onMouseUp={(e) => {
+                const target = e.target as HTMLElement | null;
+                if (target?.classList?.contains('truncate-placeholder')) return;
+                setTimeout(() => {
+                  if (!relatedPermissions.canComment) return;
+                  const root = commentInnerRef.current;
+                  if (!root) return;
+                  const inner = root.querySelector('.comment-inner') as HTMLElement | null;
+                  if (!inner) return;
+                  const data = getSelectionDataWithin(inner);
+                  if (!data) return;
+                  if (data.beginIndex >= data.endIndex) return;
+                  if (!data.text || data.text.trim() === '') return;
+                  setSelTooltip({
+                    portalTarget: document.body,
+                    top: data.rect.top + window.scrollY - 40,
+                    left: data.rect.left + window.scrollX + data.rect.width / 2,
+                    beginIndex: data.beginIndex,
+                    endIndex: data.endIndex,
+                    text: data.text,
+                  });
+                }, 0);
+              }}
+              style={{
+                wordWrap: 'break-word',
+                overflowWrap: 'anywhere',
+                wordBreak: 'break-word',
+                overflow: 'hidden',
+                position: 'relative',
+                display: 'block',
+              }}
+            >
+              {hasThread && <span className="reply-arrow" />}
+
+              {!showMore ? (
+                <div
+                  className="comment-inner comment-inner-less less"
+                  style={{ display: 'block', color: '#272b2c' }}
+                  onClick={(e) => {
+                    const t = e.target as HTMLElement | null;
+                    if (t?.classList?.contains('truncate-placeholder')) setShowMore(true);
+                  }}
+                  dangerouslySetInnerHTML={lessInnerHtml}
+                />
+              ) : (
+                <div
+                  className="comment-inner comment-inner-full full"
+                  style={{ display: 'block', color: '#272b2c' }}
+                  onClick={(e) => {
+                    const t = e.target as HTMLElement | null;
+                    if (t?.classList?.contains('truncate-placeholder')) setShowMore(false);
+                  }}
+                  dangerouslySetInnerHTML={fullInnerHtml}
+                />
+              )}
+            </div>
+
+            {/* Snippet blocks (Angular: siblings AFTER .comment_txt; this affects meta alignment) */}
+            {snippetData?.text && !snippetData?.source && (resourceHierarchy?.length || 0) < 2 && appInstanceId !== 4 && (
+              <a
+                className="comment-snippet-attachment"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onPostSnippetPlayback?.(snippetData, localComment.uid);
+                }}
+              >
+                <div className="snippet-wrapper note-file-snippet">
+                  <div className="textSnippet">
+                    <span>{limitToWithEllipsis(String(snippetData.text), 100)}</span>
+                  </div>
+                </div>
+              </a>
             )}
 
-            {/* Mirrors Angular: .comment-inner.less / .comment-inner.full toggled by showMore */}
-            {!showMore ? (
-              <div className="comment-inner comment-inner-less less text" style={{ display: 'block', color: '#272b2c' }}>
-                <span dangerouslySetInnerHTML={lessInnerHtml} />
-                {hasMore && (
-                  <span
-                    className="truncate-placeholder hover_underline"
-                    style={{ marginLeft: '4px', cursor: 'pointer' }}
-                    onClick={() => setShowMore(true)}
-                  >
-                    more
-                  </span>
-                )}
+            {snippetData?.text && !snippetData?.source && ((resourceHierarchy?.length || 0) > 1 || appInstanceId === 4) && (
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onPostSnippetPlayback?.(snippetData, localComment.uid);
+                }}
+              >
+                <div className="snippet-wrapper note-file-snippet">
+                  <div className="textSnippet">
+                    <span>{limitToWithEllipsis(String(snippetData.text), 100)}</span>
+                  </div>
+                </div>
+              </a>
+            )}
+
+            {snippetData?.text && snippetData?.source === 'comment' && (
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleViewThreadClick();
+                }}
+              >
+                <div className="snippet-wrapper comment-snippet">
+                  <div className="textSnippet">
+                    <span>{limitToWithEllipsis(String(snippetData.text), 100)}</span>
+                  </div>
+                </div>
+              </a>
+            )}
+
+            {/* File Attachments - Angular: below snippets, above action_line */}
+            {localComment.files && localComment.files.length > 0 && (
+              <CommentFileAttachments
+                files={localComment.files}
+                commentUid={localComment.uid}
+                resourceId={resourceId}
+                appInstanceId={appInstanceId}
+                commentData={localComment}
+              />
+            )}
+
+            {/* Action Line - Angular: INSIDE .comment_body */}
+            {localComment.posting_failed ? (
+              <div className="action_line" style={{ color: '#596d97', margin: '4px 0 0 0', fontSize: '13px' }}>
+                <span className="warning-icon-red" style={{ marginRight: '6px' }}></span>
+                <span>Unable to post comment.&nbsp;</span>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onRetryFailedPost?.(localComment);
+                  }}
+                  style={{ color: 'rgb(51, 113, 189)', textDecoration: 'none' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                >
+                  Retry
+                </a>
+                <span style={{ color: '#959595' }}>&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onDiscardFailedPost?.(localComment.uid);
+                  }}
+                  style={{ color: 'rgb(51, 113, 189)', textDecoration: 'none' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                >
+                  Delete
+                </a>
               </div>
             ) : (
-              <div className="comment-inner comment-inner-full full text" style={{ display: 'block', color: '#272b2c' }}>
-                <span dangerouslySetInnerHTML={fullInnerHtml} />
-                {hasMore && (
-                  <span
-                    className="truncate-placeholder hover_underline"
-                    style={{ marginLeft: '4px', cursor: 'pointer' }}
-                    onClick={() => setShowMore(false)}
+              <div className="action_line" style={{ color: '#596d97', margin: '4px 0 0 0', fontSize: '13px' }}>
+                <span className="meta comment_info">
+                  <a
+                    className="meta"
+                    href={`#/feed?filter=user:${localComment.from_user}`}
+                    style={{ color: '#7b8386', textDecoration: 'none' }}
                   >
-                    less
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Snippet blocks (Angular parity: cnvComment.tpl.html) */}
-          {snippetData?.text && !snippetData?.source && (resourceHierarchy?.length || 0) < 2 && appInstanceId !== 4 && (
-            <a
-              className="comment-snippet-attachment"
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                onPostSnippetPlayback?.(snippetData, localComment.uid);
-              }}
-            >
-              <div className="snippet-wrapper note-file-snippet">
-                <div className="textSnippet">
-                  <span>{limitToWithEllipsis(String(snippetData.text), 100)}</span>
-                </div>
-              </div>
-            </a>
-          )}
-
-          {snippetData?.text && !snippetData?.source && ((resourceHierarchy?.length || 0) > 1 || appInstanceId === 4) && (
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                onPostSnippetPlayback?.(snippetData, localComment.uid);
-              }}
-            >
-              <div className="snippet-wrapper note-file-snippet">
-                <div className="textSnippet">
-                  <span>{limitToWithEllipsis(String(snippetData.text), 100)}</span>
-                </div>
-              </div>
-            </a>
-          )}
-
-          {snippetData?.text && snippetData?.source === 'comment' && (
-            <a
-              onClick={(e) => {
-                e.preventDefault(); // keep anchor semantics but match Angular "no href"
-                handleViewThreadClick();
-              }}
-            >
-              <div className="snippet-wrapper comment-snippet">
-                <div className="textSnippet">
-                  <span>{limitToWithEllipsis(String(snippetData.text), 100)}</span>
-                </div>
-          </div>
-            </a>
-          )}
-
-          {/* File Attachments - matches AngularJS placement (below comment text) */}
-          {localComment.files && localComment.files.length > 0 && (
-            <CommentFileAttachments
-              files={localComment.files}
-              commentUid={localComment.uid}
-              resourceId={resourceId}
-              appInstanceId={appInstanceId}
-              commentData={localComment}
-            />
-          )}
-            </>
-          )}
-
-          {/* Action Line - matches AngularJS .action_line + posting_failed branch */}
-          {localComment.posting_failed ? (
-            <div className="action_line" style={{ color: '#596d97', margin: '4px 0 0 0', fontSize: '13px' }}>
-              <span className="warning-icon-red" style={{ marginRight: '6px' }}></span>
-              <span>Unable to post comment.&nbsp;</span>
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onRetryFailedPost?.(localComment);
-                }}
-                style={{ color: 'rgb(51, 113, 189)', textDecoration: 'none' }}
-                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
-              >
-                Retry
-              </a>
-              <span style={{ color: '#959595' }}>&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onDiscardFailedPost?.(localComment.uid);
-                }}
-                style={{ color: 'rgb(51, 113, 189)', textDecoration: 'none' }}
-                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
-              >
-                Delete
-              </a>
-            </div>
-          ) : (
-          <div className="action_line" style={{
-            color: '#596d97',
-              margin: '4px 0 0 0',
-              fontSize: '13px',
-          }}>
-            <span className="meta comment_info">
-              <a 
-                className="meta"
-                href={`#/feed?filter=user:${localComment.from_user}`}
-                style={{
-                  color: '#7b8386',
-                  textDecoration: 'none',
-                }}
-              >
-                {getUserName(users, localComment.from_user)}
-              </a>
-              {!localComment.is_posting && (
-                <>
-                  <span style={{ color: '#959595' }}>&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
-                  {isDeleted ? (
-                    <span>deleted&nbsp;&nbsp;&#8226;</span>
-                  ) : (
+                    {getUserName(users, localComment.from_user)}
+                  </a>
+                  {!localComment.is_posting && (
                     <>
-                      {isReplied && (
-                        <span>replied</span>
+                      <span style={{ color: '#959595' }}>&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
+                      {isDeleted ? (
+                        <span>deleted&nbsp;&nbsp;&#8226;</span>
+                      ) : (
+                        <>
+                          {isReplied && <span>replied{' '}</span>}
+                          {isEdited && !isReplied && (
+                            <>
+                              <a
+                                className="meta"
+                                href={`#/post/${resourceId}/comment/${localComment.uid}`}
+                                style={{ color: '#7b8386', textDecoration: 'none' }}
+                              >
+                                edited
+                              </a>{' '}
+                            </>
+                          )}
+                          <a
+                            className="time hover_underline meta"
+                            href={`#/post/${resourceId}/comment/${localComment.uid}`}
+                            style={{ color: '#7b8386', textDecoration: 'none' }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.textDecoration = 'underline';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.textDecoration = 'none';
+                            }}
+                            title={new Date(localComment.update_timestamp).toLocaleString()}
+                          >
+                            {timestampText}
+                          </a>
+                        </>
                       )}
-                      {isEdited && !isReplied && (
-                        <a 
-                          className="meta"
-                          href={`#/post/${resourceId}/comment/${localComment.uid}`}
-                          style={{
-                            color: '#7b8386',
-                            textDecoration: 'none',
-                          }}
-                        >
-                          edited
-                        </a>
-                      )}
-                      <a 
-                        className="time hover_underline meta"
-                        href={`#/post/${resourceId}/comment/${localComment.uid}`}
-                        style={{
-                          color: '#7b8386',
-                          textDecoration: 'none',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.textDecoration = 'underline';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.textDecoration = 'none';
-                        }}
-                        title={new Date(localComment.update_timestamp).toLocaleString()}
-                      >
-                        {timestampText}
-                      </a>
                     </>
                   )}
-                </>
-              )}
-            </span>
+                </span>
             {!isDeleted && onReplyClick && (
               <>
                 <span style={{ color: '#959595' }}>&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
@@ -851,14 +876,36 @@ export default function CommentItem({
                 </span>
               </>
             )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Edit Mode (Angular: `editCommentEditorCtrl` shows `<cnv-comment-editor>` with margin-left: 60px) */}
+        {isEditing && (
+          <div style={{ marginLeft: '60px' }}>
+            <CommentEditor
+              mode="edit"
+              commentToEdit={localComment}
+              resourceId={resourceId}
+              appInstanceId={appInstanceId}
+              feedId={null}
+              resourceType={String(appInstanceId)}
+              snippetData={editSnippetWrapper}
+              relatedPermissions={relatedPermissions}
+              onCancelEdit={handleCancelEdit}
+              onCommentEdited={(updated) => {
+                setLocalComment(updated);
+                if (onCommentUpdated) onCommentUpdated(updated);
+              }}
+            />
+          </div>
+        )}
         {/* "View all comments" gap button (Angular appends this inside `.comment`) */}
         {threadPlayback?.showViewAllButton && (
           <ViewAllCommentsGap onClick={() => onHideThread?.()} />
         )}
         </div>
-      </div>
 
       {selTooltip && (
         <CommentOnThisTooltip
