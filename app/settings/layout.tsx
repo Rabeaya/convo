@@ -30,8 +30,11 @@ export default function SettingsLayout({
           background: white;
           margin: 0 auto;
           min-width: 1160px;
-          height: auto;
-          min-height: 100%;
+          /* Ensure the settings view uses its own stable scroll container.
+             This prevents the window scrollbar from disappearing after UI overlays (e.g. autocomplete). */
+          height: 100vh;
+          box-sizing: border-box;
+          overflow: hidden;
         }
         .settings-container .left-panel-container {
           padding: 0;
@@ -106,7 +109,8 @@ export default function SettingsLayout({
           min-width: 1200px;
           overflow-x: hidden;
           overflow-y: auto;
-          height: 100%;
+          height: calc(100vh - 60px);
+          scrollbar-gutter: stable;
         }
         .settings-container .view-content > div:not(.cnv-advanced-search) {
           max-width: 1205px;
@@ -149,6 +153,52 @@ export default function SettingsLayout({
           background-color: #f5f5f5;
           cursor: not-allowed;
         }
+        /* Basic button system (legacy Convo / Bootstrap-like) */
+        .settings-container .btn {
+          display: inline-block;
+          padding: 6px 12px;
+          margin-bottom: 0;
+          font-size: 14px;
+          font-weight: normal;
+          line-height: 1.42857143;
+          text-align: center;
+          white-space: nowrap;
+          vertical-align: middle;
+          touch-action: manipulation;
+          cursor: pointer;
+          user-select: none;
+          background-image: none;
+          border: 1px solid transparent;
+          border-radius: 3px;
+          font-family: 'Source Sans Pro', sans-serif;
+        }
+        .settings-container .btn:focus {
+          outline: none;
+        }
+        .settings-container .btn-xs {
+          padding: 2px 10px;
+          font-size: 12px;
+          line-height: 1.5;
+          border-radius: 2px;
+        }
+        .settings-container .btn-default {
+          color: var(--btn-default-color);
+          background-color: var(--btn-default-bg);
+          border-color: var(--btn-default-border);
+        }
+        .settings-container .btn-default:hover,
+        .settings-container .btn-default:active,
+        .settings-container .btn-default:focus {
+          background: transparent;
+          color: var(--cnv-blue-dark);
+          border-color: var(--cnv-blue-dark);
+        }
+        .settings-container .btn-default-transparent-font {
+          color: transparent;
+          background-color: #ffffff;
+          border-color: var(--cnv-blue-dark);
+        }
+
         .settings-container .btn-primary {
           padding: 8px 16px;
           background-color: #4183d7;
@@ -166,8 +216,201 @@ export default function SettingsLayout({
         .settings-container .btn-primary:hover:not(:disabled) {
           background-color: #357abd;
         }
+        /* Bootstrap-ish groups / dropdowns used by Notifications */
+        .settings-container .btn-group {
+          position: relative;
+          display: inline-block;
+          vertical-align: middle;
+        }
+        .settings-container .btn-group > .btn {
+          position: relative;
+          float: left;
+        }
+        .settings-container .btn-group > .btn:first-child {
+          margin-left: 0;
+        }
+        .settings-container .btn-group > .btn:not(:first-child):not(:last-child) {
+          border-radius: 0;
+        }
+        .settings-container .btn-group > .btn:first-child:not(:last-child) {
+          border-top-right-radius: 0;
+          border-bottom-right-radius: 0;
+        }
+        .settings-container .btn-group > .btn:last-child:not(:first-child) {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+        }
+        .settings-container .btn-group.btn-toggle .btn {
+          border-color: var(--cnv-blue-dark);
+          background: #fff;
+          color: var(--cnv-blue-dark);
+        }
+        .settings-container .btn-group.btn-toggle {
+          vertical-align: middle;
+        }
+        .settings-container .btn-group.btn-toggle .btn {
+          float: none;
+          padding: 2px 10px;
+          font-size: 12px;
+          line-height: 1.5;
+          border-radius: 2px;
+        }
+        .settings-container .btn-group.btn-toggle .btn.btn-primary {
+          background: var(--cnv-blue);
+          color: #fff;
+          border: 1px solid var(--cnv-blue-dark);
+        }
+        .settings-container .dropdown-menu {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          z-index: 1000;
+          float: left;
+          min-width: 160px;
+          padding: 5px 0;
+          margin: 2px 0 0;
+          font-size: 14px;
+          text-align: left;
+          list-style: none;
+          background-color: #fff;
+          border: 1px solid rgba(0, 0, 0, 0.15);
+          border-radius: 4px;
+          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+          background-clip: padding-box;
+        }
+        .settings-container .dropdown-menu > li > a {
+          display: block;
+          padding: 3px 20px;
+          clear: both;
+          font-weight: normal;
+          line-height: 1.42857143;
+          color: #333;
+          white-space: nowrap;
+          text-decoration: none;
+        }
+        .settings-container .dropdown-menu > li > a:hover {
+          background-color: #f5f5f5;
+          color: #262626;
+        }
+        .settings-container .caret {
+          display: inline-block;
+          width: 0;
+          height: 0;
+          margin-left: 2px;
+          vertical-align: middle;
+          border-top: 4px dashed;
+          border-right: 4px solid transparent;
+          border-left: 4px solid transparent;
+        }
+
+        /* Inline spacing helpers used by Notifications */
+        .settings-container .dash {
+          display: inline-block;
+          color: #7b8386;
+          width: 20px;
+          text-align: center;
+        }
+        .settings-container .cbkCustomizeSettings {
+          margin-left: 100px;
+          display: inline;
+        }
+        .settings-container .rowDarkBckColor {
+          background-color: #f5f7fc;
+        }
+        .settings-container .gray-row {
+          background-color: #f0f0f0 !important;
+        }
+        .settings-container .smartNoti.disabled,
+        .settings-container .radioBtnBar.disabled {
+          opacity: 0.6;
+          pointer-events: none;
+        }
+
+        /* Legacy Convo checkbox skinning (from app.less) */
         .settings-container .cnv-checkbox {
-          margin-right: 8px;
+          display: none;
+          outline: none !important;
+        }
+        .settings-container .cnv-checkbox:focus + label {
+          border-color: var(--cnv-blue);
+        }
+        .settings-container .cnv-checkbox + label {
+          border-radius: 3px;
+          background: #ffffff;
+          border: 1px solid #a0a0a0;
+          color: #ffffff;
+          padding: 9px;
+          display: inline-block;
+          position: relative;
+          margin-bottom: -5px;
+          font-weight: normal;
+          box-sizing: border-box;
+        }
+        .settings-container .cnv-checkbox:checked + label:after {
+          content: '✓';
+          font-family: 'Source Sans Pro', sans-serif;
+          font-size: 16px;
+          position: absolute;
+          background: var(--cnv-blue);
+          top: 0px;
+          text-align: center;
+          left: 0px;
+          color: #ffffff;
+          line-height: 12px;
+          width: 100%;
+          padding: 3px 1px 3px 1px;
+          border-radius: 2px;
+        }
+        .settings-container .cnv-checkbox:disabled + label:after {
+          background: var(--cnv-light-blue-disabled-control);
+        }
+
+        /* Legacy Convo radio skinning (from settings/styles.less) */
+        .settings-container .cnv-radioButton {
+          display: none;
+        }
+        .settings-container .radioBtnBar label {
+          position: relative;
+          margin: 0;
+          margin-left: 50px;
+          font-weight: normal;
+        }
+        .settings-container .radioBtnBar label:before {
+          content: '';
+          display: inline-block;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          margin-right: 10px;
+          position: absolute;
+          left: -18px;
+          bottom: 1px;
+          background-color: #ffffff;
+          border: solid 2px var(--cnv-blue);
+        }
+        .settings-container .cnv-radioButton:checked + label:before {
+          content: '•';
+          color: var(--cnv-blue-dark);
+          font-size: 26px;
+          text-align: center;
+          line-height: 8px;
+        }
+
+        /* Hover-only remove button for Manage Subscriptions (legacy uses hover state) */
+        .settings-container .unsubscribe-button {
+          display: none;
+          background: transparent;
+          border: 0;
+          color: var(--cnv-blue-dark);
+          cursor: pointer;
+          padding: 0;
+          font-size: 14px;
+        }
+        .settings-container .unsubscribe-button:hover {
+          text-decoration: underline;
+        }
+        .settings-container .subscription-row:hover .unsubscribe-button {
+          display: inline;
         }
         .settings-container .cnv-list-style.fulfilled {
           color: #28a745;
