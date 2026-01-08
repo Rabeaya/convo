@@ -8,14 +8,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+import { resolveServicesHostString } from '@/lib/config/services-host';
+
 const API_VERSION = 'v1';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const backendUrl = `https://${SERVICES_HOST}/api/${API_VERSION}/comments`;
+    const servicesHost = resolveServicesHostString({ headers: request.headers, allowWindow: false });
+    const backendUrl = `https://${servicesHost}/api/${API_VERSION}/comments`;
 
     // Log request for debugging
     console.log('Comments API Proxy - Request:', {

@@ -10,6 +10,7 @@
 import { ReactNode } from 'react';
 import MainHeader from './MainHeader';
 import LeftSidebar from './LeftSidebar';
+import RightSidebar from './RightSidebar';
 import './shared-layout.css';
 import './left-panel.css';
 
@@ -57,9 +58,21 @@ export default function BaseLayout({
           </div>
         )}
 
-        <div className={getCenterPanelClasses()}>
-          {children}
-        </div>
+        {variant === 'with-sidebar' ? (
+          <div id="feedScroller" className="feed-scroller">
+            <div id="feedContentBody" className={getCenterPanelClasses()}>
+              <div id="home-center-panel" className="home-center-panel">
+                {children}
+              </div>
+            </div>
+
+            <div id="home-right-panel" className="right-panel-container">
+              <RightSidebar />
+            </div>
+          </div>
+        ) : (
+          <div className={getCenterPanelClasses()}>{children}</div>
+        )}
       </div>
     </div>
   );

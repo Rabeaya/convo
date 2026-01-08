@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+import { resolveServicesHostString } from '@/lib/config/services-host';
+
 const FEED_SERVICES_VERSION = '202201200010'; // Feed services version
 
 /**
@@ -10,13 +11,14 @@ const FEED_SERVICES_VERSION = '202201200010'; // Feed services version
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const servicesHost = resolveServicesHostString({ headers: request.headers, allowWindow: false });
     
     // Get cookies from the request
     const cookieHeader = request.headers.get('cookie') || '';
     
     // Construct the backend URL
     // Feed services use a different URL pattern: /index_services_{VERSION}/scrybe/feed/poll
-    const backendUrl = `https://${SERVICES_HOST}/index_services_${FEED_SERVICES_VERSION}/scrybe/feed/poll`;
+    const backendUrl = `https://${servicesHost}/index_services_${FEED_SERVICES_VERSION}/scrybe/feed/poll`;
 
     console.log(`[Feed Proxy] Proxying poll request to: ${backendUrl}`);
 

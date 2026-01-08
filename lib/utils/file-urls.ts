@@ -6,6 +6,8 @@
  * getOriginalImagePath, getFileResourceLinkUrl, getCommentAttachmentUrl
  */
 
+import { resolveServicesHostString } from '@/lib/config/services-host';
+
 interface FileUrlOptions {
   accountId: string;
   fileIdx?: number;
@@ -19,11 +21,23 @@ interface FileUrlOptions {
  * Matches config.getLoadBalancedAwsFileDirBase
  */
 function getLoadBalancedAwsFileDirBase(fileIdx: number = 0): string {
-  const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+  // Matches Angular `config.getLoadBalancedAwsFileDirBase(fileSerialNo)`:
+  // https://fs{shard}.{domain}/api/v1/files/
+  const SERVICES_HOST = resolveServicesHostString({ allowWindow: true });
   const API_VERSION = 'v1';
-  
-  // Simplified version - AngularJS uses subdomain rotation but current config uses single host
-  return `https://${SERVICES_HOST}/api/${API_VERSION}/files/`;
+
+  const num =
+    Number(process.env.NEXT_PUBLIC_AWS_FILE_DIR_NUM_SUBDOMAINS) ||
+    // Angular commonly uses 10 in non-dev environments (see `config.js.tpl`).
+    10;
+
+  // Angular: Math.abs((serial % num) - num) => yields 1..num, in reverse order.
+  const shard =
+    typeof fileIdx === 'number' && Number.isFinite(fileIdx)
+      ? Math.abs((fileIdx % num) - num) || 1
+      : 1;
+
+  return `https://fs${shard}.${SERVICES_HOST}/api/${API_VERSION}/files/`;
 }
 
 /**
@@ -31,10 +45,11 @@ function getLoadBalancedAwsFileDirBase(fileIdx: number = 0): string {
  * Matches config.AWS_FILE_DIR_BASE
  */
 function getAwsFileDirBase(): string {
-  const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+  const SERVICES_HOST = resolveServicesHostString({ allowWindow: true });
   const API_VERSION = 'v1';
-  
-  return `https://${SERVICES_HOST}/api/${API_VERSION}/files/`;
+
+  // Angular default: AWS_FILE_DIR_BASE = https://fs1.{domain}/api/v1/files/
+  return `https://fs1.${SERVICES_HOST}/api/${API_VERSION}/files/`;
 }
 
 /**

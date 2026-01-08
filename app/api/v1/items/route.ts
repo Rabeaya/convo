@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+import { resolveServicesHostString } from '@/lib/config/services-host';
 
 /**
  * Items API Proxy Route
@@ -11,9 +11,10 @@ const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.n
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const servicesHost = resolveServicesHostString({ headers: request.headers, allowWindow: false });
 
     // Use the same backend URL pattern as other services
-    const backendUrl = `https://${SERVICES_HOST}/index_services_202201200010/scrybe/items`;
+    const backendUrl = `https://${servicesHost}/index_services_202201200010/scrybe/items`;
 
     // Log request for debugging
     console.log('Items API Proxy - Request:', {

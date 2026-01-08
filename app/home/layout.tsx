@@ -16,12 +16,7 @@ export default function HomeLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="home-container" style={{
-      height: '100%',
-      maxWidth: '1440px',
-      minWidth: '690px',
-      margin: '0 auto',
-    }}>
+    <div className="home-container">
       {/* Main Header */}
       <MainHeader />
 
@@ -32,7 +27,7 @@ export default function HomeLayout({
         maxWidth: '1440px',
         margin: '0 auto !important',
         background: '#fff',
-        height: 'calc(100% - 60px)',
+        height: 'calc(100vh - 60px)',
         whiteSpace: 'nowrap',
         display: 'flex',
       }}>

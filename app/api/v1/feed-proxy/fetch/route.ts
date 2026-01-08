@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+import { resolveServicesHostString } from '@/lib/config/services-host';
+
 const FEED_SERVICES_VERSION = '202201200010'; // Feed services version
 
 /**
@@ -14,13 +15,14 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const servicesHost = resolveServicesHostString({ headers: request.headers, allowWindow: false });
     
     // Get cookies from the request
     const cookieHeader = request.headers.get('cookie') || '';
     
     // Construct the backend URL
     // Feed services use a different URL pattern: /index_services_{VERSION}/scrybe/feed/fetch
-    const backendUrl = `https://${SERVICES_HOST}/index_services_${FEED_SERVICES_VERSION}/scrybe/feed/fetch`;
+    const backendUrl = `https://${servicesHost}/index_services_${FEED_SERVICES_VERSION}/scrybe/feed/fetch`;
 
     console.log(`[Feed Proxy] Proxying fetch request to: ${backendUrl}`);
     console.log(`[Feed Proxy] Request body keys:`, Object.keys(body || {}));

@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveServicesHostString } from '@/lib/config/services-host';
 
 const API_VERSION = 'v1';
 
 function resolveServicesHost(request: NextRequest): string {
   // Allow client to specify which backend host to use.
   // Falls back to env, then to the default requested by the user.
-  return (
-    request.headers.get('x-services-host') ||
-    process.env.NEXT_PUBLIC_SERVICES_HOST ||
-    process.env.SERVICES_HOST ||
-    'app5.app06.convodev.net'
-  );
+  return resolveServicesHostString({ headers: request.headers, allowWindow: false });
 }
 
 export async function GET(request: NextRequest) {

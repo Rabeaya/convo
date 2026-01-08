@@ -5,6 +5,8 @@
  * All API calls should go through this client to ensure consistency.
  */
 
+import { resolveServicesHostString } from '@/lib/config/services-host';
+
 export interface ApiResponse<T = unknown> {
   data: T;
   status: number;
@@ -27,10 +29,7 @@ export class ApiClient {
   private getServicesHostHeader(): Record<string, string> {
     // Used by our Next.js API proxy routes to know which Convo host to call.
     // Default is set to the dev host requested by the user.
-    const servicesHost =
-      (typeof window !== 'undefined' && (window as any)?.servicesHost) ||
-      process.env.NEXT_PUBLIC_SERVICES_HOST ||
-      'app5.app06.convodev.net';
+    const servicesHost = resolveServicesHostString({ allowWindow: true });
 
     return servicesHost ? { 'x-services-host': String(servicesHost) } : {};
   }

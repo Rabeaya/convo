@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveServicesHostString } from '@/lib/config/services-host';
 
-const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
 const API_VERSION = 'v1';
 
 /**
@@ -10,12 +10,13 @@ const API_VERSION = 'v1';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const servicesHost = resolveServicesHostString({ headers: request.headers, allowWindow: false });
     
     // Get cookies from the request
     const cookieHeader = request.headers.get('cookie') || '';
     
     // Construct the backend URL
-    const backendUrl = `https://${SERVICES_HOST}/api/${API_VERSION}/like`;
+    const backendUrl = `https://${servicesHost}/api/${API_VERSION}/like`;
 
     console.log(`[Like Proxy] Proxying request to: ${backendUrl}`);
     console.log(`[Like Proxy] Action:`, body.action);

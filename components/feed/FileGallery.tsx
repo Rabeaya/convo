@@ -219,8 +219,10 @@ export default function FileGallery({ files, noteId, resourceType, appId, isActi
                           display: 'block',
                         }}
                         onError={(e) => {
-                          // Fallback to file icon on error
-                          (e.target as HTMLImageElement).src = '/assets/img/chat/fileplainlarge.png';
+                          // Do NOT fall back to a missing PNG under /assets/img/chat (causes repeated 404s across many items).
+                          // Use a transparent pixel instead; non-image files are already rendered with sprite icons elsewhere.
+                          (e.target as HTMLImageElement).src =
+                            'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
                         }}
                       />
                     )}

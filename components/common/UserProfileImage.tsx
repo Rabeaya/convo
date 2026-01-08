@@ -69,7 +69,12 @@ export default function UserProfileImage({
       const t = profileType ?? (user as any)?.profile_image_type;
       const v = profileVersion ?? (user as any)?.profile_image_version;
       const size = toImageSize(Math.max(wNum, hNum));
-      directUrl = getUserProfileImageUrl(userId, t as any, v as any, size);
+      const serialNo =
+        (user as any)?.serialNo ??
+        (user as any)?.serial_no ??
+        (user as any)?.serial_number ??
+        (user as any)?.user_serial_no;
+      directUrl = getUserProfileImageUrl(userId, t as any, v as any, size, undefined, false, Number(serialNo));
     }
 
     setImageUrl((prev) => (prev === directUrl ? prev : directUrl));
@@ -157,13 +162,25 @@ function toNumber(value: number | string): number {
 }
 
 function toImageSize(size: number): string {
-  // Map to server thumbnail variants used by Convo
-  if (size <= 24) return '24';
-  if (size <= 32) return '32';
-  if (size <= 48) return '48';
-  if (size <= 64) return '64';
-  if (size <= 84) return '84';
-  return '184';
+  // Matches Angular: utils.getUserProfileImageForSize(size) in `web_app/src/app/common/utils.js`
+  // Note: Angular doubles the size on retina.
+  let s = Number(size) || 0;
+  const isRetina = typeof window !== 'undefined' && window.devicePixelRatio > 1;
+  if (isRetina) s *= 2;
+
+  if (s <= 22) s = 22;
+  else if (s <= 28) s = 28;
+  else if (s <= 32) s = 32;
+  else if (s <= 48) s = 48;
+  else if (s <= 64) s = 64;
+  else if (s <= 81) s = 81;
+  else if (s <= 96) s = 96;
+  else if (s <= 129) s = 129;
+  else if (s <= 144) s = 144;
+  else if (s <= 184) s = 184;
+  else s = 750;
+
+  return `${s}x${s}`;
 }
 
 function getUserFullNameFromAnyUser(u: any): string {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveServicesHostString } from '@/lib/config/services-host';
 
 const API_VERSION = process.env.NEXT_PUBLIC_API_VERSION || 'v1';
-const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
 
 /**
  * Proxy route for announcements API
@@ -10,13 +10,14 @@ const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.n
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const servicesHost = resolveServicesHostString({ headers: request.headers, allowWindow: false });
     
     // Get cookies from the request
     const cookieHeader = request.headers.get('cookie') || '';
     
     // Construct the backend URL
     // The announcements endpoint uses the REST API pattern
-    const url = `https://${SERVICES_HOST}/api/${API_VERSION}/announcements`;
+    const url = `https://${servicesHost}/api/${API_VERSION}/announcements`;
 
     const response = await fetch(url, {
       method: 'POST',

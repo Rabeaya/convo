@@ -370,10 +370,11 @@ body {
 
 /* Home Container - Consistent across all pages */
 .home-container {
-  height: 100%;
+  height: 100vh;
   max-width: 1440px;
-  min-width: 690px;
+  min-width: 1295px;
   margin: 0 auto;
+  overflow: hidden;
 }
 /* =========================================================
    Feed/Comments @mentions dropdown (mirrors AngularJS)

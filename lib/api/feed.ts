@@ -1,5 +1,6 @@
 import { ApiResponse, type ApiError } from './client';
 import type { User } from './auth';
+import { resolveServicesHostString } from '@/lib/config/services-host';
 
 export interface FeedItem {
   feed_id: string;
@@ -268,7 +269,7 @@ export class LikeService {
     title: string,
     type: string
   ): Promise<ApiResponse<any>> {
-    const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+    const SERVICES_HOST = resolveServicesHostString({ allowWindow: true });
     const API_VERSION = 'v1';
 
     const requestData = {

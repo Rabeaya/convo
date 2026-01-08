@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { resolveServicesHostString } from '@/lib/config/services-host';
 
 /**
  * Client component to set global configuration
@@ -10,7 +11,7 @@ export function ConfigScript() {
   useEffect(() => {
     // Set servicesHost if not already set
     if (typeof window !== 'undefined' && !(window as any).servicesHost) {
-      const servicesHost = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+      const servicesHost = resolveServicesHostString({ allowWindow: false });
       (window as any).servicesHost = servicesHost;
       console.log('Set servicesHost to:', servicesHost);
     }

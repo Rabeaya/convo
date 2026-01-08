@@ -7,12 +7,14 @@ import { NextRequest, NextResponse } from 'next/server';
  * Matches AngularJS groupsService.getGroupsDirectory() behavior
  */
 
-const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+import { resolveServicesHostString } from '@/lib/config/services-host';
+
 const API_VERSION = 'v1';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const servicesHost = resolveServicesHostString({ headers: request.headers, allowWindow: false });
     
     // Get cookies from the request
     const cookies = request.headers.get('cookie') || '';
@@ -30,7 +32,7 @@ export async function POST(request: NextRequest) {
     console.log('Groups Directory Request:', reqData);
     
     // Forward to backend
-    const url = `https://${SERVICES_HOST}/api/${API_VERSION}/groups`;
+    const url = `https://${servicesHost}/api/${API_VERSION}/groups`;
     const backendResponse = await fetch(url, {
       method: 'POST',
       headers: {

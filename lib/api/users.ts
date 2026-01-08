@@ -1,5 +1,6 @@
 import type { ApiError, ApiResponse } from './client';
 import type { User } from './auth';
+import { resolveServicesHostString } from '@/lib/config/services-host';
 
 export interface UsersApiUser {
   user_id: string;
@@ -89,8 +90,10 @@ export function getUserProfileImageUrl(
   userId: string | undefined,
   profileImageType: number | any,
   profileImageVersion: number | any,
-  size: string = '48',
-  servicesHost?: string
+  size: string = '48x48',
+  servicesHost?: string,
+  forUnAuthorizedOrigin?: boolean,
+  userSerialNo?: number
 ): string {
   const PROFILE_IMAGE_TYPE_SYSTEM = 2;
   const PROFILE_IMAGE_TYPE_CUSTOM = 1;
@@ -99,32 +102,69 @@ export function getUserProfileImageUrl(
   const host =
     servicesHost ||
     (typeof window !== 'undefined' ? (window as any).servicesHost : undefined) ||
-    process.env.NEXT_PUBLIC_SERVICES_HOST ||
-    'app5.app06.convodev.net';
+    resolveServicesHostString({ allowWindow: true });
 
-  const baseUrl = host ? `https://${host}` : '';
-  const sizeToken = String(size || '48');
-  const normalizedSize = sizeToken.includes('x') ? sizeToken.split('x')[0] : sizeToken;
+  // Angular (config.js.tpl) defaults to:
+  // - AWS_FILE_DIR_BASE: https://fs1.{host}/api/v1/files/
+  // - AWS_FILE_DIR_BASE_FOR_NO_AUTH: https://{host}/api/v1/files/
+  // - For custom user images, it can shard via getLoadBalancedAwsFileDirBase(userSerialNo)
+  const baseUrl = host ? getFilesBaseUrl(host, !!forUnAuthorizedOrigin, userSerialNo) : '';
+  const sizeToken = String(size || '48x48');
+  // Angular UserProfileImage constants use "48x48" (not "48").
+  // Some callers may pass "48"; normalize that to "48x48" for parity.
+  const normalizedSize = sizeToken.includes('x') ? sizeToken : `${sizeToken}x${sizeToken}`;
+  const normalizedUserId = normalizeUserIdForUserImages(userId);
 
   const typeNum = Number(profileImageType);
   // Loose check is intentional: backend sometimes sends "0" as a string.
   const versionIsZero = profileImageVersion == 0;
 
-  if (userId && typeNum === PROFILE_IMAGE_TYPE_SYSTEM) {
-    return `${baseUrl}/user-images/system-user/thumbnails/system-user-thumbnail-${normalizedSize}.png`;
+  if (normalizedUserId && typeNum === PROFILE_IMAGE_TYPE_SYSTEM) {
+    return `${baseUrl}user-images/system-user/thumbnails/system-user-thumbnail-${normalizedSize}.png`;
   }
   
   // Default user image if no userId, or profileImageType is 0, or profileImageVersion is 0
-  if (!userId || typeNum === PROFILE_IMAGE_TYPE_DEFAULT || profileImageVersion == null || versionIsZero) {
-    return `${baseUrl}/user-images/default-user/thumbnails/default-user-thumbnail-${normalizedSize}.png`;
+  if (!normalizedUserId || typeNum === PROFILE_IMAGE_TYPE_DEFAULT || profileImageVersion == null || versionIsZero) {
+    return `${baseUrl}user-images/default-user/thumbnails/default-user-thumbnail-${normalizedSize}.png`;
   }
   
   if (typeNum === PROFILE_IMAGE_TYPE_CUSTOM) {
-    return `${baseUrl}/user-images/${userId}/thumbnails/${userId}-thumbnail-${normalizedSize}-${profileImageVersion}.jpg`;
+    // Angular userImgUrlFilter uses the userId "as-is" (often "usr-...") for both directory and filename.
+    // It also shards the host using userSerialNo when available.
+    const customBaseUrl = host ? getFilesBaseUrl(host, !!forUnAuthorizedOrigin, userSerialNo) : baseUrl;
+    return `${customBaseUrl}user-images/${normalizedUserId}/thumbnails/${normalizedUserId}-thumbnail-${normalizedSize}-${profileImageVersion}.jpg`;
   }
 
   // Fallback to default
-  return `${baseUrl}/user-images/default-user/thumbnails/default-user-thumbnail-${normalizedSize}.png`;
+  return `${baseUrl}user-images/default-user/thumbnails/default-user-thumbnail-${normalizedSize}.png`;
+}
+
+function normalizeUserIdForUserImages(userId: string | undefined): string | undefined {
+  if (!userId) return undefined;
+  const raw = String(userId).trim();
+  if (!raw) return undefined;
+  return raw;
+}
+
+function getFilesBaseUrl(host: string, forUnAuthorizedOrigin: boolean, fileSerialNo?: number): string {
+  const apiVersion = 'v1';
+
+  if (forUnAuthorizedOrigin) {
+    return `https://${host}/api/${apiVersion}/files/`;
+  }
+
+  const num =
+    Number(process.env.NEXT_PUBLIC_AWS_FILE_DIR_NUM_SUBDOMAINS) ||
+    // Matches typical non-dev config in Angular `config.js.tpl`
+    10;
+
+  // Angular: Math.abs((serial % num) - num) => yields 1..num, in reverse order.
+  const shard =
+    typeof fileSerialNo === 'number' && Number.isFinite(fileSerialNo)
+      ? Math.abs((fileSerialNo % num) - num) || 1
+      : 1;
+
+  return `https://fs${shard}.${host}/api/${apiVersion}/files/`;
 }
 
 /**

@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveServicesHostString } from '@/lib/config/services-host';
 
 const API_VERSION = 'v1';
 
 function resolveServicesHost(request: NextRequest): string {
-  return (
-    request.headers.get('x-services-host') ||
-    process.env.NEXT_PUBLIC_SERVICES_HOST ||
-    process.env.SERVICES_HOST ||
-    'app5.app06.convodev.net'
-  );
+  return resolveServicesHostString({ headers: request.headers, allowWindow: false });
 }
 
 export async function GET(request: NextRequest) {
@@ -153,11 +149,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
     const API_VERSION = 'v1';
     
     // Groups endpoint uses regular API path
-    const url = `https://${SERVICES_HOST}/api/${API_VERSION}/groups`;
+    const servicesHost = resolveServicesHostString({ headers: request.headers, allowWindow: false });
+    const url = `https://${servicesHost}/api/${API_VERSION}/groups`;
     
     // Forward cookies from the request
     const cookieHeader = request.headers.get('cookie') || '';

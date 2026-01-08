@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveServicesHostString } from '@/lib/config/services-host';
 
 function resolveServicesHost(request: NextRequest): string {
-  return (
-    request.headers.get('x-services-host') ||
-    process.env.NEXT_PUBLIC_SERVICES_HOST ||
-    process.env.SERVICES_HOST ||
-    'app5.app06.convodev.net'
-  );
+  return resolveServicesHostString({ headers: request.headers, allowWindow: false });
 }
 
 export async function POST(request: NextRequest) {

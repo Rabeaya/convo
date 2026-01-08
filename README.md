@@ -30,6 +30,9 @@ It is **separate** from the original AngularJS codebase located at:
    - Ensure `.env.local` exists with:
      ```
      NEXT_PUBLIC_SERVICES_HOST=app14.convodev.net
+     SERVICES_HOST=app14.convodev.net
+     # Optional (file-service sharding; Angular commonly uses 10):
+     NEXT_PUBLIC_AWS_FILE_DIR_NUM_SUBDOMAINS=10
      ```
 
 4. **Run the development server:**

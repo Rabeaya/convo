@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+import { resolveServicesHostString } from '@/lib/config/services-host';
+
 const API_VERSION = 'v1';
 
 export async function POST(request: NextRequest) {
   try {
-    const url = `https://${SERVICES_HOST}/api/${API_VERSION}/files`;
+    const servicesHost = resolveServicesHostString({ headers: request.headers, allowWindow: false });
+    const url = `https://${servicesHost}/api/${API_VERSION}/files`;
 
     const cookieHeader = request.headers.get('cookie') || '';
     const body = await request.text();

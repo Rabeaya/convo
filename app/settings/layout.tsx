@@ -8,12 +8,7 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="home-container" style={{
-      height: '100%',
-      maxWidth: '1440px',
-      minWidth: '690px',
-      margin: '0 auto',
-    }}>
+    <div className="home-container">
       {/* Main Header - Same structure as home layout */}
       <MainHeader />
 
