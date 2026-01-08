@@ -47,6 +47,7 @@ export interface Comment {
   resource_id: string;
   from_user: string;
   comment_text: string;
+  summary?: string;
   comment_text_less?: string;
   comment_text_less_snippet?: string;
   has_more_text?: boolean;
@@ -128,31 +129,21 @@ export interface FeedPollResponse {
   groups?: Record<string, any>;
   pinned_items?: any[];
   custom_filters?: any[];
+  // Angular feedService.pollFeed sets/reads this field
+  last_feed_poll_timestamp?: string;
   account_revision_number?: number;
   account_user_revision_number?: number;
   account_contacts_revision_number?: number;
 }
 
 class FeedService {
-  private getFeedBaseUrl(): string {
-    if (typeof window !== 'undefined') {
-      const servicesHost = (window as any).servicesHost || 'app14.convodev.net';
-      // FEED_SERVICES_VERSION: In dev/staging it's "2022092701", in production it's "20150918"
-      // We'll check the environment or use a default. For now, use the staging version as it's more recent
-      // This should ideally come from a config file or environment variable
-      const feedServicesVersion = '2022092701'; // Default to staging version, can be overridden
-      return `https://${servicesHost}/index_services_${feedServicesVersion}/scrybe/`;
-    }
-    return '';
-  }
-
+  /**
+   * Fetch feed items
+   * Uses Next.js API proxy to avoid CORS issues
+   */
   async fetchFeed(request: FeedFetchRequest): Promise<ApiResponse<FeedFetchResponse>> {
-    const url = this.getFeedBaseUrl();
-    if (!url) {
-      throw new Error('Feed base URL not available');
-    }
-
-    const response = await fetch(`${url}feed/fetch`, {
+    try {
+      const response = await fetch('/api/v1/feed-proxy/fetch', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -163,8 +154,15 @@ class FeedService {
 
     if (!response.ok) {
       const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        
       const error: ApiError = {
-        message: errorText || 'Failed to fetch feed',
+          message: errorData.error || 'Failed to fetch feed',
         code: 'FEED_FETCH_ERROR',
         status: response.status,
       };
@@ -172,19 +170,36 @@ class FeedService {
     }
 
     const data = await response.json();
+      
+      // Ensure the response has the expected structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid feed response format');
+      }
+
     return {
-      data,
+        data: data as FeedFetchResponse,
       status: response.status,
     };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Failed to fetch')) {
+        // Network error or CORS issue
+        throw {
+          message: 'Network error: Unable to connect to feed service. Please check your connection.',
+          code: 'FEED_NETWORK_ERROR',
+          status: 0,
+        } as ApiError;
+      }
+      throw error;
+    }
   }
 
+  /**
+   * Poll feed for new items
+   * Uses Next.js API proxy to avoid CORS issues
+   */
   async pollFeed(request: FeedPollRequest): Promise<ApiResponse<FeedPollResponse>> {
-    const url = this.getFeedBaseUrl();
-    if (!url) {
-      throw new Error('Feed base URL not available');
-    }
-
-    const response = await fetch(`${url}feed/poll`, {
+    try {
+      const response = await fetch('/api/v1/feed-proxy/poll', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -195,8 +210,15 @@ class FeedService {
 
     if (!response.ok) {
       const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        
       const error: ApiError = {
-        message: errorText || 'Failed to poll feed',
+          message: errorData.error || 'Failed to poll feed',
         code: 'FEED_POLL_ERROR',
         status: response.status,
       };
@@ -204,12 +226,123 @@ class FeedService {
     }
 
     const data = await response.json();
+      
+      // Ensure the response has the expected structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid feed poll response format');
+      }
+
     return {
-      data,
+        data: data as FeedPollResponse,
       status: response.status,
     };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Failed to fetch')) {
+        // Network error or CORS issue
+        throw {
+          message: 'Network error: Unable to connect to feed service. Please check your connection.',
+          code: 'FEED_NETWORK_ERROR',
+          status: 0,
+        } as ApiError;
+      }
+      throw error;
+    }
   }
 }
 
 export const feedService = new FeedService();
+
+/**
+ * Like Service
+ * Handles like/unlike functionality for feed items and comments
+ */
+export class LikeService {
+  /**
+   * Like or unlike a feed item (resource)
+   */
+  async likeResource(
+    feedId: string,
+    resourceId: string,
+    appInstanceId: number,
+    action: 'like' | 'unlike',
+    title: string,
+    type: string
+  ): Promise<ApiResponse<any>> {
+    const SERVICES_HOST = process.env.NEXT_PUBLIC_SERVICES_HOST || 'app14.convodev.net';
+    const API_VERSION = 'v1';
+
+    const requestData = {
+      feed_id: feedId,
+      resource_id: resourceId,
+      app_instance_id: appInstanceId,
+      action: action,
+      path_id: resourceId,
+      path_names: `["${title}"]`,
+      path_types: `["${type}"]`,
+    };
+
+    try {
+      const response = await fetch(`/api/v1/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${action} resource: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return {
+        data: data,
+        status: response.status,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Like or unlike a comment (conversation)
+   */
+  async likeConversation(
+    conversationUid: string,
+    resourceId: string,
+    appInstanceId: number,
+    action: 'like' | 'unlike'
+  ): Promise<ApiResponse<any>> {
+    const requestData = {
+      conversation_id: conversationUid,
+      action: action,
+    };
+
+    try {
+      const response = await fetch(`/api/v1/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${action} conversation: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return {
+        data: data,
+        status: response.status,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+}
+
+export const likeService = new LikeService();
 

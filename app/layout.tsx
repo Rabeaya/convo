@@ -3,6 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { ConfigScript } from "@/components/ConfigScript";
 import IconStylesheet from "@/components/IconStylesheet";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "Convo - Team Collaboration Platform",
@@ -19,6 +20,15 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <IconStylesheet />
         <ConfigScript />
+        {/* External integration scripts (1:1 with Angular index.html) */}
+        <Script
+          id="dropboxjs"
+          src="https://www.dropbox.com/static/api/2/dropins.js"
+          data-app-key="x8f0l9urspe5wzi"
+          strategy="afterInteractive"
+        />
+        <Script src="https://app.box.com/js/static/select.js" strategy="afterInteractive" />
+        <Script src="https://apis.google.com/js/api.js" strategy="afterInteractive" />
         <Providers>
           {children}
         </Providers>

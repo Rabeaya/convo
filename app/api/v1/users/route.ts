@@ -29,39 +29,52 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Users API error:', response.status, errorText);
+      console.error('[Users API] Error:', response.status, errorText.substring(0, 500));
+
+      let errorData: any;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText.substring(0, 2000) };
+      }
+
+      const setCookieHeaders = response.headers.getSetCookie();
+      const headers = new Headers();
+      headers.set('x-upstream-host', servicesHost);
+      setCookieHeaders.forEach((cookie) => headers.append('Set-Cookie', cookie));
+
       return NextResponse.json(
-        { error: `Failed to fetch users: ${response.status} ${errorText}` },
-        { status: response.status }
+        {
+          error: errorData?.error || errorData?.message || 'Failed to fetch users',
+          details: errorData,
+        },
+        { status: response.status, headers }
       );
     }
 
-    let data: unknown;
+    const responseText = await response.text();
+    let data: any;
     try {
-      data = await response.json();
+      data = responseText ? JSON.parse(responseText) : null;
     } catch {
-      const text = await response.text();
-      console.error('Failed to parse users response:', text);
+      console.error('[Users API] Failed to parse JSON:', responseText.substring(0, 500));
       return NextResponse.json({ error: 'Invalid response from users API' }, { status: 500 });
     }
 
     const setCookieHeaders = response.headers.getSetCookie();
-    const nextResponse = NextResponse.json(data, { status: response.status });
+    const headers = new Headers();
+    headers.set('x-upstream-host', servicesHost);
+    setCookieHeaders.forEach((cookie) => headers.append('Set-Cookie', cookie));
 
-    if (setCookieHeaders.length > 0) {
-      setCookieHeaders.forEach((cookie) => {
-        nextResponse.headers.append('Set-Cookie', cookie);
-      });
-    }
-
-    return nextResponse;
+    return NextResponse.json(data, { status: response.status, headers });
   } catch (error: any) {
-    console.error('Users API error:', error);
+    console.error('[Users API] Exception:', error);
     return NextResponse.json(
-      { error: `Failed to fetch users: ${error.message || 'Unknown error'}` },
+      {
+        error: 'Failed to fetch users',
+        message: error?.message || 'Unknown error',
+      },
       { status: 500 }
     );
   }
 }
-
-

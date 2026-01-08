@@ -43,21 +43,8 @@ export default function LeftSidebar() {
       return { privateGroups: [], publicGroups: [] };
     }
     
-    // Handle different response structures
-    let groupsArray: Group[] = [];
-    if (Array.isArray(groupsData)) {
-      // If groupsData is directly an array
-      groupsArray = groupsData;
-    } else if (groupsData.groups && Array.isArray(groupsData.groups)) {
-      // If groupsData has a groups property
-      groupsArray = groupsData.groups;
-    } else if (groupsData.data && Array.isArray(groupsData.data)) {
-      // If groupsData has a data property that's an array
-      groupsArray = groupsData.data;
-    } else if (groupsData.data && groupsData.data.groups && Array.isArray(groupsData.data.groups)) {
-      // If groupsData.data has a groups property
-      groupsArray = groupsData.data.groups;
-    }
+    // useGroups() returns GroupsResponse (already normalized in groupsService/useGroups)
+    const groupsArray: Group[] = Array.isArray(groupsData.groups) ? groupsData.groups : [];
     
     console.log('Groups Array from useMemo:', groupsArray);
     console.log('Groups Array Length:', groupsArray.length);
