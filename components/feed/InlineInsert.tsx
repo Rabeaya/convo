@@ -380,23 +380,23 @@ export default function InlineInsert() {
     []
   );
 
-  const [placeholderText, setPlaceholderText] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const w: any = window as any;
-      const base = String(w?.inlineInsertPlaceholderText || '').trim();
-      if (base) return base;
-    }
-    // Fallback until we seed from legacyMessagesArray on mount.
-    return legacyMessagesArray[0];
-  });
+  // Use stable initial value for SSR hydration (always the same on server and client)
+  const [placeholderText, setPlaceholderText] = useState<string>(legacyMessagesArray[0]);
+  const [isMounted, setIsMounted] = useState(false);
 
   const myUserId = String((user as any)?.user_id || (user as any)?.userId || '');
 
+  // Set mounted flag after hydration completes
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Angular behavior:
-  // - base placeholder is window.inlineInsertPlaceholderText (or contextual “Share something with X.”)
+  // - base placeholder is window.inlineInsertPlaceholderText (or contextual "Share something with X.")
   // - dummy placeholder text is also rotated daily via window.messagesArray when NOT active
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    // Only run after component has mounted on client to avoid hydration mismatch
+    if (typeof window === 'undefined' || !isMounted) return;
     const w: any = window as any;
 
     // Ensure window.messagesArray exists (Angular `index.php`: `var messagesArray = [...]`)
@@ -404,18 +404,36 @@ export default function InlineInsert() {
       w.messagesArray = legacyMessagesArray.slice();
     }
 
+    // Check if window.inlineInsertPlaceholderText already exists (from previous page load or external script)
+    // Handle case where it might be an HTML element by converting to string
+    const existingPlaceholder = w?.inlineInsertPlaceholderText;
+    if (existingPlaceholder != null) {
+      const placeholderStr = typeof existingPlaceholder === 'string' 
+        ? existingPlaceholder.trim() 
+        : String(existingPlaceholder).trim();
+      if (placeholderStr && placeholderStr !== '[object HTMLSpanElement]' && placeholderStr !== '[object Object]') {
+        setPlaceholderText(placeholderStr);
+        // Ensure it's stored as a string
+        w.inlineInsertPlaceholderText = placeholderStr;
+        return; // Don't pick random if we already have a valid placeholder
+      }
+    }
+
     // Legacy: pick a random message on every page load and set BOTH:
     // - dummy placeholder text
     // - window.inlineInsertPlaceholderText (used by cnv-editor placeholder)
     const messages: any[] = Array.isArray(w.messagesArray) ? w.messagesArray : [];
-    const initialIdx = Math.floor(Math.random() * messages.length);
-    const initialMsg = String(messages[initialIdx] || '').trim();
-    if (initialMsg) {
-      w.inlineInsertPlaceholderText = initialMsg;
-      setPlaceholderText(initialMsg);
+    if (messages.length > 0) {
+      const initialIdx = Math.floor(Math.random() * messages.length);
+      const initialMsg = String(messages[initialIdx] || '').trim();
+      if (initialMsg) {
+        w.inlineInsertPlaceholderText = initialMsg;
+        setPlaceholderText(initialMsg);
+      }
     }
 
     const pickRandom = () => {
+      if (messages.length === 0) return;
       const idx = Math.floor(Math.random() * messages.length);
       const msg = String(messages[idx] || '').trim();
       if (msg) {
@@ -430,7 +448,7 @@ export default function InlineInsert() {
     }, 86400000); // 24 hours
 
     return () => window.clearInterval(id);
-  }, [active, legacyMessagesArray]);
+  }, [active, legacyMessagesArray, isMounted]);
 
   // Hydrate default recipients from settings (Angular: settingsService.getGeneralSettings().sharing_options_list)
   useEffect(() => {
