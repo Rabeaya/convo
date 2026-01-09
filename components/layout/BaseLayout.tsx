@@ -11,6 +11,7 @@ import { ReactNode } from 'react';
 import MainHeader from './MainHeader';
 import LeftSidebar from './LeftSidebar';
 import RightSidebar from './RightSidebar';
+import DockedChat from '@/components/chat/DockedChat';
 import './shared-layout.css';
 import './left-panel.css';
 
@@ -48,7 +49,7 @@ export default function BaseLayout({
   };
 
   return (
-    <div className={getContainerClasses()}>
+    <div id="mainCont" className={getContainerClasses()}>
       <MainHeader />
 
       <div className={getBodyClasses()}>
@@ -74,6 +75,9 @@ export default function BaseLayout({
           <div className={getCenterPanelClasses()}>{children}</div>
         )}
       </div>
+
+      {/* Docked chat window (no route) */}
+      <DockedChat />
     </div>
   );
 }
