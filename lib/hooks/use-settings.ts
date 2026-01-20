@@ -6,6 +6,8 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api/client';
 
 export interface GeneralSettings {
@@ -53,7 +55,9 @@ const SETTINGS_API_URL_ADMIN = '/admin/networknotificationsetting?method=readNet
 
 // Get general settings - matches settingsService.getGeneralSettings
 export function useGeneralSettings(refetchFromServer = false, mode: 'NORMAL' | 'ADMIN' = 'NORMAL') {
-  return useQuery({
+  const router = useRouter();
+  
+  const query = useQuery({
     queryKey: ['generalSettings', refetchFromServer, mode],
     queryFn: async () => {
       const settingUrl = mode === 'ADMIN' ? SETTINGS_API_URL_ADMIN : SETTINGS_API_URL_NORMAL;
@@ -76,7 +80,26 @@ export function useGeneralSettings(refetchFromServer = false, mode: 'NORMAL' | '
       return response.data || response;
     },
     staleTime: refetchFromServer ? 0 : 5 * 60 * 1000,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401 errors - redirect to login instead
+      if (error?.status === 401) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
+
+  // Handle 401 errors - redirect to login
+  useEffect(() => {
+    if (query.isError && (query.error as any)?.status === 401) {
+      const currentPath = typeof window !== 'undefined' 
+        ? window.location.pathname + window.location.search 
+        : '/settings';
+      router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+    }
+  }, [query.isError, query.error, router]);
+
+  return query;
 }
 
 // Reset password - matches userInfo.resetPassword

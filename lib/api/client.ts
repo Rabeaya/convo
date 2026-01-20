@@ -146,10 +146,19 @@ export class ApiClient {
     const data = await response.json();
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - redirect to login
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          const currentPath = window.location.pathname + window.location.search;
+          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+        }
+      }
+      
       throw {
         message: data.message || 'An error occurred',
         code: data.code,
         status: response.status,
+        redirectToLogin: data.redirectToLogin || response.status === 401,
       } as ApiError;
     }
 

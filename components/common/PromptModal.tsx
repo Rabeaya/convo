@@ -76,40 +76,58 @@ export default function PromptModal({
   }, []);
 
   return (
-    <div
-      className="modal-backdrop"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        zIndex: 1050,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {/* Angular uses bootstrap modal structure + `windowClass: 'prompt-modal'` */}
-      <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-dialog" style={{ margin: 0 }}>
+    <>
+      {/* Modal backdrop - matches Angular Bootstrap modal */}
+      <div
+        className="modal-backdrop fade in"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1040,
+        }}
+        onClick={onCancel}
+      />
+      {/* Angular uses bootstrap modal structure: modal fade prompt-modal in */}
+      <div 
+        className="modal fade prompt-modal in" 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 1050,
+          display: 'block',
+          overflow: 'auto',
+        }}
+        onClick={onCancel}
+      >
+        <div 
+          className="modal-dialog" 
+          style={{ 
+            margin: '30px auto',
+            width: '600px',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div
             ref={modalRef}
             className="modal-content"
             style={{
               backgroundColor: '#fff',
               borderRadius: '4px',
-              minWidth: '400px',
-              maxWidth: '600px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+              boxShadow: '0 3px 9px rgba(0, 0, 0, 0.5)',
             }}
           >
         {/* Modal Header - matches AngularJS promptModal.tpl.html */}
         <div className="modal-header" style={{
           padding: '15px 20px',
-          background: '#1e2e3d',
-          color: '#fff',
+          background: '#3371bd',
+          color: '#ffffff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -121,7 +139,7 @@ export default function PromptModal({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            color: '#fff',
+            color: '#ffffff',
           }}>
             {showHeaderIcon && !customHeaderIcon && (
               <span className="cnv-icons-20 info-white" style={{
@@ -149,7 +167,7 @@ export default function PromptModal({
                 border: 'none',
                 fontSize: '28px',
                 lineHeight: '1',
-                color: '#fff',
+                color: '#ffffff',
                 opacity: 0.7,
                 cursor: 'pointer',
                 padding: 0,
@@ -203,6 +221,8 @@ export default function PromptModal({
               cursor: 'pointer',
               fontSize: '14px',
               fontWeight: 500,
+              width: '140px',
+              minWidth: '140px',
             }}
           >
             {okBtnLabel}
@@ -221,6 +241,8 @@ export default function PromptModal({
                 borderRadius: '3px',
                 cursor: 'pointer',
                 fontSize: '14px',
+                width: '140px',
+                minWidth: '140px',
               }}
             >
               {cancelBtnLabel}
@@ -230,7 +252,7 @@ export default function PromptModal({
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

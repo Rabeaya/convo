@@ -29,6 +29,11 @@ export default function RootLayout({
         />
         <Script src="https://app.box.com/js/static/select.js" strategy="afterInteractive" />
         <Script src="https://apis.google.com/js/api.js" strategy="afterInteractive" />
+        {/* Google Maps API for geocoding (location feature) - matches Angular index.php */}
+        <Script 
+          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC764tr6nZnnVR0no-hgsiqCHGQHmaNrQU&libraries=places"
+          strategy="afterInteractive"
+        />
         <Providers>
           {children}
         </Providers>

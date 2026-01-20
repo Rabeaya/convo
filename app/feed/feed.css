@@ -3,6 +3,47 @@
    Exact match from AngularJS feed.less and feedMain.less
    ============================================ */
 
+/* Spinner for location loading - matches Angular cnv-spinner-inline-insert */
+.cnv-spinner-inline-insert {
+  position: relative;
+  left: 50%;
+  bottom: 10px;
+  border: 1px solid #eceaea;
+  border-top: 1px solid #a7a5a5;
+  width: 25px;
+  height: 25px;
+  min-width: 12px;
+  min-height: 12px;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin: 10px 20px;
+}
+
+/* Location container close button icon - matches Angular styles.less */
+.location-container {
+  position: relative;
+}
+
+.location-container .close-btn {
+  position: absolute;
+  right: 5px;
+  z-index: 10;
+}
+
+.location-container .close-btn-icon {
+  max-width: 8px;
+  margin-right: 0px;
+  height: 8px;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.location-container .geo-location {
+  padding: 0px 5px 5px 5px;
+  margin: 0px 30px 0px 0px;
+}
+
 .feed-item-container {
   padding: 0px;
   position: relative;
@@ -375,6 +416,7 @@
 
 .feed-cont {
   position: relative;
+  margin-top: 15px; /* Add top margin to prevent touching the header */
 }
 
 @keyframes spin {
@@ -480,6 +522,7 @@
 /* Align editor content start with title input text start (title has 8px left padding). */
 .inline-insert-cont .inline-insert-editor {
   padding: 0 8px;
+  min-height: 120px; /* Increased to prevent Giphy popover from going under header */
 }
 
 /* Quill snow CSS is loaded dynamically and may load AFTER feed.css.
@@ -528,49 +571,254 @@
 .inline-insert-cont .to-field {
   position: relative;
   padding: 0px;
+  overflow: visible;
 }
 
-.inline-insert-cont .to-tags {
+.inline-insert-cont .to-field-cont {
+  position: relative;
+  overflow: visible;
+}
+
+.inline-insert-cont .to-field .tags {
   min-height: 45px;
-  border: 1px solid #ced2dc;
+  border: none; /* Removed border to match Angular Legacy app */
   border-radius: 4px;
-  padding: 6px 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
+  padding: 1px 8px; /* Added horizontal padding (left/right) for spacing, Angular: tags-input .tags has padding: 1px */
+  display: block;
+  line-height: 30px; /* Match tag-item height for vertical alignment */
+  font-size: 0; /* Remove whitespace between inline-block elements */
 }
 
-.inline-insert-cont .to-tags .pre-placeholder {
+.inline-insert-cont .to-field .tags > * {
+  font-size: 14px; /* Restore font size for children */
+}
+
+.inline-insert-cont .to-field .tags .tag-list {
+  display: inline !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  width: auto;
+}
+
+.inline-insert-cont .to-field .tags .pre-placeholder {
+  color: #bbb;
+  margin-right: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.inline-insert-cont .to-field .tags .empty-to-field-pre-placeholder {
   color: #bbb;
   margin-right: 6px;
 }
 
-.inline-insert-cont .to-tags .tag {
-  display: inline-flex;
-  align-items: center;
-  background: #f2f4f8;
-  border: 1px solid #dde2ea;
-  border-radius: 3px;
-  padding: 2px 6px;
-}
-
-.inline-insert-cont .to-tags .tag-label {
-  font-size: 13px;
-  color: #2b2b2b;
-}
-
-.inline-insert-cont .to-tags .tag-remove {
-  border: none;
-  background: transparent;
+.inline-insert-cont .to-field .tags .add-more-placeholder {
+  color: #bbb;
   cursor: pointer;
-  color: #7b8386;
   margin-left: 6px;
-  font-size: 14px;
-  line-height: 14px;
 }
 
-.inline-insert-cont .to-tags .to-input {
+.inline-insert-cont .to-field .tags .empty-to-field-placeholder {
+  color: #bbb;
+  cursor: text;
+  margin-left: 6px;
+}
+
+.inline-insert-cont .to-field .tags .input {
+  display: inline-block !important;
+  min-width: 100px;
+  vertical-align: middle !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  font-size: 14px !important;
+  color: #272b2c !important;
+  padding: 0 4px !important;
+  margin: 0 !important;
+  line-height: 30px !important; /* Match tag-item height */
+  height: 30px !important;
+  box-sizing: border-box;
+}
+
+/* Match Angular ng-tags-input structure: li.tag-item - EXACT styles */
+.inline-insert-cont .to-field .tags .tag-item {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  word-break: break-word;
+  -webkit-font-smoothing: antialiased;
+  white-space: nowrap !important;
+  text-align: left;
+  word-wrap: normal !important;
+  list-style-type: none !important;
+  box-sizing: border-box;
+  margin: 4px !important;
+  padding: 4px 7px 4px 7px !important;
+  display: inline-block !important;
+  float: none !important;
+  font: 14px 'Source Sans Pro', sans-serif !important;
+  height: 30px !important;
+  line-height: 22px !important;
+  border: 1px solid #e0e0e0 !important;
+  color: #7b8386 !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  background-color: #fff !important;
+  overflow: hidden !important;
+  cursor: text;
+  -webkit-transition: background-color 50ms, color 50ms;
+  transition: background-color 50ms, color 50ms;
+  vertical-align: middle;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative;
+}
+
+.inline-insert-cont .to-field .tags .tag-item > div {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  vertical-align: middle;
+  height: 22px !important;
+  line-height: 22px !important;
+  overflow: visible !important;
+  box-sizing: border-box;
+  white-space: nowrap !important;
+  gap: 0;
+}
+
+.inline-insert-cont .to-field .tags .tag-item .pill-text {
+  font-size: 14px !important;
+  color: #7b8386 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-block !important;
+  white-space: nowrap !important;
+  line-height: 22px !important;
+  height: 22px !important;
+  vertical-align: middle !important;
+  box-sizing: border-box;
+}
+
+.inline-insert-cont .to-field .tags .tag-item .remove-button {
+  display: inline-block !important;
+  cursor: pointer !important;
+  margin: 0px 0px 0px 3px !important;
+  padding: 0px !important;
+  border: none !important;
+  text-decoration: none !important;
+  vertical-align: middle !important;
+  width: 12px !important;
+  height: 12px !important;
+  font-family: 'Source Sans Pro', sans-serif !important;
+  color: #7b8386 !important;
+  line-height: 12px !important;
+  text-align: center !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  box-sizing: border-box;
+  position: relative !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.inline-insert-cont .to-field .tags .tag-item .remove-button::before {
+  display: none; /* Use actual text content instead */
+}
+
+.inline-insert-cont .to-field .tags .tag-item > div > span:first-child {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle;
+  padding: 0 !important;
+  margin: 0 3px 0 0 !important; /* Right margin for spacing after icon */
+  height: 16px !important;
+  width: 16px !important;
+  line-height: 16px !important;
+  /* Perfect vertical alignment */
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Angular: tags-input .tags .tag-item img, tags-input .tags .tag-item i, tags-input .tags .tag-item cnv-user-profile-image > span */
+/* Angular uses margin: 0px 3px which means top: 0px, right: 3px, bottom: 0px, left: 3px */
+.inline-insert-cont .to-field .tags .tag-item i {
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  border-radius: 100%; /* Angular: border-radius: 100% */
+  /* Angular uses icon sprite classes - these need background images */
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  /* Perfect vertical alignment - parent span uses flexbox to center */
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.inline-insert-cont .to-field .tags .tag-item cnv-user-profile-image,
+.inline-insert-cont .to-field .tags .tag-item cnv-user-profile-image > span,
+.inline-insert-cont .to-field .tags .tag-item img {
+  margin: 0 !important;
+  border-radius: 100%; /* Angular: border-radius: 100% */
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  /* Perfect vertical alignment - parent span uses flexbox to center */
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.inline-insert-cont .to-field .tags .tag-item > div > div {
+  padding: 0 !important;
+  margin: 0 0 0 3px !important; /* Left margin for spacing before remove button */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle;
+  height: 18px !important;
+  line-height: 18px !important;
+  /* Perfect vertical alignment */
+  box-sizing: border-box;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Group icon classes - these should be loaded from Angular's icon sprite */
+.inline-insert-cont .to-field .tags .tag-item i.group.privateGroup_icon-lightgray {
+  /* This will be styled by Angular's icon sprite CSS when loaded */
+  /* Constrain to match other icons */
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px;
+  min-height: 18px;
+  max-width: 18px;
+  max-height: 18px;
+  /* Move icon upward slightly */
+  margin-top: -1px !important;
+  margin-bottom: 1px !important;
+}
+
+/* Ensure icons2_Close-lightgray is visible - Angular uses icon sprite */
+.inline-insert-cont .to-field .tags .tag-item .icons2_Close-lightgray {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.inline-insert-cont .to-field .tags .input {
   border: none;
   outline: none;
   min-width: 180px;
@@ -623,17 +871,26 @@
    - `override.less` (selected row background)
    ============================================================ */
 .inline-insert-cont .to-field-cont .autocomplete {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  word-break: break-word;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  color: #272b2c;
+  font-family: 'Source Sans Pro','ConvoEmojiWin81',sans-serif !important;
+  line-height: 18px;
+  box-sizing: border-box;
+  margin-top: 5px;
   position: absolute;
-  left: 0px;
-  right: 0px;
-  top: calc(100% - 2px);
-  background: #fff;
-  border: 1px solid #dde2ea;
-  border-top: none;
-  z-index: 50;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background-color: white;
+  border: 1px solid #e6e8ec;
+  box-shadow: 0 3px 6px -2px rgba(0, 0, 0, 0.175);
   max-height: 210px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .inline-insert-cont .to-field-cont .autocomplete .suggestion-list {
@@ -659,14 +916,15 @@
   position: relative;
   padding: 6px 2px 1px 41px;
   box-sizing: border-box;
-  height: 48px;
   white-space: nowrap;
+  line-height: normal;
 }
 
 .inline-insert-cont .to-field-cont .autocomplete .img-label-list-item > span {
   display: block;
   text-overflow: ellipsis;
   overflow: hidden;
+  width: 100%;
 }
 
 .inline-insert-cont .to-field-cont .autocomplete .img-label-list-item > span.sec-label {
@@ -708,17 +966,87 @@
 }
 
 .inline-insert-cont .bottom-bar-cont {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  user-select: none;
   position: relative;
   padding: 4px 0px;
   padding-right: 10px;
   min-height: 49px;
   border-top: 1px solid #e0e0e0;
+  /* Angular uses floats, not flexbox */
+}
+
+.inline-insert-cont .bottom-bar-cont.poll-feature-disabled .add-controls {
+  float: left !important;
 }
 
 .inline-insert-cont .bottom-bar-cont .btn {
+  /* Match Angular share button styles exactly */
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  word-break: break-word;
+  box-sizing: border-box;
+  font: inherit;
+  margin: 0;
+  overflow: visible;
+  text-transform: none;
+  -webkit-appearance: button;
+  font-family: inherit;
+  display: inline-block;
+  margin-bottom: 0;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 1.42857143;
+  border-radius: 3px;
+  user-select: none;
+  float: right !important;
+  outline: none !important;
+  font-weight: normal;
   margin-top: 5px;
+  padding: 4px;
+  min-width: 140px;
+  -webkit-font-smoothing: subpixel-antialiased;
+}
+
+.inline-insert-cont .bottom-bar-cont .btn-primary {
+  color: #fff;
+  background-color: #4183d7;
+  border-color: #4183d7;
+}
+
+.inline-insert-cont .bottom-bar-cont .btn-primary:hover:not(:disabled),
+.inline-insert-cont .bottom-bar-cont .btn-primary:focus:not(:disabled),
+.inline-insert-cont .bottom-bar-cont .btn-primary:active:not(:disabled) {
+  background-color: #3371bd;
+  border-color: #3371bd;
+  color: #ffffff;
+}
+
+.inline-insert-cont .bottom-bar-cont .btn-primary:disabled {
+  background-color: #a6c5ec;
+  border-color: #a6c5ec;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.inline-insert-cont .bottom-bar-cont > label {
   float: right;
-  padding: 4px 10px;
+  color: #88898e; /* @cnv-editor-status-text-color */
+  font-size: 12px; /* @cnv-secondary-txt-size-12 */
+  font-weight: normal;
+  line-height: 40px;
+  margin: 0px 12px 0px 0px;
+}
+
+.inline-insert-cont .bottom-bar-cont .clear {
+  clear: both;
 }
 
 .inline-insert-cont #poll-icon {
@@ -757,6 +1085,8 @@
   display: inline-block;
   padding: 0 0 0 6px;
   margin: 5px 0px;
+  float: right;
+  vertical-align: middle;
 }
 
 .inline-insert-cont .add-controls > div,
@@ -770,11 +1100,37 @@
   padding: 0px;
   width: 30px;
   height: 30px;
+  vertical-align: sub; /* Match Angular: vertical-align: sub */
   background-repeat: no-repeat;
   background-position: center;
   background-size: 18px 18px;
   cursor: pointer !important;
   opacity: 0.5;
+}
+
+/* Upload from URL button - matches Angular cnv-upload-from-url directive */
+.inline-insert-cont .add-controls .upload-from-url,
+.inline-insert-cont .add-controls cnv-upload-from-url {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  vertical-align: sub;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 18px 18px;
+  cursor: pointer !important;
+  opacity: 0.5;
+  margin: 0px 2px;
+  padding: 0px;
+}
+
+.inline-insert-cont .add-controls .upload-from-url:hover,
+.inline-insert-cont .add-controls cnv-upload-from-url:hover {
+  opacity: 1;
+  transition: opacity .2s;
+  background-color: #fcfcfc;
+  border-radius: 3px;
+  border: 1px solid #e0e0e0;
 }
 
 .inline-insert-cont .add-controls > div:hover,
@@ -808,6 +1164,21 @@
   cursor: pointer;
 }
 
+.inline-insert-cont .add-controls > div:nth-child(1) {
+  position: relative;
+  background-size: 16px 16px;
+}
+
+.inline-insert-cont .add-controls > div:nth-child(3) {
+  position: relative;
+  top: 0px;
+  overflow: hidden;
+}
+
+.inline-insert-cont .add-controls > div:nth-child(4) {
+  position: relative;
+}
+
 .inline-insert-cont .giphy-action-container {
   opacity: 1;
   border: 1px solid transparent;
@@ -816,6 +1187,20 @@
 .inline-insert-cont .inLineInsertGiphy.giphy {
   width: 30px;
   height: 30px;
+  background-repeat: no-repeat;
+  background-image: url("data:image/svg+xml,%3C%3Fxml version='1.0' encoding='utf-8'%3F%3E%3C!-- Generator: Adobe Illustrator 22.1.0, SVG Export Plug-In . SVG Version: 6.00 Build 0) --%3E%3Csvg version='1.1' id='Layer_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 48 48' style='enable-background:new 0 0 48 48;' xml:space='preserve'%3E%3Cstyle type='text/css'%3E .st0%7Bfill:%239FA7B7;%7D .st1%7Bfont-family:'ArialRoundedMTBold';%7D .st2%7Bfont-size:17.65px;%7D%0A%3C/style%3E%3Cpath class='st0' d='M39.1,10.2H8.9c-4.6,0-8.4,3.9-8.4,8.6v10.6c0,4.8,3.8,8.6,8.4,8.6h30.3c4.6,0,8.4-3.9,8.4-8.6V18.9 C47.6,14.1,43.8,10.2,39.1,10.2z M44.5,29.1c0,3.4-2.8,6.1-6.1,6.1H9.6c-3.4,0-6.1-2.8-6.1-6.1v-10c0-3.4,2.8-6.1,6.1-6.1h28.7 c3.4,0,6.1,2.8,6.1,6.1L44.5,29.1L44.5,29.1z'/%3E%3Ctext transform='matrix(1 0 0 1 8.9178 30.6387)' class='st0 st1 st2'%3EGIF%3C/text%3E%3C/svg%3E%0A");
+  opacity: 0.5;
+  background-size: 23px;
+  background-position: center;
+  cursor: pointer;
+  border-top: 4px solid transparent;
+  border-right: 3px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 2px solid transparent;
+}
+
+.inline-insert-cont .inLineInsertGiphy.giphy:hover {
+  opacity: 1;
 }
 
 .inline-insert-cont .inline-insert-attachments {
@@ -859,7 +1244,379 @@
   clear: both;
 }
 
+/* Text Poll UI - matches Angular cnvPoll.tpl.html styles */
+.inline-insert-cont .pollContainer {
+  min-height: 115px;
+  overflow: auto;
+}
+
+.inline-insert-cont .pollContainer ul#text-poll-list {
+  list-style: none;
+  padding-left: 10px;
+  margin: 0;
+}
+
+.inline-insert-cont .pollContainer ul#text-poll-list li {
+  margin: 10px 0px;
+}
+
+.inline-insert-cont .pollContainer ul#text-poll-list li span.dummy-radio {
+  width: 20px;
+  height: 20px;
+  border: 1px solid lightgray;
+  display: inline-block;
+  border-radius: 10px;
+  vertical-align: text-bottom;
+}
+
+.inline-insert-cont .pollContainer ul#text-poll-list li input {
+  border: 0px;
+  margin-left: 5px;
+  outline: none;
+  width: calc(100% - 35px);
+  top: -3px;
+  position: relative;
+  font-size: 14px;
+  font-family: 'Source Sans Pro', sans-serif;
+  color: #272b2c;
+}
+
+.inline-insert-cont .pollContainer ul#text-poll-list li#add_text_choice {
+  margin-left: 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.inline-insert-cont .pollContainer ul#text-poll-list li#add_text_choice span {
+  color: #afafaf;
+  font-size: 14px;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.inline-insert-cont .pollContainer ul#text-poll-list li#add_text_choice i.icon_add-new-choice.addtextchoice,
+.inline-insert-cont .pollContainer ul#text-poll-list li#add_text_choice i.addtextchoice {
+  width: 25px;
+  height: 25px;
+  min-width: 25px;
+  min-height: 25px;
+  display: inline-block;
+  vertical-align: middle;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23afafaf' d='M6 0a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2H7v4a1 1 0 1 1-2 0V7H1a1 1 0 1 1 0-2h4V1a1 1 0 0 1 1-1z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px 12px;
+  margin-right: 6px;
+  box-sizing: border-box;
+}
+
+/* Poll common options - matches Angular styles.less */
+.inline-insert-cont #poll_common_options {
+  padding: 10px 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.inline-insert-cont #poll_common_options > div {
+  margin-bottom: 10px;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+}
+
+.inline-insert-cont #poll_common_options > div > span {
+  margin-left: 5px;
+}
+
+.inline-insert-cont #poll_common_options input[type="checkbox"].cnv-checkbox {
+  vertical-align: middle;
+  margin: 0;
+  margin-right: 0;
+}
+
+.inline-insert-cont #poll_common_options input[type="checkbox"].cnv-checkbox + label {
+  vertical-align: middle;
+  margin: 0;
+  margin-right: 5px;
+  display: inline-block;
+}
+
+.inline-insert-cont #poll_common_options i.icon_calendar-blue,
+.inline-insert-cont #poll_common_options i.icon_calendar-gray {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  vertical-align: sub;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='%23999' d='M16 2h-1V0h-2v2H5V0H3v2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H2V7h14v9z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 18px 18px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+}
+
+.inline-insert-cont #poll_common_options i.icon_calendar-blue {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='%234183d7' d='M16 2h-1V0h-2v2H5V0H3v2H2C.9 2 0 2.9 0 4v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H2V7h14v9z'/%3E%3C/svg%3E");
+}
+
+.inline-insert-cont #poll_common_options .poll-calendar {
+  background: none;
+}
+
+.inline-insert-cont #poll_common_options #textdate {
+  text-decoration: underline;
+  vertical-align: text-bottom;
+  cursor: pointer;
+}
+
+.inline-insert-cont #poll_common_options #pollTimeFormat {
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.inline-insert-cont #poll_common_options .poll-date-wrap {
+  margin: 0 5px;
+}
+
+.inline-insert-cont #poll_common_options #hrs-dropdown-wrap {
+  display: inline-block;
+  min-width: 38px;
+  width: auto;
+  position: relative;
+}
+
+.inline-insert-cont #poll_common_options #hrs-dropdown-wrap #hrs-label {
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  padding: 2px 10px;
+  cursor: pointer;
+  outline: none;
+}
+
+.inline-insert-cont #poll_common_options #hrs-dropdown-wrap ul#hrs-select {
+  position: absolute;
+  max-height: 110px;
+  min-width: 36px;
+  padding: 0 5px;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  background: white;
+  top: -17px;
+  list-style: none;
+  overflow-y: auto;
+  cursor: pointer;
+  z-index: 100;
+}
+
+.inline-insert-cont #poll_common_options #hrs-dropdown-wrap ul#hrs-select li {
+  text-align: center;
+  padding: 4px 0;
+}
+
+.inline-insert-cont #poll_common_options #hrs-dropdown-wrap ul#hrs-select li:hover {
+  background-color: #f4f4f4;
+  cursor: pointer;
+}
+
+.inline-insert-cont #poll_common_options #mins-dropdown-wrap {
+  display: inline-block;
+  position: relative;
+  min-width: 36px;
+}
+
+.inline-insert-cont #poll_common_options #mins-dropdown-wrap #mins-label {
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  padding: 2px 5px;
+  cursor: pointer;
+  outline: none;
+}
+
+.inline-insert-cont #poll_common_options #mins-dropdown-wrap ul#mins-select {
+  list-style: none;
+  overflow-y: scroll;
+  height: 110px;
+  position: absolute;
+  background: white;
+  top: -17px;
+  padding: 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  z-index: 100;
+}
+
+.inline-insert-cont #poll_common_options #mins-dropdown-wrap ul#mins-select li {
+  width: 30px;
+  text-align: center;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.inline-insert-cont #poll_common_options #mins-dropdown-wrap ul#mins-select li:hover {
+  background-color: #f4f4f4;
+}
+
 .dim-feed-item {
   opacity: 0.5;
 }
+
+/* Poll Image Upload Container - matches Angular */
+.pollContainer #image-poll-container section.attachments .border-separator > div {
+  max-width: 570px; /* Constrain width to enable horizontal scrolling */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pollContainer #image-poll-container #poll-upload-container {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pollContainer #image-poll-container #poll-upload-container::-webkit-scrollbar {
+  -webkit-appearance: none;
+  height: 5px;
+}
+
+.pollContainer #image-poll-container #poll-upload-container::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.pollContainer #image-poll-container #poll-upload-container::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* Poll Image Description Bar - matches Angular styles.less */
+.pollContainer #image-poll-container .img-bar-info {
+  height: 50px;
+  position: absolute;
+  display: inline-block;
+  width: 174px;
+  margin: 0 5px 0 0px;
+  color: white;
+  left: 0px;
+  bottom: 0px;
+  background: rgba(0, 0, 0, 0.6);
+  border-bottom-right-radius: 5px;
+  border-bottom-left-radius: 5px;
+}
+
+.pollContainer #image-poll-container .img-bar-info textarea.poll-img-desc {
+  border: 0px;
+  color: white;
+  background: transparent;
+  outline: none;
+  resize: none;
+  width: 140px;
+  position: absolute;
+  top: 5px;
+  left: 15px;
+  font-size: 12px;
+}
+
+/* Poll Image Remove Button - matches Angular styles.less */
+.pollContainer #image-poll-container .attachment-box .remove-file {
+  position: absolute;
+  top: 3px !important;
+  right: 8px;
+  display: none;
+  height: 12px;
+  width: 12px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 10;
+}
+
+.pollContainer #image-poll-container .attachment-box:hover .remove-file {
+  display: block;
+}
+
+/* Remove button hover handled inline in React component */
+
+/* Notes App Styles - matches Angular cnv-notes-app */
+.cnv-app-cont {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #fff;
+}
+
+.cnv-notes-app {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #fff;
+  position: relative;
+}
+
+.cnv-notes-app .action-bar {
+  padding: 15px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background-color: #fff;
+}
+
+.cnv-notes-app .action-bar-left,
+.cnv-notes-app .action-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.cnv-notes-app .tags-section {
+  padding: 10px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f9f9f9;
+}
+
+.cnv-notes-app .acknowledge-section {
+  padding: 10px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #fff;
+}
+
+.cnv-notes-app .editor-section {
+  padding: 20px;
+  background-color: #fff;
+}
+
+/* Expand Editor Button - matches Angular req-full-screen div */
+.inline-insert-cont .rich-note-insert {
+  position: relative;
+}
+
+.inline-insert-cont .rich-note-insert .req-full-screen {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 10;
+  display: block;
+}
+
+/* Use icon sprite class - matches Angular Icon1_expand-01-darkgray */
+.inline-insert-cont .rich-note-insert .req-full-screen {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.inline-insert-cont .rich-note-insert .req-full-screen:hover {
+  opacity: 1;
+}
+
 
