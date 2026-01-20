@@ -99,7 +99,7 @@ export default function NotesApp({ noteId, initialTitle }: NotesAppProps) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showCommentsPanel, setShowCommentsPanel] = useState(true);
   const [likesInfo, setLikesInfo] = useState({ liked_by_me: false, like_count: 0 });
-  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLLIElement>(null);
   // Initialize title from prop, but filter out "Untitled note"
   const [nodeTitle, setNodeTitle] = useState(() => {
     if (initialTitle && initialTitle !== 'Untitled note') {
