@@ -156,7 +156,7 @@ function getFilesBaseUrl(host: string, forUnAuthorizedOrigin: boolean, fileSeria
 /**
  * Helper function to get user initials from name
  */
-export function getUserInitials(user: User | UsersApiUser | null | undefined): string {
+export function getUserInitials(user: User | NetworkUser | null | undefined): string {
   if (!user) return '. .';
   
   let name = '';
