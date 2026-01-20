@@ -1313,18 +1313,18 @@ export default function NotesApp({ noteId, initialTitle }: NotesAppProps) {
   
   // Close more menu when clicking outside
   useEffect(() => {
+    if (!showMoreMenu) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
         setShowMoreMenu(false);
       }
     };
     
-    if (showMoreMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [showMoreMenu]);
   
   const handleLikeClick = () => {
