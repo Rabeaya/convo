@@ -11,6 +11,8 @@ import { createRoot, Root } from 'react-dom/client';
 import PromptModal from '@/components/common/PromptModal';
 import AlertModal from '@/components/common/AlertModal';
 import LikeInfoModal, { type LikeInfoModalOpenProps } from '@/components/feed/LikeInfoModal';
+import AddTagsModal from '@/components/feed/AddTagsModal';
+import ShareWithOthersModal from '@/components/feed/ShareWithOthersModal';
 
 let modalRoot: Root | null = null;
 
@@ -138,5 +140,40 @@ export function likeInfoModal(props: LikeInfoModalOpenProps): void {
   };
 
   root.render(<LikeInfoModal {...(props as any)} onClose={handleClose} />);
+}
+
+export function addTagsModal(props: { initialTags: string; onSubmit: (tagsCsv: string) => void }): void {
+  const root = getModalRoot();
+  const handleClose = () => cleanupModal();
+  const handleSubmit = (tagsCsv: string) => {
+    cleanupModal();
+    props.onSubmit(tagsCsv);
+  };
+  root.render(<AddTagsModal initialTags={props.initialTags} onSubmit={handleSubmit} onClose={handleClose} />);
+}
+
+export function shareWithOthersModal(props: {
+  sharingInfo: Array<{ published_to: string; type: 'USER' | 'GROUP' }>;
+  users: Record<string, any>;
+  groups: Record<string, any>;
+  currentUserId?: string | null;
+  onSubmit: (sharingInfo: Array<{ published_to: string; type: 'USER' | 'GROUP' }>) => void;
+}): void {
+  const root = getModalRoot();
+  const handleClose = () => cleanupModal();
+  const handleSubmit = (sharingInfo: Array<{ published_to: string; type: 'USER' | 'GROUP' }>) => {
+    cleanupModal();
+    props.onSubmit(sharingInfo);
+  };
+  root.render(
+    <ShareWithOthersModal
+      sharingInfo={props.sharingInfo}
+      users={props.users}
+      groups={props.groups}
+      currentUserId={props.currentUserId}
+      onSubmit={handleSubmit}
+      onClose={handleClose}
+    />
+  );
 }
 

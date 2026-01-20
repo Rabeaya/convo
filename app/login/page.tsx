@@ -90,15 +90,35 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
+    // Check for logout query param (from backend logout redirect)
+    const logoutParam = searchParams.get('logout');
+    const redirectParam = searchParams.get('redirect');
+    
+    // If we're coming from a logout redirect (either from backend or direct navigation)
+    // Clear all auth state and stay on login page
+    if (logoutParam === '1' || (redirectParam && redirectParam.includes('/login'))) {
+      // Clear all auth state when coming from logout redirect
+      const { clearAuth } = useAuthStore.getState();
+      clearAuth();
+      // Clear localStorage if not already cleared
+      try {
+        localStorage.clear();
+      } catch (e) {
+        // Ignore
+      }
+      // Don't redirect to feed if coming from logout - stay on login page
+      return;
+    }
+
     // Check for server-side redirect errors
     const errorMessage = searchParams.get('error');
     if (errorMessage) {
       setError(decodeURIComponent(errorMessage));
     }
 
-    // If already logged in, redirect to feed (home experience)
+    // If already logged in (and not from logout), redirect to feed (home experience)
     const sessionResponse = sessionData as ApiResponse<SessionCheckResponse> | undefined;
-    if (!sessionLoading && (isAuthenticated || loginData || sessionResponse?.data?.isSignedIn)) {
+    if (!sessionLoading && !logoutParam && (isAuthenticated || loginData || sessionResponse?.data?.isSignedIn)) {
       const redirectUrl = searchParams.get('redirect');
       router.push(redirectUrl || '/feed');
     }

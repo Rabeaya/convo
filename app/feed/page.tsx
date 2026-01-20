@@ -16,6 +16,8 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { feedService, type FeedPollRequest, type FeedPollResponse, type FeedFetchResponse } from '@/lib/api/feed';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import InlineInsert from '@/components/feed/InlineInsert';
+import Banner from '@/components/common/Banner';
+import '@/app/feed/feed.css';
 
 export default function FeedPage() {
   const {
@@ -269,6 +271,21 @@ export default function FeedPage() {
 
   return (
     <FeedProvider users={users} groups={groups}>
+      {/* Banner Container - matches AngularJS #bannersCont */}
+      <div 
+        id="bannersCont"
+        style={{
+          position: 'fixed',
+          zIndex: 11,
+          top: '70px',
+          textAlign: 'center',
+          display: 'inline-block',
+          left: '50%',
+          transform: 'translateX(-50%)',
+        }}
+      >
+        <Banner />
+      </div>
       <div className="feed" style={{ 
         display: 'inline-block',
         width: '572px',

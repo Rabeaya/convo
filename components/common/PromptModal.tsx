@@ -89,7 +89,7 @@ export default function PromptModal({
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           zIndex: 1040,
         }}
-        onClick={onCancel}
+        // Angular uses backdrop: 'static' - backdrop is present but clicking it doesn't close modal
       />
       {/* Angular uses bootstrap modal structure: modal fade prompt-modal in */}
       <div 
@@ -104,7 +104,6 @@ export default function PromptModal({
           display: 'block',
           overflow: 'auto',
         }}
-        onClick={onCancel}
       >
         <div 
           className="modal-dialog" 
@@ -117,6 +116,7 @@ export default function PromptModal({
           <div
             ref={modalRef}
             className="modal-content"
+            onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from bubbling
             style={{
               backgroundColor: '#fff',
               borderRadius: '4px',
@@ -142,18 +142,10 @@ export default function PromptModal({
             color: '#ffffff',
           }}>
             {showHeaderIcon && !customHeaderIcon && (
-              <span className="cnv-icons-20 info-white" style={{
-                display: 'inline-block',
-                width: '20px',
-                height: '20px',
-              }}></span>
+              <span className="cnv-icons-20 info-white"></span>
             )}
             {showHeaderIcon && customHeaderIcon && (
-              <span className={customHeaderIcon} style={{
-                display: 'inline-block',
-                width: '20px',
-                height: '20px',
-              }}></span>
+              <span className={customHeaderIcon}></span>
             )}
             {title}
           </h4>
@@ -184,28 +176,12 @@ export default function PromptModal({
         </div>
 
         {/* Modal Body - matches AngularJS promptModal.tpl.html */}
-        <div className="modal-body" style={{
-          padding: '20px',
-        }}>
-          <p
-            dangerouslySetInnerHTML={{ __html: text }}
-            style={{
-              margin: 0,
-              fontSize: '14px',
-              lineHeight: '1.5',
-              color: '#272b2c',
-            }}
-          ></p>
+        <div className="modal-body">
+          <p dangerouslySetInnerHTML={{ __html: text }}></p>
         </div>
 
         {/* Modal Footer - matches AngularJS promptModal.tpl.html */}
-        <div className="modal-footer" style={{
-          padding: '15px 20px',
-          borderTop: '1px solid #e5e5e5',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '10px',
-        }}>
+        <div className="modal-footer">
           <button
             ref={okButtonRef}
             type="button"

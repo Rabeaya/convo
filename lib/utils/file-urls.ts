@@ -70,7 +70,17 @@ export function getNoteThumbnailPath(
   }
 
   const accountId = options?.accountId || '';
-  const storageVersion = options?.storageVersion ?? (file?.storage_version ? parseInt(file.storage_version) : 0);
+  
+  // Validate accountId - AngularJS uses $rootScope.login_data.account_id directly
+  // If accountId is empty, the URL will be malformed, so return empty string
+  if (!accountId) {
+    console.warn('getNoteThumbnailPath: accountId is empty, cannot generate URL');
+    return '';
+  }
+  
+  // AngularJS: const storageVersion = ((file?.storage_version && parseInt(file.storage_version)) || 0);
+  // This means: if storage_version exists and is truthy, parse it; otherwise default to 0
+  const storageVersion = options?.storageVersion ?? (file?.storage_version != null ? parseInt(String(file.storage_version), 10) : 0);
   const isRetina = options?.isRetina ?? (typeof window !== 'undefined' && window.devicePixelRatio > 1);
 
   // Determine size if not provided
@@ -101,14 +111,19 @@ export function getNoteThumbnailPath(
     return '';
   }
 
+  // AngularJS: thumnailName.toString() - ensure it's a string
+  const thumbnailNameStr = String(thumbnailName);
+
   const baseUrl = getLoadBalancedAwsFileDirBase(fileIdx);
 
   if (storageVersion) {
     // New path for storage_version > 0
-    return `${baseUrl}${accountId}/attachments/thumbnails/${size}${thumbnailName}`;
+    // AngularJS: + accountId + "/attachments" + "/thumbnails/" + size + (thumnailName && thumnailName.toString())
+    return `${baseUrl}${accountId}/attachments/thumbnails/${size}${thumbnailNameStr}`;
   } else {
     // Old path
-    return `${baseUrl}${accountId}/${_dir}${noteId}/thumbnails/${size}${thumbnailName}`;
+    // AngularJS: + accountId + "/" + _dir + noteId + "/thumbnails/" + size + (thumnailName && thumnailName.toString())
+    return `${baseUrl}${accountId}/${_dir}${noteId}/thumbnails/${size}${thumbnailNameStr}`;
   }
 }
 
@@ -123,7 +138,15 @@ export function getCommentAttachmentThumbnailPath(
   options?: FileUrlOptions
 ): string {
   const accountId = options?.accountId || '';
-  const storageVersion = options?.storageVersion ?? (file?.storage_version ? parseInt(file.storage_version) : 0);
+  
+  // Validate accountId - AngularJS uses $rootScope.login_data.account_id directly
+  if (!accountId) {
+    console.warn('getCommentAttachmentThumbnailPath: accountId is empty, cannot generate URL');
+    return '';
+  }
+  
+  // AngularJS: const storageVersion = ((file?.storage_version && parseInt(file.storage_version)) || 0);
+  const storageVersion = options?.storageVersion ?? (file?.storage_version != null ? parseInt(String(file.storage_version), 10) : 0);
   const isRetina = options?.isRetina ?? (typeof window !== 'undefined' && window.devicePixelRatio > 1);
 
   // Determine size
@@ -149,14 +172,19 @@ export function getCommentAttachmentThumbnailPath(
     return '';
   }
 
+  // AngularJS: file.thumbnail_name.toString() - ensure it's a string
+  const thumbnailNameStr = String(thumbnailName);
+
   const baseUrl = getLoadBalancedAwsFileDirBase(fileIdx);
 
   if (storageVersion) {
     // New path for storage_version > 0
-    return `${baseUrl}${accountId}/attachments/thumbnails/${size}${thumbnailName}`;
+    // AngularJS: + "/attachments" + "/thumbnails/" + size + file.thumbnail_name.toString()
+    return `${baseUrl}${accountId}/attachments/thumbnails/${size}${thumbnailNameStr}`;
   } else {
     // Old path
-    return `${baseUrl}${accountId}/${_appName}${itemId}/thumbnails/${size}${thumbnailName}`;
+    // AngularJS: + "/" + _appName + itemId + "/thumbnails/" + size + file.thumbnail_name.toString()
+    return `${baseUrl}${accountId}/${_appName}${itemId}/thumbnails/${size}${thumbnailNameStr}`;
   }
 }
 
@@ -172,6 +200,12 @@ export function getOriginalImagePath(
   options?: FileUrlOptions
 ): string {
   const accountId = options?.accountId || '';
+  
+  // Validate accountId - AngularJS uses $rootScope.login_data.account_id directly
+  if (!accountId) {
+    console.warn('getOriginalImagePath: accountId is empty, cannot generate URL');
+    return '';
+  }
 
   // Determine directory based on app instance
   let _dir = 'note';

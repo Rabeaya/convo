@@ -18,8 +18,10 @@ import LikeButton from './LikeButton';
 import { likeService } from '@/lib/api/feed';
 import FileGallery from './FileGallery';
 import FeedItemDropdown, { DropdownOption } from './FeedItemDropdown';
+import { ItemsService } from '@/lib/api/items';
 import { itemsService } from '@/lib/api/items';
-import { likeInfoModal, promptModal } from '@/lib/utils/modal';
+import { addTagsModal, likeInfoModal, shareWithOthersModal } from '@/lib/utils/modal';
+import { bannerService } from '@/lib/utils/banner-service';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useQueryClient } from '@tanstack/react-query';
 import CommentOnThisTooltip from '@/components/common/CommentOnThisTooltip';
@@ -64,8 +66,13 @@ export default function FeedItem({ item }: FeedItemProps) {
   const [showCommentsPanel, setShowCommentsPanel] = useState(false);
   const [localItem, setLocalItem] = useState(item);
   const { users, groups } = useFeedContext();
-  const { user } = useAuthStore();
+  const { user, loginData, account } = useAuthStore();
   const queryClient = useQueryClient();
+  
+  // Get auth data for API calls
+  const authToken = loginData?.xmpp_session_token;
+  const userID = (user as any)?.user_id || (user as any)?.userId;
+  const accountID = (account as any)?.account_id;
   const snippetReplySetterRef = useRef<((snippetWrapper: any, collaborationInfo: any | null, initialText?: string) => void) | null>(null);
   const noteDetailsRef = useRef<HTMLDivElement>(null);
   const feedItemRef = useRef<HTMLDivElement>(null);
@@ -118,63 +125,103 @@ export default function FeedItem({ item }: FeedItemProps) {
     clearNativeSelection();
   };
 
+  // Helper function to perform scroll and activate editor (extracted for reuse)
+  const performScrollAndActivate = useCallback((editorEl: HTMLElement, doActivate: () => void) => {
+    const feedScroller = document.getElementById('feedScroller') as HTMLElement | null;
+    const animateScroll = (el: HTMLElement, to: number, duration: number, cb: () => void) => {
+      const start = el.scrollTop;
+      const delta = to - start;
+      const t0 = performance.now();
+      const tick = (t: number) => {
+        const p = Math.min(1, (t - t0) / duration);
+        el.scrollTop = start + delta * p;
+        if (p < 1) requestAnimationFrame(tick);
+        else cb();
+      };
+      requestAnimationFrame(tick);
+    };
+
+    if (feedScroller) {
+      const scRect = feedScroller.getBoundingClientRect();
+      const edRect = editorEl.getBoundingClientRect();
+      const offsetTop = edRect.top - scRect.top + feedScroller.scrollTop;
+      const winInnerHeight = feedScroller.clientHeight;
+      const scrollTop = feedScroller.scrollTop;
+      if (offsetTop + 150 > scrollTop + winInnerHeight) {
+        animateScroll(feedScroller, offsetTop - winInnerHeight + 210, 200, doActivate);
+      } else {
+        doActivate();
+      }
+    } else {
+      // Fallback to window scroll if feedScroller isn't present
+      const rect = editorEl.getBoundingClientRect();
+      const offsetTop = rect.top + window.scrollY;
+      const winInnerHeight = window.innerHeight;
+      const scrollTop = window.scrollY;
+      if (offsetTop + 150 > scrollTop + winInnerHeight) {
+        window.scrollTo({ top: offsetTop - winInnerHeight + 210, behavior: 'smooth' });
+        window.setTimeout(doActivate, 200);
+      } else {
+        doActivate();
+      }
+    }
+  }, []);
+
   // Angular parity: cnvFeedItem.js -> showAndActivateCommentsPanel()
+  // Angular uses $broadcast('render') to ensure DOM is updated before scrolling
   const showAndActivateCommentsPanel = useCallback((initialContent?: string) => {
     setShowCommentsPanel(true);
 
-    // Wait a tick so the panel is visible (it may be display:none when there are 0 likes/comments).
-    window.setTimeout(() => {
-      const doActivate = () => {
-        commentsPanelRef.current?.activateEditor(initialContent || '', true);
-      };
-
-      const root = feedItemRef.current;
-      const editorEl = root?.querySelector('.feed-comment-editor') as HTMLElement | null;
-      if (!editorEl) {
-        doActivate();
-        return;
-      }
-
-      const feedScroller = document.getElementById('feedScroller') as HTMLElement | null;
-      const animateScroll = (el: HTMLElement, to: number, duration: number, cb: () => void) => {
-        const start = el.scrollTop;
-        const delta = to - start;
-        const t0 = performance.now();
-        const tick = (t: number) => {
-          const p = Math.min(1, (t - t0) / duration);
-          el.scrollTop = start + delta * p;
-          if (p < 1) requestAnimationFrame(tick);
-          else cb();
+    // Use double requestAnimationFrame to ensure React has rendered and DOM is updated
+    // (matches Angular's $broadcast('render') behavior)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const doActivate = () => {
+          commentsPanelRef.current?.activateEditor(initialContent || '', true);
         };
-        requestAnimationFrame(tick);
-      };
 
-      if (feedScroller) {
-        const scRect = feedScroller.getBoundingClientRect();
-        const edRect = editorEl.getBoundingClientRect();
-        const offsetTop = edRect.top - scRect.top + feedScroller.scrollTop;
-        const winInnerHeight = feedScroller.clientHeight;
-        const scrollTop = feedScroller.scrollTop;
-        if (offsetTop + 150 > scrollTop + winInnerHeight) {
-          animateScroll(feedScroller, offsetTop - winInnerHeight + 210, 200, doActivate);
-        } else {
-          doActivate();
+        const root = feedItemRef.current;
+        
+        // Check if panel is visible before trying to find editor
+        const isPanelVisible = commentsPanelRef.current?.isPanelVisible?.() ?? false;
+        if (!isPanelVisible) {
+          // Wait for panel to become visible
+          window.setTimeout(() => {
+            const retryVisible = commentsPanelRef.current?.isPanelVisible?.() ?? false;
+            if (retryVisible) {
+              const editorEl = root?.querySelector('.feed-comment-editor') as HTMLElement | null;
+              if (editorEl) {
+                performScrollAndActivate(editorEl, doActivate);
+              } else {
+                doActivate();
+              }
+            } else {
+              doActivate();
+            }
+          }, 50);
+          return;
         }
-      } else {
-        // Fallback to window scroll if feedScroller isn't present
-        const rect = editorEl.getBoundingClientRect();
-        const offsetTop = rect.top + window.scrollY;
-        const winInnerHeight = window.innerHeight;
-        const scrollTop = window.scrollY;
-        if (offsetTop + 150 > scrollTop + winInnerHeight) {
-          window.scrollTo({ top: offsetTop - winInnerHeight + 210, behavior: 'smooth' });
-          window.setTimeout(doActivate, 220);
-        } else {
-          doActivate();
+
+        const editorEl = root?.querySelector('.feed-comment-editor') as HTMLElement | null;
+        
+        if (!editorEl) {
+          // If editor not found, wait a bit more and retry (panel might still be rendering)
+          window.setTimeout(() => {
+            const retryEl = root?.querySelector('.feed-comment-editor') as HTMLElement | null;
+            if (retryEl) {
+              performScrollAndActivate(retryEl, doActivate);
+            } else {
+              // If still not found, just activate (editor will be focused when it appears)
+              doActivate();
+            }
+          }, 50);
+          return;
         }
-      }
-    }, 0);
-  }, []);
+
+        performScrollAndActivate(editorEl, doActivate);
+      });
+    });
+  }, [performScrollAndActivate]);
 
   const handlePostSnippetPlayback = (snippetData: any, commentId: string) => {
     const noteEl = noteDetailsRef.current;
@@ -269,9 +316,70 @@ export default function FeedItem({ item }: FeedItemProps) {
   const isDimmed = localItem.action === 'DOUBLE_DELETED' || localItem.deleted === '2';
   const appInstanceId = localItem.app_instance_id;
 
+  // Helper functions (matches AngularJS logic)
+  const toInt = (v: any) => {
+    const n = typeof v === 'string' ? parseInt(v, 10) : Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const checkBitAt = (mask: any, bitIndex: number) => {
+    if (mask && typeof mask.checkBitAt === 'function') return !!mask.checkBitAt(bitIndex);
+    const m = toInt(mask);
+    return (m & (1 << (bitIndex - 1))) !== 0;
+  };
+
+  // Helper function to compute permissionsDropdownIconConditions (matches AngularJS evaluatePostPermissions)
+  const computePermissionsDropdownIconConditions = useCallback((itemData: any): Record<string, boolean> => {
+    const itemPerms = itemData.permissions;
+    const itemEnableSharing = itemData.enable_sharing === 1 || itemData.enable_sharing === true || itemData.enableSharing === 1;
+    
+    // Angular: Only ONE permission level should be checked at a time
+    // Reset all to false first, then set the active one based on priority
+    const conditions: Record<string, boolean> = {
+      canEdit: false,
+      canComment: false,
+      canView: false,
+      enableSharing: !!itemEnableSharing,
+    };
+    
+    // Check permissions in priority order (canEdit > canComment > canView)
+    if (checkBitAt(itemPerms, 3)) {
+      conditions.canEdit = true;
+    } else if (checkBitAt(itemPerms, 2)) {
+      conditions.canComment = true;
+    } else if (checkBitAt(itemPerms, 1)) {
+      conditions.canView = true;
+    }
+    
+    return conditions;
+  }, []);
+
+  // Compute permissionsDropdownIconConditions once (matches AngularJS evaluatePostPermissions)
+  const anyItem: any = localItem as any;
+  const loggedPerms = anyItem.logged_in_user_permissions ?? anyItem.loggedInUserPermissions;
+  const perms = anyItem.permissions;
+  const canEdit = checkBitAt(loggedPerms, 3);
+  const canComment = checkBitAt(loggedPerms, 2);
+  const canView = checkBitAt(loggedPerms, 1);
+  const canChangePermissions = !!anyItem.can_change_permissions;
+  const enableSharing = anyItem.enable_sharing === 1 || anyItem.enable_sharing === true || anyItem.enableSharing === 1;
+  const isSystemMessage = anyItem.is_system_message === 1 || anyItem.data?.is_system_message === 1;
+
+  // Compute conditions for current item state
+  const [permissionsDropdownIconConditions, setPermissionsDropdownIconConditions] = useState<Record<string, boolean>>(
+    () => computePermissionsDropdownIconConditions(anyItem)
+  );
+
+  // Update conditions when localItem changes
+  useEffect(() => {
+    const updatedConditions = computePermissionsDropdownIconConditions(localItem as any);
+    setPermissionsDropdownIconConditions(updatedConditions);
+  }, [localItem, computePermissionsDropdownIconConditions]);
+
   // Dropdown options initialization (matches AngularJS initializeDropdownOptions)
   const initializeDropdownOptions = (): DropdownOption[] => {
     const options: DropdownOption[] = [];
+    const currentUserId = (user as any)?.user_id || (user as any)?.userId || '';
+    const isAdminMode = !!(loginData as any)?.is_administration_mode;
 
     // Open post (not for polls)
     if (appInstanceId !== 23) {
@@ -303,10 +411,180 @@ export default function FeedItem({ item }: FeedItemProps) {
       });
     }
 
-    // Divider before permissions
-    if (appInstanceId !== 23) {
-      options.push({ isDivider: true });
+    // Permissions submenu (Angular: only if can_change_permissions)
+    if (canChangePermissions && appInstanceId !== 23) {
+      const submenu: DropdownOption[] = [];
+      if (!isSystemMessage && appInstanceId !== 23) {
+        submenu.push({
+          label: 'Can edit and comment',
+          icon: 'icon-cnv-tick',
+          iconStyle: 'cnv-icons-12',
+          conditionalLabelIcon: true,
+          condition: 'canEdit',
+          callback: async () => {
+            console.log('Changing permissions to canEdit (7)');
+            try {
+              const response = await itemsService.changePermissions(ItemsService.canEdit, appInstanceId, localItem.resource_id, enableSharing, authToken, userID, accountID);
+              console.log('Change permissions response:', response);
+              // Angular: response.data.item contains updated permissions
+              // Angular structure: promise.then(function(response) { response.data.item })
+              // Our structure: { data: {...}, status: ... } where data is the JSON response from backend
+              // Backend returns: { data: { item: {...} } }
+              // So: response.data.data.item
+              const responseItem = response.data?.data?.item || response.data?.item;
+              if (responseItem) {
+                const updatedItem: any = {
+                  ...localItem,
+                  permissions: responseItem.permissions,
+                  logged_in_user_permissions: responseItem.logged_in_user_permissions,
+                  enable_sharing: responseItem.enable_sharing,
+                };
+                setLocalItem(updatedItem);
+                // Recompute conditions (matches Angular's evaluatePostPermissions)
+                const updatedConditions = computePermissionsDropdownIconConditions(updatedItem);
+                setPermissionsDropdownIconConditions(updatedConditions);
+                // Angular: bannerService.showBanner('Permissions updated')
+                console.log('Permissions updated successfully');
+              } else {
+                console.warn('No item in response:', response);
+              }
+              queryClient.invalidateQueries({ queryKey: ['feed'] });
+            } catch (e) {
+              console.error('Failed to change permissions:', e);
+              throw e; // Re-throw to let caller know it failed
+            }
+          },
+        });
+      }
+      submenu.push({
+        label: 'Comment only',
+        icon: 'icon-cnv-tick',
+        iconStyle: 'cnv-icons-12',
+        conditionalLabelIcon: true,
+        condition: 'canComment',
+          callback: async () => {
+            console.log('Changing permissions to canComment (3)');
+            try {
+              const response = await itemsService.changePermissions(ItemsService.canComment, appInstanceId, localItem.resource_id, enableSharing, authToken, userID, accountID);
+              console.log('Change permissions response:', response);
+              // Angular: response.data.item contains updated permissions
+              const responseItem = response.data?.item || response.data?.data?.item;
+              if (responseItem) {
+                const updatedItem: any = {
+                  ...localItem,
+                  permissions: responseItem.permissions,
+                  logged_in_user_permissions: responseItem.logged_in_user_permissions,
+                  enable_sharing: responseItem.enable_sharing,
+                };
+                setLocalItem(updatedItem);
+                // Recompute conditions (matches Angular's evaluatePostPermissions)
+                const updatedConditions = computePermissionsDropdownIconConditions(updatedItem);
+                setPermissionsDropdownIconConditions(updatedConditions);
+                // Angular: bannerService.showBanner('Permissions updated')
+                console.log('Permissions updated successfully');
+              } else {
+                console.warn('No item in response:', response);
+              }
+              queryClient.invalidateQueries({ queryKey: ['feed'] });
+            } catch (e) {
+              console.error('Failed to change permissions:', e);
+              throw e; // Re-throw to let caller know it failed
+            }
+          },
+      });
+      submenu.push({
+        label: 'View only',
+        icon: 'icon-cnv-tick',
+        iconStyle: 'cnv-icons-12',
+        conditionalLabelIcon: true,
+        condition: 'canView',
+          callback: async () => {
+            console.log('Changing permissions to canView (1)');
+            try {
+              const response = await itemsService.changePermissions(ItemsService.canView, appInstanceId, localItem.resource_id, enableSharing, authToken, userID, accountID);
+              console.log('Change permissions response:', response);
+              // Angular: response.data.item contains updated permissions
+              const responseItem = response.data?.item || response.data?.data?.item;
+              if (responseItem) {
+                const updatedItem: any = {
+                  ...localItem,
+                  permissions: responseItem.permissions,
+                  logged_in_user_permissions: responseItem.logged_in_user_permissions,
+                  enable_sharing: responseItem.enable_sharing,
+                };
+                setLocalItem(updatedItem);
+                // Recompute conditions (matches Angular's evaluatePostPermissions)
+                const updatedConditions = computePermissionsDropdownIconConditions(updatedItem);
+                setPermissionsDropdownIconConditions(updatedConditions);
+                // Angular: bannerService.showBanner('Permissions updated')
+                console.log('Permissions updated successfully');
+              } else {
+                console.warn('No item in response:', response);
+              }
+              queryClient.invalidateQueries({ queryKey: ['feed'] });
+            } catch (e) {
+              console.error('Failed to change permissions:', e);
+              throw e; // Re-throw to let caller know it failed
+            }
+          },
+      });
+
+      const isCreator = currentUserId && (currentUserId === localItem.created_by || currentUserId === (anyItem.integration_creator_id || ''));
+      if (!isSystemMessage && appInstanceId !== 23 && (isCreator || isAdminMode)) {
+        submenu.push({ isDivider: true });
+        submenu.push({
+          label: 'Enable sharing',
+          icon: 'icon-cnv-tick',
+          iconStyle: 'cnv-icons-12',
+          conditionalLabelIcon: true,
+          condition: 'enableSharing',
+          callback: async () => {
+            console.log('Toggling enableSharing');
+            try {
+              // Angular: Toggle enableSharing (current value ? 0 : 1)
+              const newEnableSharing = !enableSharing;
+              const response = await itemsService.changePermissions(toInt(perms), appInstanceId, localItem.resource_id, newEnableSharing, authToken, userID, accountID);
+              console.log('Change permissions response:', response);
+              // Angular: response.data.item contains updated permissions
+              const responseItem = response.data?.item || response.data?.data?.item;
+              if (responseItem) {
+                const updatedItem: any = {
+                  ...localItem,
+                  permissions: responseItem.permissions,
+                  logged_in_user_permissions: responseItem.logged_in_user_permissions,
+                  enable_sharing: responseItem.enable_sharing,
+                };
+                setLocalItem(updatedItem);
+                // Recompute conditions (matches Angular's evaluatePostPermissions)
+                const updatedConditions = computePermissionsDropdownIconConditions(updatedItem);
+                setPermissionsDropdownIconConditions(updatedConditions);
+                // Angular: bannerService.showBanner('Permissions updated')
+                console.log('Permissions updated successfully');
+              } else {
+                console.warn('No item in response:', response);
+              }
+              queryClient.invalidateQueries({ queryKey: ['feed'] });
+            } catch (e) {
+              console.error('Failed to change permissions:', e);
+              throw e; // Re-throw to let caller know it failed
+            }
+          },
+        });
+      }
+
+      options.push({
+        label: 'Permissions',
+        icon: 'icons_Lock-lightgray',
+        iconStyle: 'cnv-icons-16',
+        class: 'sharing_preferences pseudo-submenu-arrow',
+        submenu,
+        conditionalLabelIcon: false,
+        // condition handled at render time via FeedItemDropdown.conditions
+      });
     }
+
+    // Divider before mute/etc
+    if (appInstanceId !== 23) options.push({ isDivider: true });
 
     // Mute/Unmute notifications
     if (appInstanceId !== 23 && !localItem.viewData?.showManageSubscriptionOption) {
@@ -343,6 +621,36 @@ export default function FeedItem({ item }: FeedItemProps) {
       }
     }
 
+    // Manage Notifications (Angular)
+    if (localItem.muted === 0 && localItem.viewData?.showManageSubscriptionOption && localItem.deleted === '0' && localItem.data?.draft === 0) {
+      options.push({
+        label: 'Manage Notifications',
+        icon: 'bell',
+        iconStyle: 'cnv-icons-16',
+        callback: () => {
+          // TODO: Implement notifications modal parity (Angular openNotificationsModal)
+        },
+      });
+    }
+
+    // Add tags
+    if (canEdit && !isSystemMessage) {
+      options.push({
+        label: 'Add tags',
+        icon: 'icon_tag-01-01-lightgray',
+        iconStyle: 'cnv-icons-16',
+        callback: () => {
+          addTagsModal({
+            initialTags: String((anyItem.tags as any) || ''),
+            onSubmit: async (tagsCsv) => {
+              await itemsService.updateTags(null, tagsCsv, appInstanceId, localItem.resource_id);
+              queryClient.invalidateQueries({ queryKey: ['feed'] });
+            },
+          });
+        },
+      });
+    }
+
     // Star/Unstar
     if (localItem.starred === 1) {
       options.push({
@@ -376,9 +684,30 @@ export default function FeedItem({ item }: FeedItemProps) {
       });
     }
 
-    // Divider before delete
-    if (appInstanceId !== 23) {
-      options.push({ isDivider: true });
+    // Share with others
+    const deletedNumForSharing = String(localItem.deleted || '0');
+    if (
+      deletedNumForSharing === '0' &&
+      !isSystemMessage &&
+      (enableSharing || isAdminMode || localItem.created_by === currentUserId)
+    ) {
+      options.push({
+        label: 'Share with others',
+        icon: 'icons2_Share-lightgray',
+        iconStyle: 'cnv-icons-16',
+        callback: () => {
+          shareWithOthersModal({
+            sharingInfo: (localItem.sharing_info || []) as any,
+            users,
+            groups,
+            currentUserId,
+            onSubmit: async (nextSharingInfo) => {
+              await itemsService.updateSharingInfo(localItem.feed_id || null, nextSharingInfo as any, appInstanceId, localItem.resource_id);
+              queryClient.invalidateQueries({ queryKey: ['feed'] });
+            },
+          });
+        },
+      });
     }
 
     // Copy link
@@ -395,55 +724,64 @@ export default function FeedItem({ item }: FeedItemProps) {
       });
     }
 
-    // Delete post (if deletable)
-    if (localItem.viewData?.deletable) {
-      if (localItem.deleted === '1') {
-        // Already in trash - show delete permanently
-        options.push({
-          label: 'Delete permanently',
-          icon: 'icons2_Trash-lightgray',
-          iconStyle: 'cnv-icons-16',
-          callback: () => {
-            promptModal(
-              'Delete Post',
-              'Are you sure you want to delete this post permanently? This cannot be undone.',
-              async () => {
-                try {
-                  await itemsService.deletePermanently(appInstanceId, localItem.resource_id);
-                  queryClient.invalidateQueries({ queryKey: ['feed'] });
-                } catch (error) {
-                  console.error('Failed to delete post permanently:', error);
-                }
-              },
-              null,
-              'Delete'
-            );
+    // Delete post (if deletable) - matches AngularJS line 1989: if ($scope.itemData.deletable)
+    // AngularJS checks itemData.deletable directly, not viewData.deletable
+    // AngularJS shows "Delete post" when deleted != 1, "Delete permanently" when deleted == 1
+    // But user wants only "Delete" option, so we'll only show delete for non-deleted items
+    const isDeletable = localItem.deletable || localItem.viewData?.deletable;
+    const deletedNum = String(localItem.deleted || '0');
+    
+    // Only show delete option for items that are not deleted (deleted == 0)
+    // Items with deleted == 1 are already in trash and shouldn't appear in normal feed
+    if (isDeletable && deletedNum === '0') {
+      // Not in trash - show delete option (matches AngularJS line 1997-2007)
+      // AngularJS adds a divider before "Delete post" when deleted != 1
+      // AngularJS line 2107-2113: moveToTrash() is called directly WITHOUT prompt modal
+      // AngularJS: No confirmation popup - delete immediately and show banner
+      options.push({ isDivider: true });
+      options.push({
+        label: 'Delete',
+        icon: 'icons2_Trash-lightgray',
+        iconStyle: 'cnv-icons-16',
+        callback: async () => {
+          // AngularJS: bannerService.showBanner_promise(promise, 'Moving to trash...', message, ...)
+          const message = (localItem as any).origin > 0 
+            ? 'Moved successfully to Trash folder of email client' 
+            : 'Moved to trash';
+          
+          const promise = itemsService.moveToTrash(
+            appInstanceId, 
+            localItem.resource_id,
+            authToken,
+            userID,
+            accountID
+          );
+          
+          // Show banner with promise - "Moving to trash..." then message on success
+          bannerService.showBanner_promise(
+            promise,
+            'Moving to trash...',
+            message,
+            'Error... click here to try again.',
+            false,
+            false,
+            () => {
+              // Retry on error click
+              options[options.length - 1].callback?.();
+            }
+          );
+          
+          try {
+            await promise;
+            // The item will be removed from feed on next poll, or we can update localItem.deleted
+            setLocalItem({ ...localItem, deleted: '1' });
+            queryClient.invalidateQueries({ queryKey: ['feed'] });
+          } catch (error: any) {
+            console.error('Failed to move post to trash:', error);
+            // Error banner already shown by bannerService
           }
-        });
-      } else {
-        // Not in trash - show move to trash
-        options.push({
-          label: 'Delete post',
-          icon: 'icons2_Trash-lightgray',
-          iconStyle: 'cnv-icons-16',
-          callback: () => {
-            promptModal(
-              'Delete Post',
-              'Are you sure you want to delete this post?',
-              async () => {
-                try {
-                  await itemsService.moveToTrash(appInstanceId, localItem.resource_id);
-                  queryClient.invalidateQueries({ queryKey: ['feed'] });
-                } catch (error) {
-                  console.error('Failed to move post to trash:', error);
-                }
-              },
-              null,
-              'Delete'
-            );
-          }
-        });
-      }
+        }
+      });
     }
 
     return options;
@@ -591,6 +929,7 @@ export default function FeedItem({ item }: FeedItemProps) {
                 options={dropdownOptions}
                 align="right"
                 ddType="more-options"
+                conditions={permissionsDropdownIconConditions}
               />
             </div>
           )}
@@ -935,7 +1274,20 @@ export default function FeedItem({ item }: FeedItemProps) {
             ref={commentsPanelRef as any}
             item={localItem}
             showCommentsPanel={showCommentsPanel}
-            onToggleComments={() => setShowCommentsPanel(false)}
+            onToggleComments={() => {
+              // Only close if comment editor is not dirty (has no text, files, or snippets)
+              // This matches Angular's _checkIsDirty logic
+              const commentEditor = commentsPanelRef.current;
+              if (commentEditor && typeof (commentEditor as any).checkIsDirty === 'function') {
+                const isDirty = (commentEditor as any).checkIsDirty();
+                if (!isDirty) {
+                  setShowCommentsPanel(false);
+                }
+              } else {
+                // Fallback: close if no files are uploading
+                setShowCommentsPanel(false);
+              }
+            }}
             snippetReplySetterRef={snippetReplySetterRef}
             onPostSnippetPlayback={handlePostSnippetPlayback}
           />

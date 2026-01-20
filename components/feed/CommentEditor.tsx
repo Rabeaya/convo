@@ -13,6 +13,11 @@ import { commentsService } from '@/lib/api/comments';
 import MentionAutocomplete from './MentionAutocomplete';
 import type { UserListItem } from '@/lib/hooks/use-users';
 import { limitHtmlText } from '@/lib/utils/html-truncate';
+import { formatDateAgo } from '@/lib/utils/dateFormat';
+import { getCommentAttachmentThumbnailPath } from '@/lib/utils/file-urls';
+import Dropzone from './Dropzone';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 
 declare global {
   interface Window {
@@ -55,9 +60,23 @@ interface CommentEditorProps {
     canComment: boolean;
     block?: boolean;
   };
+  // Item data for "comments closed" message (matches AngularJS _initCommentEditorPermissionsModel)
+  itemData?: {
+    permissions_changed_by?: string;
+    created_by?: string;
+    permissions_change_date?: number | string;
+    app_instance_id?: number;
+    resource_type?: string;
+    resource_id?: string;
+    hierarchy?: Array<{ title?: string; [key: string]: any }>;
+    data?: { poll_type?: any; [key: string]: any };
+    [key: string]: any;
+  };
+  // Users map for displaying user names in "comments closed" message
+  users?: Record<string, any>;
 }
 
-const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void }, CommentEditorProps>(
+const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void; checkIsDirty: () => boolean }, CommentEditorProps>(
   function CommentEditor({ 
     resourceId, 
     appInstanceId, 
@@ -76,12 +95,32 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
     onCommentWillPost,
     onCommentPostFailed,
     onCommentPosted,
-    relatedPermissions = { canComment: true }
+    relatedPermissions = { canComment: true },
+    itemData,
+    users = {}
   }, ref) {
     const { user, loginData, account } = useAuthStore();
     const editorContainerRef = useRef<HTMLDivElement>(null);
+    const dragCollectionRef = useRef<Set<EventTarget>>(new Set());
+    const dropzoneIdRef = useRef(`dropzone-${Math.random().toString(36).substr(2, 9)}`);
     const [active, setActive] = useState(false);
     const [focused, setFocused] = useState(false);
+
+    // Window-level drop handler (matches Angular cnvDragDrop directive)
+    useEffect(() => {
+      const handleWindowDrop = () => {
+        dragCollectionRef.current.clear();
+        window.dispatchEvent(new CustomEvent('cnv-drag-end'));
+      };
+
+      window.addEventListener('drop', handleWindowDrop, true);
+      window.addEventListener('dragdrop', handleWindowDrop, true);
+
+      return () => {
+        window.removeEventListener('drop', handleWindowDrop, true);
+        window.removeEventListener('dragdrop', handleWindowDrop, true);
+      };
+    }, []);
     const [commentText, setCommentText] = useState('');
     const [isPosting, setIsPosting] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -107,6 +146,7 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
       file_url?: string;
       file_access_token?: string | null;
       file_preview_url?: string | null;
+      tempConversationUID?: string; // temporary conversation UID used during file upload for comment attachments
     }>>([]);
     const [localSnippetData, setLocalSnippetData] = useState<any | null>(snippetData || null);
     const [attachContext, setAttachContext] = useState<boolean>(true);
@@ -270,8 +310,30 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
     const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
     const [mentionStartIndex, setMentionStartIndex] = useState(-1);
 
-    // Expose activate method via ref (matches AngularJS commentEditorCtrl.activate)
+    // Check if editor is "dirty" (matches Angular _checkIsDirty)
+    const checkIsDirty = useCallback(() => {
+      if (!active) return false;
+      
+      // Check if text editor has content
+      const hasText = commentText.trim().length > 0;
+      if (hasText) return true;
+      
+      // Check if files are uploading/in progress or if there are attached files
+      const hasFilesInProgress = attachedFiles.some(f => 
+        f.status === 'uploading' || f.status === 'converting'
+      );
+      const hasAttachedFiles = attachedFiles.length > 0;
+      if (hasFilesInProgress || hasAttachedFiles) return true;
+      
+      // Check if snippet data exists
+      if (localSnippetData) return true;
+      
+      return false;
+    }, [active, commentText, attachedFiles, localSnippetData]);
+
+    // Expose activate method and checkIsDirty via ref (matches AngularJS commentEditorCtrl)
     React.useImperativeHandle(ref, () => ({
+      checkIsDirty, // Expose checkIsDirty for parent components
       activate: (initialText: string = '') => {
         setActive(true);
         if (initialText) {
@@ -296,7 +358,7 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
     setFocused(true);
   };
 
-  const handleBlur = (e?: React.FocusEvent) => {
+  const handleBlur = useCallback((e?: React.FocusEvent) => {
     setFocused(false);
 
     // Important: clicking toolbar buttons should NOT deactivate the editor.
@@ -306,11 +368,11 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
       return;
     }
 
-    // Keep active if there's text
-    if (!commentText.trim()) {
+    // Only deactivate if not dirty (matches Angular _checkIsDirty logic)
+    if (!checkIsDirty()) {
       setActive(false);
     }
-  };
+  }, [checkIsDirty]);
 
   // Handle @mention detection and autocomplete
   // Matches AngularJS Quill mention plugin: triggers on '@' delimiter
@@ -470,13 +532,26 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
   }, [commentText, mentionSpans, attachedGifs, normalizeCommentHtmlForServer]);
 
   const getFileStorageInfo = useCallback(() => {
-    const info: any = (loginData as any)?.file_storage_info;
+    // Angular: awsService.setAwsData(data.file_storage_info) is called with file_storage_info from login response
+    // Check multiple possible locations (Angular stores it in com_convo.sessionData.signInResponseData.file_storage_info)
+    const info: any = 
+      (loginData as any)?.file_storage_info ||
+      (typeof window !== 'undefined' && (window as any).com_convo?.sessionData?.signInResponseData?.file_storage_info) ||
+      null;
+    
+    if (!info) {
+      return { defaultType: null, data: null };
+    }
+    
     const defaultType: string | undefined = info?.default_type || info?.defaultType;
+    
+    // Angular: awsData = data.data[defaultType] (e.g., data.data['s3'] or data.data['minio'])
     const data =
-      (defaultType ? info?.data?.[defaultType] : null) ||
-      (defaultType ? info?.[defaultType] : null) ||
+      (defaultType && info?.data?.[defaultType]) ||
+      (defaultType && info?.[defaultType]) ||
       info?.data ||
       null;
+    
     return { defaultType, data };
   }, [loginData]);
 
@@ -487,6 +562,34 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
     const httpsUploads = !!data.https_uploads;
     if (!bucketName) return null;
     return `${httpsUploads ? 'https' : 'http'}://${bucketName}.s3.amazonaws.com/`;
+  }, [getFileStorageInfo]);
+
+  // Create MINIO S3 client (Angular: new AWS.S3({ endpoint, accessKeyId, secretAccessKey, ... }))
+  const getMinioS3Client = useCallback(() => {
+    const { defaultType, data } = getFileStorageInfo();
+    if (!defaultType || defaultType.toLowerCase() !== 'minio' || !data) return null;
+    
+    // Angular: endpoint: awsData.server_path, accessKeyId: awsData.access_key, secretAccessKey: awsData.secret_key
+    const endpoint = data.server_path;
+    const accessKeyId = data.access_key;
+    const secretAccessKey = data.secret_key;
+    const bucketName = data.bucket_name;
+    
+    if (!endpoint || !accessKeyId || !secretAccessKey || !bucketName) return null;
+    
+    // Angular: s3BucketEndpoint: true, s3ForcePathStyle: true, signatureVersion: 'v4'
+    // AWS SDK v3 always uses signature version v4 by default
+    const client = new S3Client({
+      endpoint,
+      region: 'us-east-1', // MINIO doesn't require a specific region, but SDK needs one
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+      forcePathStyle: true, // Angular: s3ForcePathStyle: true
+    });
+    
+    return { client, bucketName };
   }, [getFileStorageInfo]);
 
   const getFileUploadPath = useCallback((fileUploadName: string) => {
@@ -656,35 +759,104 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
       },
     ]);
 
-    if (!defaultType || defaultType.toLowerCase() !== 's3' || !bucketUrl || !data) {
-      throw new Error('File storage is not configured for S3 uploads in this environment.');
+    // Check if file storage is configured (support both S3 and MINIO)
+    if (!defaultType || !data) {
+      console.error('[FileUpload] Storage config missing:', { 
+        defaultType, 
+        hasData: !!data, 
+        loginData: loginData ? 'present' : 'missing',
+        fileStorageInfo: (loginData as any)?.file_storage_info ? 'present' : 'missing',
+        windowStorageInfo: typeof window !== 'undefined' && (window as any).com_convo?.sessionData?.signInResponseData?.file_storage_info ? 'present' : 'missing'
+      });
+      throw new Error('File storage is not configured in this environment. Please check your login data.');
     }
-
+    
+    const storageType = defaultType.toLowerCase();
     const keyPath = getFileUploadPath(fileUploadName);
+    let file_url: string;
 
-    // Upload to S3 (Angular awsService.submitFormData)
-    const form = new FormData();
-    form.append('AWSAccessKeyId', data.access_key);
-    form.append('acl', 'private');
-    form.append('policy', data.s3_policy);
-    form.append('Filename', fileUploadName);
-    form.append('signature', data.s3_signature);
-    form.append('success_action_status', '201');
-    form.append('Content-Type', file.type || 'application/octet-stream');
-    form.append('key', keyPath);
-    form.append('x-amz-server-side-encryption', 'AES256');
-    form.append('file', file);
+    if (storageType === 's3') {
+      // Upload to S3 (Angular awsService.submitFormData)
+      if (!bucketUrl) {
+        console.error('[FileUpload] S3 bucket URL missing:', { defaultType, data: data ? 'present' : 'missing' });
+        throw new Error('S3 bucket URL could not be determined. Please check file storage configuration.');
+      }
 
-    const s3Res = await fetch(bucketUrl, { method: 'POST', body: form });
-    if (!s3Res.ok) {
-      throw new Error(`S3 upload failed: ${s3Res.status}`);
+      const form = new FormData();
+      form.append('AWSAccessKeyId', data.access_key);
+      form.append('acl', 'private');
+      form.append('policy', data.s3_policy);
+      form.append('Filename', fileUploadName);
+      form.append('signature', data.s3_signature);
+      form.append('success_action_status', '201');
+      form.append('Content-Type', file.type || 'application/octet-stream');
+      form.append('key', keyPath);
+      form.append('x-amz-server-side-encryption', 'AES256');
+      form.append('file', file);
+
+      const s3Res = await fetch(bucketUrl, { method: 'POST', body: form });
+      if (!s3Res.ok) {
+        throw new Error(`S3 upload failed: ${s3Res.status}`);
+      }
+
+      file_url = `${bucketUrl}${keyPath}`;
+    } else if (storageType === 'minio') {
+      // Upload to MINIO (Angular awsService.upload using AWS SDK)
+      const minioConfig = getMinioS3Client();
+      if (!minioConfig) {
+        console.error('[FileUpload] MINIO config missing:', { defaultType, data: data ? 'present' : 'missing' });
+        throw new Error('MINIO configuration could not be determined. Please check file storage configuration.');
+      }
+
+      const { client, bucketName } = minioConfig;
+      
+      // Angular: s3Client.upload({ Bucket, Key, Body }, { partSize: 5GB, queueSize: 1 })
+      // Use Upload from @aws-sdk/lib-storage for multipart uploads (matches Angular's managedUpload)
+      const upload = new Upload({
+        client,
+        params: {
+          Bucket: bucketName,
+          Key: keyPath,
+          Body: file,
+        },
+        // Angular: partSize: 5 * 1024 * 1024 * 1024 (5GB), queueSize: 1
+        partSize: 5 * 1024 * 1024 * 1024, // 5GB max part size
+        queueSize: 1,
+      });
+
+      // Track upload progress (Angular: managedUpload.on('httpUploadProgress', ...))
+      upload.on('httpUploadProgress', (progress) => {
+        if (progress.total && progress.loaded !== undefined) {
+          const percentComplete = Math.round((progress.loaded / progress.total) * 100);
+          // Update file progress in UI (optional - Angular tracks this)
+          setAttachedFiles((prev) =>
+            prev.map((f) =>
+              f.localId === localId ? { ...f, uploadProgress: percentComplete } : f
+            )
+          );
+        }
+      });
+
+      await upload.done();
+      
+      // Construct file URL for MINIO (Angular doesn't explicitly construct this, but we need it for file_url)
+      const endpoint = data.server_path;
+      const protocol = endpoint?.startsWith('https') ? 'https' : 'http';
+      const endpointHost = endpoint?.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      file_url = `${protocol}://${endpointHost}/${bucketName}/${keyPath}`;
+    } else {
+      throw new Error(`Unsupported file storage type: "${storageType}". Only S3 and MINIO are supported.`);
     }
-
-    const file_url = `${bucketUrl}${keyPath}`;
 
     // Start conversion on backend (Angular UploadService.fileConversionReq)
     setAttachedFiles((prev) => prev.map((f) => (f.localId === localId ? { ...f, status: 'converting', file_url } : f)));
 
+    // For comment attachments, we need conversation_uid and app_instance_id
+    // Angular: if(file.conversationId && ""+file.conversationId.length > 0) { reqData.file.conversation_uid = file.conversationId; reqData.file.app_instance_id = parseInt(file.appInstanceId); }
+    // Since we're uploading for a comment, we'll generate a temporary conversation_uid that will be used when posting
+    // The backend will link the file to the comment when we post with the same conversation_uid
+    const tempConversationUID = `cnv_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    
     const req = {
       file: {
         item_id: resourceId,
@@ -698,8 +870,17 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
         file_preview_url: null,
         storage_version: 1,
         app_instance_id: Number(appInstanceId),
+        // For comment attachments, include conversation_uid (Angular: file.conversationId)
+        conversation_uid: tempConversationUID,
       },
     };
+    
+    // Store the temp conversation UID so we can use it when posting the comment
+    setAttachedFiles((prev) =>
+      prev.map((f) =>
+        f.localId === localId ? { ...f, tempConversationUID } : f
+      )
+    );
 
     const resp = await postFilesEndpoint(req);
     const fileObj = resp?.data?.file || resp?.file;
@@ -717,7 +898,7 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
     if (serverFileId && status !== 'success') {
       await pollFileConversionStatus([serverFileId]);
     }
-  }, [resourceId, appInstanceId, getFileStorageInfo, getS3BucketUrl, getFileUploadPath, postFilesEndpoint, pollFileConversionStatus]);
+  }, [resourceId, appInstanceId, getFileStorageInfo, getS3BucketUrl, getMinioS3Client, getFileUploadPath, postFilesEndpoint, pollFileConversionStatus]);
 
   const insertAtCursor = useCallback((insertText: string) => {
     const el = textareaRef.current;
@@ -789,7 +970,12 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
     setIsPosting(true);
 
     // Generate stable conversation UID (matches AngularJS utils.generateUniqueId pattern)
-    const conversationUID = `cnv_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    // If we have files with tempConversationUID, use the first one; otherwise generate new
+    // This ensures files uploaded for this comment are linked correctly
+    const filesWithTempUID = attachedFiles.filter((f) => f.tempConversationUID && f.status === 'success');
+    const conversationUID = filesWithTempUID.length > 0 
+      ? filesWithTempUID[0].tempConversationUID!
+      : `cnv_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
     try {
       const htmlToPost = buildCommentHtml();
@@ -828,22 +1014,30 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
         });
       }
 
+      // Build files payload - Angular: attachedFiles.serverData contains files with file_id or file_name_id
+      // Only include files that have successfully uploaded and have file_id or file_name_id
+      const successfulFiles = attachedFiles.filter((f) => f.status === 'success' && (f.serverFileId || f.fileNameId));
+      
       const filesPayload =
-        attachedFiles.filter((f) => f.status === 'success').length > 0
+        successfulFiles.length > 0
           ? {
-              serverData: attachedFiles
-                .filter((f) => f.status === 'success')
-                .map((f) => ({
-                  name: f.name,
-                  size: f.size,
-                  type: f.type,
-                  file_name_id: f.fileNameId,
-                  file_id: f.serverFileId,
-                }))
-                .filter((x) => x.file_id || x.file_name_id),
+              serverData: successfulFiles.map((f) => ({
+                name: f.name,
+                size: f.size,
+                type: f.type,
+                file_name_id: f.fileNameId, // Angular: file_name_id
+                file_id: f.serverFileId, // Angular: file_id
+              })),
               data: [],
             }
           : null;
+      
+      console.log('[CommentEditor] Posting comment with files:', { 
+        filesPayload, 
+        successfulFiles: successfulFiles.length,
+        attachedFiles: attachedFiles.length,
+        conversationUID 
+      });
 
       if (mode === 'edit') {
         if (!commentToEdit) return;
@@ -950,28 +1144,73 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
     }
   };
 
-  // Check if commenting is closed
+  // Check if commenting is closed (matches AngularJS _initCommentEditorPermissionsModel)
   const checkIfCommentingClosed = () => {
     return relatedPermissions.block || !relatedPermissions.canComment;
   };
 
+  // Build "Comments are closed" message (matches AngularJS _initCommentEditorPermissionsModel)
+  const buildCommentsClosedMessage = () => {
+    if (!itemData) return null;
+    
+    // Get user who closed comments (permissions_changed_by or fallback to created_by)
+    let userId = itemData.permissions_changed_by;
+    if (!userId || !userId.length) {
+      userId = itemData.created_by;
+    }
+    
+    if (!userId) return null;
+    
+    // Get user name
+    const user = users[userId];
+    const userName = user 
+      ? ((user as any).name || 
+         ((user as any).first_name || (user as any).firstName || '') + ' ' + 
+         ((user as any).last_name || (user as any).lastName || '').trim())
+      : userId;
+    const displayName = userName.trim() || userId;
+    // Limit to 80 chars (matches AngularJS limitText filter)
+    const limitedName = displayName.length > 80 ? displayName.substring(0, 80) + '...' : displayName;
+    
+    // Build message HTML (matches AngularJS format)
+    let message = "Comments are closed for this post ";
+    message += "&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;";
+    
+    // User name link (matches AngularJS idToFilterUrl filter)
+    const userFilterUrl = `#/feed?filter=user:${userId}`;
+    message += `<a class='meta' href='${userFilterUrl}'>${limitedName}</a>`;
+    
+    // Timestamp link (only if not a poll, matches AngularJS logic)
+    const isPoll = itemData.data?.poll_type || itemData.app_instance_id === 23;
+    if (!isPoll && itemData.permissions_change_date) {
+      const timestamp = formatDateAgo(
+        itemData.permissions_change_date,
+        undefined, // server_now_timestamp
+        true, // dntShowTime
+        true // showShortDate
+      );
+      
+      // Build post link URL (matches AngularJS getResourceLinkUrl)
+      const postTitle = itemData.hierarchy?.[0]?.title || '';
+      const postLinkUrl = `#/post/${itemData.resource_id}${postTitle ? `?title=${encodeURIComponent(postTitle)}` : ''}`;
+      
+      message += "&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;";
+      message += `<a class='meta' href='${postLinkUrl}'>${timestamp}</a>`;
+    }
+    
+    return message;
+  };
+
   if (checkIfCommentingClosed()) {
+    const closedMessage = buildCommentsClosedMessage();
     return (
-      <div className="comments-closed-alert" style={{
-        margin: '0px',
-        padding: '0px 8px 0px 8px',
-        color: '#7b8386',
-        fontSize: '14px',
-      }}>
-        <i className="flag" style={{
-          width: '9px',
-          height: '12px',
-          background: 'url(/assets/img/common/NoteFeedComment.png)',
-          backgroundSize: '9px 12px',
-          marginRight: '4px',
-          display: 'inline-block',
-        }}></i>
-        <span>Comments are closed</span>
+      <div className="meta comments-closed-alert">
+        {closedMessage && (
+          <span dangerouslySetInnerHTML={{ __html: closedMessage }} />
+        )}
+        {!closedMessage && (
+          <span>Comments are closed for this post</span>
+        )}
       </div>
     );
   }
@@ -986,6 +1225,54 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
         border: `1px solid ${focused && active ? 'rgb(51, 113, 189)' : '#ced2dc'}`,
         position: 'relative',
       }}
+      onDragEnter={(e) => {
+        // Matches Angular cnvDragDrop directive logic
+        const dataTransfer = e.nativeEvent.dataTransfer;
+        if (dataTransfer && (
+          dataTransfer.types[0] === 'Files' ||
+          dataTransfer.types[0] === 'application/x-moz-file' ||
+          dataTransfer.types[0] === 'public.file-url'
+        )) {
+          if (dragCollectionRef.current.size === 0) {
+            // Dispatch cnv-drag-start event (matches Angular $rootScope.$broadcast)
+            window.dispatchEvent(new CustomEvent('cnv-drag-start'));
+          }
+          dragCollectionRef.current.add(e.target);
+        }
+      }}
+      onDragLeave={(e) => {
+        // Matches Angular setTimeout logic for Firefox
+        setTimeout(() => {
+          dragCollectionRef.current.delete(e.target);
+          if (dragCollectionRef.current.size === 0) {
+            // Dispatch cnv-drag-end event
+            window.dispatchEvent(new CustomEvent('cnv-drag-end'));
+          }
+        }, 1);
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCollectionRef.current.clear();
+        window.dispatchEvent(new CustomEvent('cnv-drag-end'));
+        
+        const files = Array.from(e.dataTransfer.files || []);
+        if (files.length) {
+          setActive(true);
+          window.dispatchEvent(new CustomEvent('fileSelected'));
+          for (const file of files) {
+            uploadLocalFileAndConvert(file).catch((err) => {
+              console.error(err);
+              // eslint-disable-next-line no-alert
+              alert(err instanceof Error ? err.message : 'Failed to attach file');
+            });
+          }
+        }
+      }}
     >
       <input
         ref={fileInputRef}
@@ -996,6 +1283,9 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
           const files = Array.from(e.target.files || []);
           // reset so selecting same file again works
           e.currentTarget.value = '';
+          if (files.length) {
+            window.dispatchEvent(new CustomEvent('fileSelected'));
+          }
           for (const f of files) {
             try {
               await uploadLocalFileAndConvert(f);
@@ -1007,6 +1297,14 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
           }
         }}
       />
+      {/* Dropzone - matches Angular cnv-dropzone */}
+      {mode !== 'edit' && (
+        <Dropzone 
+          dropzoneId={dropzoneIdRef.current}
+          message={relatedPermissions?.canComment === false ? 'Comments are closed for this post' : 'Drop files here'}
+          messageClass={relatedPermissions?.canComment === false ? 'icon-before-message' : ''}
+        />
+      )}
       {/* Dummy Text Area - Shows when not active */}
       {!active && (
         <div 
@@ -1201,8 +1499,7 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
             </button>
 
             {/* Attach button - matches AngularJS icons2_Attach-darkgray */}
-            <button
-              type="button"
+            <span
               className="comment-action anim file-chooser icons2_Attach-darkgray cnv-icons-18"
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -1210,18 +1507,17 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
               }}
               onClick={() => fileInputRef.current?.click()}
               style={{
+                width: '18px',
+                height: '18px',
+                display: 'inline-block',
                 cursor: 'pointer',
-                border: 'none',
-                padding: 0,
-                backgroundColor: 'transparent',
-                opacity: 0.85,
+                verticalAlign: 'middle',
               }}
               aria-label="Attach file"
             />
 
             {/* Dropbox */}
-            <button
-              type="button"
+            <span
               className="comment-action anim cnv-icons-18 icons3_Dropbox-darkgray"
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -1259,17 +1555,13 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
                 height: '18px',
                 display: 'inline-block',
                 cursor: 'pointer',
-                border: 'none',
-                padding: 0,
-                backgroundColor: 'transparent',
-                opacity: 0.85,
+                verticalAlign: 'middle',
               }}
               aria-label="Dropbox"
             />
 
             {/* Box */}
-            <button
-              type="button"
+            <div
               className="comment-action anim cnv-icons-18 Icon2__Box-15-darkgray"
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -1315,17 +1607,13 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
                 height: '18px',
                 display: 'inline-block',
                 cursor: 'pointer',
-                border: 'none',
-                padding: 0,
-                backgroundColor: 'transparent',
-                opacity: 0.85,
+                verticalAlign: 'middle',
               }}
               aria-label="Box"
             />
 
             {/* Google Drive */}
-            <button
-              type="button"
+            <div
               className="comment-action anim cnv-icons-18 icons3_Google_Drive-darkgray"
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -1401,18 +1689,14 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
                 height: '18px',
                 display: 'inline-block',
                 cursor: 'pointer',
-                border: 'none',
-                padding: 0,
-                backgroundColor: 'transparent',
-                opacity: 0.85,
+                verticalAlign: 'middle',
               }}
               aria-label="Google Drive"
             />
 
             {/* Giphy */}
-            <button
-              type="button"
-              className="comment-action anim gif-attachment cnv-icons-18 giphy"
+            <span
+              className="comment-action anim gif-attachment cnv-icons-18"
               onMouseDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1423,50 +1707,276 @@ const CommentEditor = React.forwardRef<{ activate: (initialText: string) => void
                 height: '18px',
                 display: 'inline-block',
                 cursor: 'pointer',
-                border: 'none',
-                padding: 0,
-                backgroundColor: 'transparent',
-                opacity: 0.85,
+                verticalAlign: 'middle',
+                backgroundImage: 'url(/assets/img/giphy/2xMouseoverClick.svg)',
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center',
               }}
               aria-label="GIF"
-            >
-              <img
-                src="/assets/img/giphy/2xMouseoverClick.svg"
-                alt=""
-                style={{ width: '18px', height: '18px', display: 'block' }}
-              />
-            </button>
+            />
           </div>
 
-          {/* Attached files preview (basic parity) */}
+          {/* Attached files preview - matches AngularJS cnvCommentsUploadFiles.tpl.html */}
+          {/* Show upload reel when there are files (matches Angular: ng-if="commentEditorCtrl.attachments.initialized") */}
           {attachedFiles.length > 0 && (
-            <div style={{ padding: '8px 10px 0px 10px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {attachedFiles.map((f) => (
-                <div key={f.localId} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #dde2ea', borderRadius: '3px', padding: '4px 6px', background: '#fff' }}>
-                  {f.localPreviewUrl ? (
-                    <img src={f.localPreviewUrl} style={{ width: '28px', height: '28px', objectFit: 'cover', borderRadius: '3px' }} />
-                  ) : (
-                    <span className="cnv-icons-18 fileplainlarge-darkgray" />
-                  )}
-                  <span style={{ fontSize: '12px', color: '#2b2b2b', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {f.name}
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#7b8386' }}>
-                    {f.status === 'success' ? 'Ready' : f.status === 'failed' ? 'Failed' : f.status}
-                  </span>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setAttachedFiles((prev) => prev.filter((x) => x.localId !== f.localId));
+            <ul className="upload-files-reel-comments" style={{
+              position: 'relative',
+              borderTop: '1px solid #e0e0e0',
+              background: '#f2f4f8',
+              paddingLeft: '6px',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              margin: 0,
+              paddingTop: 0,
+              paddingBottom: 0,
+              listStyle: 'none',
+              display: 'flex',
+            }}>
+              {attachedFiles.map((f, idx) => {
+                const isInProgress = f.status === 'uploading' || f.status === 'converting';
+                const failed = f.status === 'failed';
+                const completed = f.status === 'success';
+                const hasThumbnail = f.localPreviewUrl || (f.serverFileObj?.thumbnail_name);
+                
+                // Get thumbnail URL (matches Angular getNoteThumbnailPath filter)
+                let thumbnailUrl = f.localPreviewUrl;
+                if (!thumbnailUrl && f.serverFileObj?.thumbnail_name && f.serverFileObj?.file_id) {
+                  // Use getCommentAttachmentThumbnailPath utility
+                  const accountId = (loginData as any)?.account_id?.toString() || account?.account_id?.toString() || '';
+                  thumbnailUrl = getCommentAttachmentThumbnailPath(
+                    f.serverFileObj,
+                    resourceId,
+                    idx,
+                    {
+                      accountId,
+                      appInstanceId: Number(appInstanceId),
+                    }
+                  );
+                }
+                
+                // Get file icon if no thumbnail (matches Angular getFileIconByType filter)
+                const fileIconClass = !hasThumbnail ? 'fileplainlarge-darkgray' : '';
+                
+                return (
+                  <li
+                    key={f.localId}
+                    className={`attachment-box ${f.serverFileObj?.inEdit ? 'no-animation' : ''}`}
+                    style={{
+                      background: 'transparent',
+                      height: '90px',
+                      minWidth: '95px',
+                      overflow: 'hidden',
+                      paddingLeft: idx > 0 ? '6px' : 0,
+                      position: 'relative',
+                      flexShrink: 0,
+                      listStyle: 'none',
                     }}
-                    style={{ color: 'rgb(51, 113, 189)', textDecoration: 'none', fontSize: '12px' }}
+                    onMouseEnter={(e) => {
+                      const removeBtn = e.currentTarget.querySelector('.remove-file') as HTMLElement;
+                      if (removeBtn) removeBtn.style.display = 'block';
+                    }}
+                    onMouseLeave={(e) => {
+                      const removeBtn = e.currentTarget.querySelector('.remove-file') as HTMLElement;
+                      if (removeBtn) removeBtn.style.display = 'none';
+                    }}
                   >
-                    Remove
-                  </a>
-                </div>
-              ))}
-            </div>
+                    <div className="attachment-box-background" style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      bottom: 0,
+                      right: '5px',
+                      height: '98px',
+                      background: 'transparent',
+                      border: '1px solid #e0e0e0',
+                    }} />
+                    
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt={f.name}
+                        className={completed ? 'file-converted' : ''}
+                        style={{
+                          maxHeight: '90px',
+                          maxWidth: '95px',
+                          marginRight: 0,
+                          display: 'block',
+                          width: 'auto',
+                          height: 'auto',
+                          objectFit: 'contain',
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '95px',
+                        height: '90px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#fff',
+                        border: '1px solid #e0e0e0',
+                      }}>
+                        <i className={`cnv-icons-32 ${fileIconClass}`} style={{
+                          fontSize: '32px',
+                          color: '#999',
+                          display: 'block',
+                        }} />
+                      </div>
+                    )}
+                    
+                    {failed && (
+                      <div className="failed-upload" style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.7)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        fontSize: '11px',
+                        padding: '4px',
+                        textAlign: 'center',
+                      }}>
+                        <div className="upload-failed-icon" style={{
+                          width: '24px',
+                          height: '24px',
+                          background: 'url(/assets/img/common/webapp_upload_error.png) no-repeat center',
+                          backgroundSize: 'contain',
+                          marginBottom: '4px',
+                        }} />
+                        <div>
+                          Couldn't upload this file.
+                          {f.status === 'failed' && (
+                            <a
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                // Retry logic would go here
+                              }}
+                              style={{ color: '#fff', textDecoration: 'underline', marginLeft: '4px' }}
+                            >
+                              Retry
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!f.serverFileObj?.noTitle && !failed && (
+                      <span className="fileNames" style={{
+                        position: 'absolute',
+                        bottom: '2px',
+                        left: '2px',
+                        right: '7px',
+                        background: 'rgba(0,0,0,0.65)',
+                        color: '#fff',
+                        fontSize: '11px',
+                        padding: '2px 4px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        lineHeight: '1.2',
+                      }}>
+                        {f.name}
+                      </span>
+                    )}
+                    
+                    {isInProgress && (
+                      <div className="progress-bar" style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '98px',
+                        background: 'rgba(0,0,0,0.3)',
+                      }}>
+                        <div className="bar-internal" style={{
+                          height: '98px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <div className="cnv-spinner" style={{
+                            border: '2px solid #e1e1e1',
+                            borderTop: '2px solid #aaa',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                          }} />
+                        </div>
+                        <div className="progress-line" style={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          height: '2px',
+                          background: '#4183d7',
+                          width: `${f.status === 'uploading' ? 50 : 75}%`,
+                          transition: 'width 0.3s ease',
+                        }} />
+                      </div>
+                    )}
+                    
+                    <div
+                      className="remove-file"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setAttachedFiles((prev) => prev.filter((x) => x.localId !== f.localId));
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '3px',
+                        right: '4px',
+                        width: '12px',
+                        height: '12px',
+                        padding: 0,
+                        border: 'none',
+                        background: 'none',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundImage: 'url(/assets/img/inlineInsert/remove.png)',
+                        backgroundPosition: 'center',
+                        cursor: 'pointer',
+                        display: 'none',
+                        zIndex: 10,
+                      }}
+                      title="Remove file"
+                    />
+                  </li>
+                );
+              })}
+              
+              {/* Chooser box - matches Angular template */}
+              <li className="attachment-box chooser no-animate" style={{
+                paddingLeft: attachedFiles.length > 0 ? '6px' : 0,
+                background: 'transparent',
+                height: '98px',
+                minWidth: '95px',
+                overflow: 'visible',
+                position: 'relative',
+                flexShrink: 0,
+                listStyle: 'none',
+              }}>
+                <div
+                  className="plus-icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    width: '100px',
+                    height: '98px',
+                    background: 'url(/assets/img/inlineInsert/add-more.jpg) no-repeat center',
+                    backgroundRepeat: 'no-repeat',
+                    cursor: 'pointer',
+                    display: 'block',
+                  }}
+                  title="Attach more files"
+                />
+              </li>
+            </ul>
           )}
 
           {/* Emoji picker (minimal) */}

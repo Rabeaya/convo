@@ -204,17 +204,35 @@ class AuthService {
 
   /**
    * Logout user
+   * Matches AngularJS logout() function behavior exactly:
+   * - Clears localStorage (localStore.clear())
+   * - Redirects to logout endpoint
+   * 
+   * AngularJS: $window.location.href = config.LOGOUT_URL
+   * For Next.js: We use our own logout API route which handles the backend call and redirect
    */
-  async logout(): Promise<void> {
-    const logoutUrl = this.getLogoutUrl();
-    const response = await fetch(logoutUrl, {
-      method: 'GET',
-      credentials: 'include',
-    });
-    
-    if (!response.ok) {
-      console.warn('Logout request failed:', response.status);
+  logout(): void {
+    if (typeof window === 'undefined') return;
+
+    // Clear localStorage (matches AngularJS localStore.clear())
+    try {
+      localStorage.clear();
+    } catch (e) {
+      console.warn('Failed to clear localStorage:', e);
     }
+
+    // Get the Next.js login URL (e.g., http://localhost:3001/login)
+    const nextJsLoginUrl = `${window.location.origin}/login`;
+    
+    // Use Next.js logout API route which will:
+    // 1. Call backend logout endpoint to clear session cookie
+    // 2. Redirect to our Next.js login page
+    const logoutApiUrl = `/api/v1/logout?redirect=${encodeURIComponent(nextJsLoginUrl)}`;
+    
+    console.log('[Logout] Redirecting to logout API:', logoutApiUrl);
+    
+    // Redirect to our logout API route (which handles backend call and redirects to login)
+    window.location.href = logoutApiUrl;
   }
 
   /**
@@ -247,12 +265,6 @@ class AuthService {
     return '/api/v1/login';
   }
 
-  /**
-   * Get logout URL from config
-   */
-  private getLogoutUrl(): string {
-    return `${this.getAppLoginUrl()}?logout=1`;
-  }
 }
 
 export const authService = new AuthService();

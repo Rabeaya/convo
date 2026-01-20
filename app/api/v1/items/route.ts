@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const servicesHost = resolveServicesHostString({ headers: request.headers, allowWindow: false });
 
-    // Use the same backend URL pattern as other services
-    const backendUrl = `https://${servicesHost}/index_services_202201200010/scrybe/items`;
+    // Use the standard API pattern: /api/v1/items (matches Angular's serverComm.post('items', reqData))
+    const backendUrl = `https://${servicesHost}/api/v1/items`;
 
     // Log request for debugging
     console.log('Items API Proxy - Request:', {

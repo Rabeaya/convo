@@ -48,6 +48,15 @@ export type CommentsPanelHandle = {
    * Activates/focuses the editor without forcing "expand comments" (that is controlled by the bar links).
    */
   activateEditor: (initialText?: string, _showOnLoad?: boolean) => void;
+  /**
+   * Check if panel is visible in DOM (for scroll calculations)
+   */
+  isPanelVisible: () => boolean;
+  /**
+   * Check if comment editor is dirty (has text, files, or snippets)
+   * Matches Angular _checkIsDirty logic
+   */
+  checkIsDirty: () => boolean;
 };
 
 // Helper to sort comments by creation_timestamp (oldest first, newest at bottom)
@@ -106,6 +115,11 @@ const mergePreferRicherComment = (existing: Comment | undefined, incoming: Comme
 const LATEST_COMMENTS_ONLY_COUNT = 2; // Exact match from AngularJS
 const PAGE_SIZE = 10; // Exact match from AngularJS
 
+// Helper function to check bit at position (matches AngularJS checkBitAt)
+const checkBitAt = (value: number, bitPosition: number): boolean => {
+  return !!(value & (1 << (bitPosition - 1)));
+};
+
 const CommentsPanel = forwardRef<CommentsPanelHandle, CommentsPanelProps>(function CommentsPanel(
   { item, showCommentsPanel, onToggleComments: _onToggleComments, snippetReplySetterRef, onPostSnippetPlayback },
   ref
@@ -114,7 +128,13 @@ const CommentsPanel = forwardRef<CommentsPanelHandle, CommentsPanelProps>(functi
   const feedPoll = useFeedPoll();
   const queryClient = useQueryClient();
   const { user, loginData, account } = useAuthStore();
-  const commentEditorRef = useRef<{ activate: (initialText: string) => void }>(null);
+  
+  // Compute canComment permission (matches AngularJS _initCommentEditorPermissionsModel)
+  const anyItem: any = item as any;
+  const loggedPerms = anyItem.logged_in_user_permissions ?? anyItem.loggedInUserPermissions ?? 0;
+  const canComment = checkBitAt(loggedPerms, 2);
+  const block = !canComment;
+  const commentEditorRef = useRef<{ activate: (initialText: string) => void; checkIsDirty: () => boolean }>(null);
   const [commentsExpanded, setCommentsExpanded] = useState(false);
   const [loadedCommentsCount, setLoadedCommentsCount] = useState(LATEST_COMMENTS_ONLY_COUNT);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -346,13 +366,54 @@ const CommentsPanel = forwardRef<CommentsPanelHandle, CommentsPanelProps>(functi
     }
   }, [snippetReplySetterRef, setSnippetReply]);
 
+  // When showCommentsPanel becomes true, ensure comments are expanded if there are any
+  // This ensures the editor is visible when clicking "Comment" button
+  useEffect(() => {
+    if (showCommentsPanel) {
+      // If there are comments, expand to show them
+      if (totalComments > 0 && !commentsExpanded) {
+        setCommentsExpanded(true);
+        setLoadedCommentsCount(Math.min(PAGE_SIZE, totalComments));
+      }
+      // Even if there are no comments, ensure the panel is "expanded" so the editor is visible
+      // (commentsExpanded controls the comments collection visibility, but editor is always visible)
+    }
+  }, [showCommentsPanel, totalComments, commentsExpanded]);
+
+  // Ensure panel wrapper is visible when showCommentsPanel is true (matches Angular bo-show)
+  const panelVisible = (item.conversations_count || 0) > 0 ||
+    ((item.like_info?.likes_count || 0) + (item.like_info?.sub_res_like_count || 0) > 0) ||
+    showCommentsPanel;
+
+  const panelWrapperRef = useRef<HTMLDivElement>(null);
+
   // Expose Angular-equivalent "activate editor" behavior to parent.
   useImperativeHandle(ref, () => ({
-    activateEditor: (initialText?: string) => {
-      // IMPORTANT: do NOT auto-expand comments here. Angular's onCommentButtonClick only activates editor.
-      commentEditorRef.current?.activate(initialText || '');
+    checkIsDirty: () => {
+      // Delegate to comment editor's checkIsDirty
+      if (commentEditorRef.current && typeof (commentEditorRef.current as any).checkIsDirty === 'function') {
+        return (commentEditorRef.current as any).checkIsDirty();
+      }
+      return false;
     },
-  }), []);
+    activateEditor: (initialText?: string, _showOnLoad?: boolean) => {
+      // When editor is activated (e.g., from Comment button click), ensure comments are expanded if there are any
+      if (totalComments > 0 && !commentsExpanded) {
+        setCommentsExpanded(true);
+        setLoadedCommentsCount(Math.min(PAGE_SIZE, totalComments));
+      }
+      // Use requestAnimationFrame to ensure DOM is ready before activating editor
+      requestAnimationFrame(() => {
+        commentEditorRef.current?.activate(initialText || '');
+      });
+    },
+    isPanelVisible: () => {
+      const wrapper = panelWrapperRef.current;
+      if (!wrapper) return false;
+      const style = window.getComputedStyle(wrapper);
+      return style.display !== 'none' && style.visibility !== 'hidden' && wrapper.offsetHeight > 0;
+    },
+  }), [totalComments, commentsExpanded]);
 
   const checkIfCommentIsInView = (commentId: string): boolean => {
     const container = commentsContainerRef.current;
@@ -947,16 +1008,12 @@ const CommentsPanel = forwardRef<CommentsPanelHandle, CommentsPanelProps>(functi
 
   return (
     <div 
+      ref={panelWrapperRef}
       className="comments-panel-wrapper l-pad"
       // Angular bo-show:
       // itemData.conversations_count > 0 || (likes_count + sub_res_like_count > 0) || showCommentsPanel
       style={{
-        ...( (item.conversations_count || 0) > 0 ||
-            ((item.like_info?.likes_count || 0) + (item.like_info?.sub_res_like_count || 0) > 0) ||
-            showCommentsPanel
-          ? {}
-          : { display: 'none' }
-        ),
+        display: panelVisible ? 'block' : 'none',
         marginTop: '5px',
         marginBottom: '7px',
         position: 'relative',
@@ -987,8 +1044,14 @@ const CommentsPanel = forwardRef<CommentsPanelHandle, CommentsPanelProps>(functi
                 href={`#/feed?filter=user:${item.like_info.liked_by}`}
                 style={{
                   marginLeft: '10px',
-                  color: '#7b8386',
+                  color: 'rgb(51, 113, 189)', // Theme link color (match Angular)
                   textDecoration: 'none',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.textDecoration = 'underline';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.textDecoration = 'none';
                 }}
               >
                 {getUserName(users, item.like_info.liked_by)}
@@ -1010,8 +1073,14 @@ const CommentsPanel = forwardRef<CommentsPanelHandle, CommentsPanelProps>(functi
                       });
                     }}
                     style={{
-                      color: '#7b8386',
+                      color: 'rgb(51, 113, 189)', // Theme link color
                       textDecoration: 'none',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.textDecoration = 'underline';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.textDecoration = 'none';
                     }}
                   >
                     +{((item.like_info?.likes_count || 0) + (item.like_info?.sub_res_like_count || 0) - 1)} more
@@ -1201,7 +1270,9 @@ const CommentsPanel = forwardRef<CommentsPanelHandle, CommentsPanelProps>(functi
           onCommentWillPost={handleCommentWillPost}
           onCommentPostFailed={(conversationUID) => handleCommentPostFailed(conversationUID)}
           onCommentPosted={handleCommentPosted}
-          relatedPermissions={{ canComment: true }}
+          relatedPermissions={{ canComment, block }}
+          itemData={item}
+          users={users}
         />
       </div>
     </div>
