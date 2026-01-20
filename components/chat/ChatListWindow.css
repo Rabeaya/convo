@@ -1,0 +1,384 @@
+/* ChatListWindow.css - Replicates AngularJS chat list styles */
+
+.chatUserListMainStyl {
+  bottom: 0px;
+  right: 10px;
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+  border: 1px solid rgba(150, 150, 150, 0.3);
+  border-bottom: none;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  box-shadow: 0px 0px 0px 1px rgba(150, 150, 150, 0.1);
+  transform: translateZ(0);
+}
+
+.z-index-9 {
+  z-index: 9999;
+}
+
+.content-resizer {
+  height: 10px;
+  width: 100%;
+  cursor: ns-resize;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.chatUserListHeader {
+  height: 28px;
+  background: #1f2e3d; /* Matches AngularJS @cnv-chat-focused-color (dark gray/blue) */
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  color: #fff; /* Matches AngularJS @cnv-chat-focused-text-color */
+  transform: translateZ(0);
+  z-index: 1;
+  cursor: pointer;
+  position: relative;
+}
+
+.unfocused-state {
+  background-color: #7b8386; /* Matches AngularJS @cnv-chat-unfocused-color */
+  color: #ffffff !important; /* Matches AngularJS @cnv-chat-unfocused-text-color */
+  border-bottom: 1px solid #7b8386;
+}
+
+.chatUserListHeader .headerIcon {
+  background-size: 14px;
+  cursor: pointer;
+  padding: 14px 10px;
+  background-position: 3px;
+  opacity: 0.8;
+}
+
+.chatUserListHeader .headerIcon:hover {
+  opacity: 1;
+}
+
+.chatsIcon {
+  position: relative; /* Matches AngularJS styles.less line 199 */
+  top: 4px; /* Matches AngularJS line 200 */
+  left: 10px; /* Matches AngularJS line 201 */
+  width: 18px; /* Matches AngularJS line 202 */
+  height: 18px; /* Matches AngularJS line 203 */
+  background-image: url('/assets/img/chat/ChatsIcon.svg'); /* Matches AngularJS line 204 */
+  background-size: contain; /* Matches AngularJS line 205 */
+  background-repeat: no-repeat; /* Matches AngularJS line 206 */
+  display: inline-block; /* Matches AngularJS line 207 */
+  z-index: 1; /* Icon is below badge (badge overlaps icon) */
+}
+
+.chatHeaderText {
+  margin-left: 12px; /* Matches AngularJS chatUsersWindow.less line 173 */
+  display: inline-block; /* Matches AngularJS line 174 */
+  margin-top: 4px; /* Matches AngularJS line 175 */
+  cursor: default; /* Matches AngularJS line 176 */
+  font-size: 14px; /* Matches AngularJS @cnv-secondary-txt-size-14 line 177 */
+}
+
+.btnExpand {
+  position: absolute;
+  right: 58px;
+  top: 0px;
+}
+
+.btnExpand .chat-window-expand-white {
+  display: block;
+  background-size: 12px;
+}
+
+.btnExpand .chat-window-expand-gray-hover {
+  display: none;
+  background-size: 12px;
+}
+
+.btnExpand:hover .chat-window-expand-white {
+  display: none;
+}
+
+.btnExpand:hover .chat-window-expand-gray-hover {
+  display: block;
+}
+
+.create-new-feed-chat-btn {
+  position: absolute;
+  right: 34px;
+  top: 0px;
+}
+
+.create-new-feed-chat-btn .chat_create_new_chat_white {
+  display: block;
+}
+
+.create-new-feed-chat-btn .chat_create_new_chat {
+  display: none;
+}
+
+.create-new-feed-chat-btn:hover .chat_create_new_chat_white {
+  display: none;
+}
+
+.create-new-feed-chat-btn:hover .chat_create_new_chat {
+  display: block;
+}
+
+.btnChatSettings {
+  position: absolute;
+  right: 10px;
+  top: 0px;
+  cursor: pointer;
+}
+
+.btnChatSettings .dropdownLinkContainer {
+  width: 20px;
+  height: 27px;
+  top: 5px;
+}
+
+.btnChatSettings .headerIcon {
+  transition: transform 0.3s;
+}
+
+.btnChatSettings .chat_settings_white {
+  display: block;
+  background-size: 14px;
+}
+
+.btnChatSettings .chat_settings {
+  display: none;
+  background-size: 14px;
+}
+
+.btnChatSettings:hover .headerIcon {
+  opacity: 1;
+  transform: rotate(45deg);
+}
+
+.btnChatSettings:hover .chat_settings_white {
+  display: none;
+}
+
+.btnChatSettings:hover .chat_settings {
+  display: block;
+}
+
+/* Settings dropdown */
+.chat-settings-dropdown {
+  position: absolute;
+  top: 28px;
+  right: 0px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  min-width: 180px;
+  z-index: 1000;
+}
+
+.chat-settings-item {
+  padding: 10px 15px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.chat-settings-item:last-child {
+  border-bottom: none;
+}
+
+.chat-settings-item:hover {
+  background: #f5f7fc;
+}
+
+.chatSearchBar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-top: 1px solid #d4d9e3; /* Matches AngularJS @cnv-chat-separator */
+  border-bottom: 1px solid #d4d9e3; /* Matches AngularJS @cnv-chat-separator */
+  background: white;
+  height: 40px; /* Matches AngularJS line 187 */
+  position: relative;
+  z-index: 2; /* Ensure search bar is above chat list */
+  flex-shrink: 0; /* Prevent search bar from shrinking */
+}
+
+.searchChatIconContainer {
+  display: flex; /* Matches AngularJS styles.less line 400 */
+  justify-content: center; /* Matches AngularJS line 401 */
+  align-items: center; /* Matches AngularJS line 402 */
+  margin-right: 5px; /* Matches AngularJS line 404 */
+}
+
+.searchChatIcon {
+  width: 16px; /* Matches AngularJS styles.less line 407 */
+  height: 16px; /* Matches AngularJS line 408 */
+  display: inline-block; /* Matches AngularJS line 409 */
+  background-image: url('/assets/img/chat/Search.png'); /* Matches AngularJS line 410 */
+  background-repeat: no-repeat; /* Matches AngularJS line 411 */
+  background-size: contain; /* Matches AngularJS line 412 */
+  vertical-align: middle; /* Matches AngularJS line 413 */
+  margin-left: 6px; /* Matches AngularJS line 414 */
+}
+
+.inputSearchBar {
+  width: 77%;
+  height: 38px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+}
+
+.inputSearchBar::placeholder {
+  font-size: 14px;
+}
+
+/* Note: chatUserList positioning is handled inline in the component */
+.chatUserList {
+  flex: 1;
+  width: auto;
+  background: white;
+  overflow: hidden;
+  user-select: none;
+  position: relative; /* Ensure proper stacking context */
+}
+
+.cnvScrollContainerParent {
+  position: relative;
+}
+
+/* ============================
+   UNREAD COUNT BADGE (Header)
+   ============================ */
+
+.unreadCount {
+  position: absolute;
+  /* Position badge to overlap TOP-RIGHT corner of chatsIcon */
+  /* chatsIcon: left: 10px, width: 18px, top: 4px, height: 18px */
+  /* Badge should be positioned at: left edge of icon + icon width - half badge width */
+  left: 20px; /* 10px (icon left) + 18px (icon width) - 8px (half badge width) = 20px - overlaps top-right corner */
+  top: 2px; /* Slightly above icon top (4px) to overlap top-right corner */
+  background: #e0582f; /* Matches AngularJS styles.less line 948 EXACTLY - orange */
+  color: white; /* Matches AngularJS line 953 */
+  font-size: 11px; /* Smaller font for header badge */
+  font-weight: 600; /* Bold text */
+  text-align: center;
+  padding: 2px 6px; /* Horizontal padding for rounded rectangular shape */
+  border-radius: 10px; /* Rounded rectangular shape (matches image - overlaps top-right corner) */
+  min-height: 16px; /* Height for badge */
+  min-width: 16px; /* Minimum width, expands with content */
+  border: none; /* No border for header badge */
+  z-index: 10; /* Above chatsIcon (badge overlaps icon) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+/* ============================
+   BLANK STATE & SPINNER
+   ============================ */
+
+.chat-blank-state-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #7b8386;
+}
+
+.chat-blank-state-wrapper i {
+  display: block;
+  margin: 0 auto 15px;
+}
+
+.chat-blank-state-wrapper p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.spinner-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+/* ============================
+   SCROLLBAR STYLING
+   ============================ */
+
+/* Chat list scroll container (matches AngularJS .chats-scroll-container) */
+.chats-scroll-container {
+  /* Matches AngularJS ChatsListContainer.tpl.html line 34-36 */
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hide default scrollbar completely - AngularJS uses custom auto-hiding scrollbar */
+.chats-scroll-container::-webkit-scrollbar {
+  display: none; /* Hide default scrollbar */
+  width: 0; /* Hide scrollbar completely */
+}
+
+.chats-scroll-container {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Legacy ID selector for backward compatibility */
+#chatsListScroller::-webkit-scrollbar {
+  display: none; /* Hide default scrollbar */
+  width: 0; /* Hide scrollbar completely */
+}
+
+#chatsListScroller {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Custom auto-hiding scrollbar styles - matches AngularJS fullchat_styles.less lines 630-655 */
+/* CRITICAL: These styles are required for the custom scrollbar created by useAutoHidingScrollbar hook */
+.scroll-track {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: transparent;
+  width: 8px;
+  margin: 1px;
+  border-radius: 5px;
+  transition: background-color linear 0.3s;
+  z-index: 10000; /* Very high z-index to ensure visibility above all content */
+  pointer-events: auto;
+}
+
+.scroll-track:hover {
+  background: #f5f7fc !important; /* Matches AngularJS line 641 */
+}
+
+.scroll-bar {
+  position: absolute;
+  background: #dadee6; /* Matches @cnv-app-scroll-color from variables.less line 291 */
+  border-radius: 3px;
+  min-height: 20px;
+  right: 1px;
+  width: 6px;
+  opacity: 0; /* Hidden by default - matches AngularJS line 652 */
+  display: block;
+  transition: opacity linear 0.1s, top linear 0.07s; /* Matches AngularJS line 654 */
+  cursor: pointer;
+  pointer-events: auto;
+  top: 0; /* Start at top */
+}
+
+

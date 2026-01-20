@@ -1,0 +1,63 @@
+/* GroupChatAvatar Styles - Matches AngularJS chatUsersWindow.less */
+
+.group-chat-avatar-container {
+  position: relative;
+  display: inline-block;
+  font-size: 8px;
+  padding: 4px;
+  /* Width and height are set via inline styles to support different sizes */
+}
+
+.group-chat-avatar-single {
+  font-size: 15px;
+  margin: -4px;
+}
+
+.group-chat-avatar-top {
+  display: flex;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+}
+
+.group-chat-avatar-bottom {
+  display: flex;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+}
+
+/* Positioning for 2 users */
+.showing2GroupUsersTop {
+  margin-top: 3px;
+  margin-left: 3px;
+}
+
+.showing2GroupUsersBot {
+  margin-top: -6px;
+  margin-left: 17px;
+}
+
+/* Positioning for 3 users */
+.showing3GroupUsersTop {
+  margin-left: 10px;
+  margin-top: 1px;
+}
+
+.showing3GroupUsersBot {
+  margin-top: -2px;
+}
+
+/* Counter badge for 5+ users */
+.groupAvatarCounter {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #4998dd;
+  line-height: 18px;
+  text-align: center;
+  color: white;
+  font-size: 8px;
+  font-weight: 600;
+  display: inline-block;
+  margin-left: 0;
+}
+

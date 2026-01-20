@@ -17,6 +17,10 @@ export interface NetworkUser {
   is_accessible?: boolean;
   last_active_time?: number;
   account_id?: string;
+  show_in_buddy_list?: boolean; // CRITICAL: Filter for buddy list (Angular line 133)
+  searchable?: boolean;
+  publishable?: boolean;
+  status?: string;
   [key: string]: unknown;
 }
 
@@ -62,6 +66,9 @@ class UsersService {
       const usersArray: NetworkUser[] = Object.values(accessibleUsers);
 
       console.log(`[UsersService] Fetched ${usersArray.length} network users`);
+      // Convert object to array and return as-is (no filtering)
+      
+      console.log(`[UsersService] Fetched ${usersArray.length} users from API`);
       
       return usersArray;
     } catch (error) {

@@ -1,0 +1,111 @@
+/* UserSearchDropdown Styles - Matches AngularJS chatWindow.tpl.html and cnvAddUserInChat */
+
+.user-search-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px 4px 0 0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.userSearchBarContainer {
+  position: relative;
+  padding: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.searchChatIconContainer {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.searchChatIcon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  background: url('/assets/img/chat/search-icon.svg') no-repeat center;
+  background-size: contain;
+}
+
+.userSearchBar {
+  width: 100%;
+  padding: 8px 8px 8px 32px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.userSearchBar:focus {
+  outline: none;
+  border-color: #4998dd;
+}
+
+.addUserList {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 250px;
+}
+
+.chat-member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.chat-member:hover {
+  background: #f5f5f5;
+}
+
+.chat-member-selected {
+  background: #e3f2fd;
+}
+
+.user-not-participant {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.user-img-with-presence {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.chat-member-label {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+}
+
+.chat-participant {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.no-users-found {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+}
+
+.scroll-bar-cover-bar {
+  height: 1px;
+  background: transparent;
+}
+
+
+

@@ -1,0 +1,89 @@
+/* MessageList styles - matches AngularJS exactly */
+
+.messageListContainer {
+  background: #fff; /* Matches AngularJS white background - CRITICAL for isolation */
+  flex: 1;
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden; /* Prevent container overflow */
+}
+
+.chatMessageWindow {
+  /* Matches AngularJS styles.less line 446-458 */
+  overflow: hidden;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+/* Hide default scrollbar completely - AngularJS uses custom scrollbar */
+.chatMessageWindow::-webkit-scrollbar {
+  display: none; /* Matches AngularJS line 487 */
+  width: 0; /* Hide scrollbar completely */
+}
+
+/* Hide scrollbar for Firefox */
+.chatMessageWindow {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Custom auto-hiding scrollbar styles - matches AngularJS fullchat_styles.less lines 630-655 */
+.scroll-track {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: transparent;
+  width: 8px;
+  margin: 1px;
+  border-radius: 5px;
+  transition: background-color linear 0.3s;
+  z-index: 10001; /* Very high z-index to ensure visibility above all content (higher than chat window z-index: 10000) */
+  pointer-events: auto;
+  /* Remove bottom: 0, height will be set dynamically */
+}
+
+.scroll-track:hover {
+  background: #f5f7fc !important; /* Matches AngularJS line 641 */
+}
+
+.scroll-bar {
+  position: absolute;
+  background: #dadee6; /* Matches @cnv-app-scroll-color from variables.less line 291 */
+  border-radius: 3px;
+  min-height: 20px;
+  right: 1px;
+  width: 6px;
+  opacity: 0; /* Hidden by default - matches AngularJS line 652 */
+  display: block;
+  transition: opacity linear 0.1s, top linear 0.07s; /* Matches AngularJS line 654 */
+  cursor: pointer;
+  pointer-events: auto;
+  top: 0; /* Start at top */
+}
+
+/* Hide default scrollbar on messageListContainer - use custom scrollbar only */
+.messageListContainer::-webkit-scrollbar {
+  display: none; /* Hide default scrollbar */
+  width: 0; /* Hide scrollbar completely */
+}
+
+.messageListContainer {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Loader for older messages (matches AngularJS items-loading-spinner) */
+/* Matches AngularJS fullchat_styles.less line 579-582 */
+.items-loading-spinner {
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  width: 100%;
+  clear: both; /* Ensure it's on its own line */
+}
+
+
+
+

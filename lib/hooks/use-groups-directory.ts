@@ -57,6 +57,3 @@ export function sortGroupsByName(groups: GroupDirectoryItem[]): GroupDirectoryIt
     return nameA.localeCompare(nameB);
   });
 }
-
-
-

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.chatUserListMainStyl {
+  width: 260px;
+  height: 350px;
+  border: 1px solid #ccc;
+  position: relative;
+}
+
+.chatUserListHeader {
+  height: 28px;
+  background: #7b8386;
+  color: white;
+}
+
+.chatSearchBar {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+  background: white;
+  height: 40px;
+  position: relative;
+}
+
+.searchChatIconContainer {
+  margin-left: 15px;
+  margin-right: 5px;
+  margin-top: 13px;
+}
+
+.searchChatIcon {
+  width: 16px;
+  height: 16px;
+  background: #999;
+  display: inline-block;
+}
+
+.inputSearchBar {
+  width: 77%;
+  height: 38px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+<div class="chatUserListMainStyl">
+  <div class="chatUserListHeader">
+    Header
+  </div>
+  <div class="chatSearchBar">
+    <div class="searchChatIconContainer">
+      <i class="searchChatIcon"></i>
+    </div>
+    <input class="inputSearchBar" placeholder="SEARCH" />
+  </div>
+  <div style="padding: 10px;">
+    Chat list here...
+  </div>
+</div>
+</body>
+</html>
