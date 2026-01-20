@@ -130,16 +130,24 @@ export function useLogin() {
 
 /**
  * Hook for user logout
+ * Matches AngularJS logout() behavior exactly:
+ * - Clears auth state
+ * - Clears localStorage (done in authService.logout())
+ * - Redirects to backend LOGOUT_URL (done in authService.logout())
+ * 
+ * AngularJS flow:
+ * 1. logoutUser() emits 'userSignOutClick' event
+ * 2. MainCtrl listens for 'userSignOutClickInTab' and calls logout()
+ * 3. logout() clears localStorage, stops communications, then redirects to config.LOGOUT_URL
+ * 4. Backend clears session cookie and shows login page (or redirects back)
  */
 export function useLogout() {
   const queryClient = useQueryClient();
-  const router = useRouter();
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
   return useMutation<void, Error>({
-    mutationFn: () => authService.logout(),
-    onSuccess: () => {
-      // Clear Zustand store
+    mutationFn: async () => {
+      // Clear Zustand store before redirect (matches AngularJS state clearing)
       clearAuth();
 
       // Clear session cache
@@ -148,7 +156,10 @@ export function useLogout() {
         status: 200,
       } as ApiResponse<SessionCheckResponse>);
 
-      // Clear window data
+      // Clear all query cache (matches AngularJS behavior of clearing app state)
+      queryClient.clear();
+
+      // Clear window data (matches AngularJS window.com_convo cleanup)
       if (typeof window !== 'undefined') {
         (window as { com_convo?: { sessionData?: { isSignedIn?: boolean } } }).com_convo = {
           sessionData: {
@@ -157,8 +168,14 @@ export function useLogout() {
         };
       }
 
-      // Redirect to login
-      router.push('/login');
+      // Call logout service which will:
+      // 1. Clear localStorage (matches AngularJS localStore.clear())
+      // 2. Redirect to backend LOGOUT_URL (matches AngularJS $window.location.href = config.LOGOUT_URL)
+      //    The backend will clear the session cookie and redirect back to our Next.js login page
+      // Note: logout() does a full page redirect, so this promise will never resolve
+      authService.logout();
     },
+    // Note: No onSuccess callback needed since authService.logout() handles redirect
+    // and the page will reload, so React state cleanup happens automatically
   });
 }

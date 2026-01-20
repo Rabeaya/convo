@@ -26,6 +26,8 @@ import { getFileExtension, getSmallFileIconClassByType } from '@/lib/utils/file-
 import CommentOnThisTooltip from '@/components/common/CommentOnThisTooltip';
 import { clearNativeSelection, getSelectionDataWithin } from '@/lib/utils/text-selection';
 import { limitHtmlText } from '@/lib/utils/html-truncate';
+import { rewriteConvoFilesToProxy } from '@/lib/utils/rich-text';
+import { likeInfoModal } from '@/lib/utils/modal';
 
 function ViewAllCommentsGap({ onClick }: { onClick: () => void }) {
   const [visible, setVisible] = useState(false);
@@ -238,7 +240,8 @@ export default function CommentItem({
   // Some optimistic/server comments can have missing or string timestamps; guard like Angular (which always shows something).
   const rawTs: any = (localComment as any).update_timestamp ?? (localComment as any).creation_timestamp;
   const tsNum = Number(rawTs);
-  const timestampText = formatDateAgo(Number.isFinite(tsNum) ? tsNum : Date.now());
+  // Angular comment template: `commentData.update_timestamp | dateAgo:server_now_timestamp:true:true`
+  const timestampText = formatDateAgo(Number.isFinite(tsNum) ? tsNum : Date.now(), undefined, true, true);
 
   // Comment truncation logic mirrors AngularJS:
   // - prefer `summary` if present
@@ -305,8 +308,8 @@ export default function CommentItem({
     return `${base}${toggle}`;
   }, [fullHtml, localComment, stripTruncatePlaceholders]);
 
-  const lessInnerHtml = useMemo(() => ({ __html: lessHtmlWithToggle }), [lessHtmlWithToggle]);
-  const fullInnerHtml = useMemo(() => ({ __html: fullHtmlWithToggle }), [fullHtmlWithToggle]);
+  const lessInnerHtml = useMemo(() => ({ __html: rewriteConvoFilesToProxy(lessHtmlWithToggle) }), [lessHtmlWithToggle]);
+  const fullInnerHtml = useMemo(() => ({ __html: rewriteConvoFilesToProxy(fullHtmlWithToggle) }), [fullHtmlWithToggle]);
   const hasMore =
     !!localComment.summary ||
     !!localComment.has_more_text ||
@@ -808,11 +811,19 @@ export default function CommentItem({
                 <LikeButton 
                   likeInfo={localComment.like_info} 
                   onLikeClick={handleLikeClick}
+                  onLikeInfoChange={(next) => {
+                    setLocalComment((prev) => ({ ...(prev as any), like_info: { ...(prev as any).like_info, ...next } }) as any);
+                  }}
                 />
                 {localComment.like_info.likes_count > 0 && (
                   <>
                     <span style={{ color: '#959595' }}>&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
-                    <span className="likes_count" style={{
+                    <span
+                      className="likes_count"
+                      onClick={() => {
+                        likeInfoModal({ kind: 'comment', conversationUid: localComment.uid });
+                      }}
+                      style={{
                       color: 'rgb(51, 113, 189)', // Theme color
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',

@@ -21,6 +21,14 @@ const MOBILE = 2;
 const DESKTOP = 4;
 const NOTIFICATION_CENTER = 8;
 
+type NotifyChannel = 'D' | 'E' | 'M' | 'N';
+type NotifyRow = {
+  key: string;
+  label: string;
+  channels: NotifyChannel[];
+  shaded: boolean;
+};
+
 const SETTINGS = {
   notify_only_when_away: 'notify_only_when_away',
   play_sound_on_notification: 'play_sound_on_notification',
@@ -408,6 +416,22 @@ export default function NotificationsSettingsView() {
 
   const mobileSmsRowVisible = accountLevel !== 'STARTER' && !isGuest;
 
+  const notificationRows: NotifyRow[] = useMemo(() => {
+    return [
+      { key: SETTINGS.notify_directs_and_mentions, label: '@Mentions', channels: ['D', 'E', 'M', 'N'], shaded: true },
+      { key: SETTINGS.notify_comments_on_my_posts, label: 'Comments on my posts', channels: ['D', 'E', 'M', 'N'], shaded: false },
+      { key: SETTINGS.notify_comments_on_posts_i_comment_on, label: 'Comments on posts I have commented on', channels: ['D', 'E', 'M', 'N'], shaded: true },
+      { key: SETTINGS.notify_comments_on_directs, label: 'Comments on posts shared with me', channels: ['D', 'E', 'M', 'N'], shaded: false },
+      { key: SETTINGS.notify_new_group_share, label: 'New groups shared with me', channels: ['D', 'E', 'N'], shaded: true },
+      { key: SETTINGS.notify_invites_acceptances, label: 'Someone accepting my invitation', channels: ['E'], shaded: false },
+      ...(isChatEnabled ? [{ key: SETTINGS.notify_incoming_chats, label: 'Chat messages', channels: ['D', 'M'], shaded: true } as NotifyRow] : []),
+      { key: SETTINGS.notify_user_status_updates, label: 'Someone coming online', channels: ['D'], shaded: false },
+      { key: SETTINGS.notify_group_join_requests, label: 'Someone requesting to join group', channels: ['D', 'E', 'N'], shaded: true },
+      { key: SETTINGS.send_confirmation_for_email_posts, label: 'I share a post via email', channels: ['E'], shaded: false },
+      ...(mobileSmsRowVisible ? [{ key: SETTINGS.notify_sms_messages, label: 'Receive SMS Messages', channels: ['M'], shaded: true } as NotifyRow] : []),
+    ];
+  }, [isChatEnabled, mobileSmsRowVisible]);
+
   if (isLoading && !initialized) {
     return (
       <div className="loading-spinner">
@@ -554,82 +578,7 @@ export default function NotificationsSettingsView() {
 
           {/* Rows */}
           <div>
-            {([
-              {
-                key: SETTINGS.notify_directs_and_mentions,
-                label: '@Mentions',
-                channels: ['D', 'E', 'M', 'N'] as const,
-                shaded: true,
-              },
-              {
-                key: SETTINGS.notify_comments_on_my_posts,
-                label: 'Comments on my posts',
-                channels: ['D', 'E', 'M', 'N'] as const,
-                shaded: false,
-              },
-              {
-                key: SETTINGS.notify_comments_on_posts_i_comment_on,
-                label: 'Comments on posts I have commented on',
-                channels: ['D', 'E', 'M', 'N'] as const,
-                shaded: true,
-              },
-              {
-                key: SETTINGS.notify_comments_on_directs,
-                label: 'Comments on posts shared with me',
-                channels: ['D', 'E', 'M', 'N'] as const,
-                shaded: false,
-              },
-              {
-                key: SETTINGS.notify_new_group_share,
-                label: 'New groups shared with me',
-                channels: ['D', 'E', 'N'] as const,
-                shaded: true,
-              },
-              {
-                key: SETTINGS.notify_invites_acceptances,
-                label: 'Someone accepting my invitation',
-                channels: ['E'] as const,
-                shaded: false,
-              },
-              ...(isChatEnabled
-                ? [
-                    {
-                      key: SETTINGS.notify_incoming_chats,
-                      label: 'Chat messages',
-                      channels: ['D', 'M'] as const,
-                      shaded: true,
-                    },
-                  ]
-                : []),
-              {
-                key: SETTINGS.notify_user_status_updates,
-                label: 'Someone coming online',
-                channels: ['D'] as const,
-                shaded: false,
-              },
-              {
-                key: SETTINGS.notify_group_join_requests,
-                label: 'Someone requesting to join group',
-                channels: ['D', 'E', 'N'] as const,
-                shaded: true,
-              },
-              {
-                key: SETTINGS.send_confirmation_for_email_posts,
-                label: 'I share a post via email',
-                channels: ['E'] as const,
-                shaded: false,
-              },
-              ...(mobileSmsRowVisible
-                ? [
-                    {
-                      key: SETTINGS.notify_sms_messages,
-                      label: 'Receive SMS Messages',
-                      channels: ['M'] as const,
-                      shaded: true,
-                    },
-                  ]
-                : []),
-            ] as const).map((row) => (
+            {notificationRows.map((row) => (
               <div
                 key={row.key}
                 style={{ padding: '5px', backgroundColor: row.shaded ? '#f5f7fc' : undefined }}

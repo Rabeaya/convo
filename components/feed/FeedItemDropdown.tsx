@@ -29,6 +29,7 @@ interface FeedItemDropdownProps {
   ddType?: string;
   containerClass?: string;
   onMenuOpen?: () => void;
+  conditions?: Record<string, boolean>;
 }
 
 export default function FeedItemDropdown({ 
@@ -36,10 +37,13 @@ export default function FeedItemDropdown({
   align = 'right',
   ddType = 'more-options',
   containerClass,
-  onMenuOpen
+  onMenuOpen,
+  conditions = {}
 }: FeedItemDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [submenuOpen, setSubmenuOpen] = useState<number | null>(null);
+  const submenuRefs = useRef<Record<number, HTMLUListElement | null>>({});
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLUListElement>(null);
 
@@ -72,6 +76,11 @@ export default function FeedItemDropdown({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('mousewheel', handleMouseWheel);
+      // Cleanup timeout on unmount
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
+      }
     };
   }, [isOpen, onMenuOpen]);
 
@@ -162,7 +171,9 @@ export default function FeedItemDropdown({
       >
         <i
           className={ddType === 'more-options' 
-            ? 'cnv-icons-16 icons2-more-options-gray'
+            // Our sprite bundle includes `icon1_more-01-darkgray` (three dots), but not `icons2-more-options-gray`.
+            // Use the available icon to match Angular’s three-dot menu.
+            ? 'cnv-icons-16 icon1_more-01-darkgray'
             : ddType === 'circleLessChevron'
             ? 'cnv-icons-16 icon1_more-01-dark'
             : 'cnv-icons-20 icons_Dropdown_incircle-lightgray'
@@ -231,8 +242,30 @@ export default function FeedItemDropdown({
                     handleOptionClick(option);
                   }}
                   onMouseEnter={(e) => {
-                    if (hasSubmenu && !isSubmenuItemOpen) {
+                    if (hasSubmenu) {
+                      // Clear any pending timeout
+                      if (hoverTimeoutRef.current) {
+                        clearTimeout(hoverTimeoutRef.current);
+                        hoverTimeoutRef.current = null;
+                      }
                       setSubmenuOpen(index);
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    // Angular: hide submenu on mouseleave of parent item
+                    // Small delay to allow mouse to move to submenu
+                    if (hasSubmenu) {
+                      if (hoverTimeoutRef.current) {
+                        clearTimeout(hoverTimeoutRef.current);
+                      }
+                      hoverTimeoutRef.current = setTimeout(() => {
+                        const submenuEl = submenuRefs.current[index];
+                        // Check if mouse is still over submenu
+                        if (!submenuEl || !submenuEl.contains(document.elementFromPoint(e.clientX, e.clientY) as Node)) {
+                          setSubmenuOpen(null);
+                        }
+                        hoverTimeoutRef.current = null;
+                      }, 150);
                     }
                   }}
                   style={{
@@ -278,7 +311,7 @@ export default function FeedItemDropdown({
                       }}
                     ></i>
                   )}
-                  {option.conditionalLabelIcon && option.condition && (
+                  {option.conditionalLabelIcon && option.condition && conditions[option.condition] && (
                     <i
                       className={`${option.iconStyle || 'cnv-icons-12'} icon-cnv-tick`}
                       style={{
@@ -294,12 +327,32 @@ export default function FeedItemDropdown({
                 {/* Submenu */}
                 {hasSubmenu && isSubmenuItemOpen && (
                   <ul
+                    ref={(el) => {
+                      if (el) {
+                        submenuRefs.current[index] = el;
+                        // Angular: left: 196px, margin-top: -26px
+                        el.style.position = 'absolute';
+                        el.style.left = '196px';
+                        el.style.marginTop = '-26px';
+                        // Check if submenu would overflow viewport and flip if needed
+                        requestAnimationFrame(() => {
+                          const rect = el.getBoundingClientRect();
+                          const winWidth = window.innerWidth;
+                          const selWidth = el.offsetWidth;
+                          if (rect.left + selWidth + 4 > winWidth) {
+                            const currentLeft = parseInt(el.style.left.replace('px', '')) || 196;
+                            el.style.left = `${currentLeft - (rect.left + selWidth - winWidth - 4)}px`;
+                          }
+                        });
+                      } else {
+                        delete submenuRefs.current[index];
+                      }
+                    }}
                     className="dropdown-submenu"
                     style={{
                       position: 'absolute',
-                      left: '100%',
-                      top: '0',
-                      marginLeft: '5px',
+                      left: '196px',
+                      marginTop: '-26px',
                       minWidth: '180px',
                       backgroundColor: '#fff',
                       border: '1px solid #ddd',
@@ -309,6 +362,23 @@ export default function FeedItemDropdown({
                       padding: '5px 0',
                       margin: '0',
                       zIndex: 1001,
+                    }}
+                    onMouseEnter={() => {
+                      // Clear any pending timeout
+                      if (hoverTimeoutRef.current) {
+                        clearTimeout(hoverTimeoutRef.current);
+                        hoverTimeoutRef.current = null;
+                      }
+                      // Keep submenu open when hovering over it
+                      setSubmenuOpen(index);
+                    }}
+                    onMouseLeave={() => {
+                      // Close submenu when mouse leaves it
+                      if (hoverTimeoutRef.current) {
+                        clearTimeout(hoverTimeoutRef.current);
+                        hoverTimeoutRef.current = null;
+                      }
+                      setSubmenuOpen(null);
                     }}
                   >
                     {option.submenu!.map((subOption, subIndex) => {
@@ -333,10 +403,15 @@ export default function FeedItemDropdown({
                           <a
                             href="#"
                             className="menu-item-wrapper"
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.preventDefault();
                               if (subOption.callback) {
-                                subOption.callback();
+                                try {
+                                  // Await the callback if it's async (permissions callbacks are async)
+                                  await subOption.callback();
+                                } catch (error) {
+                                  console.error('Error in submenu callback:', error);
+                                }
                                 setIsOpen(false);
                                 setSubmenuOpen(null);
                               }
@@ -361,7 +436,22 @@ export default function FeedItemDropdown({
                               e.currentTarget.style.backgroundColor = 'transparent';
                             }}
                           >
-                            {subOption.icon && (
+                            {/* Angular: conditionalLabelIcon shows icon on LEFT when condition is true, spacer when false */}
+                            {subOption.conditionalLabelIcon && subOption.condition ? (
+                              conditions[subOption.condition] ? (
+                                <i
+                                  className={getIconClass(subOption)}
+                                  style={{
+                                    display: 'inline-block',
+                                    marginRight: '8px',
+                                    width: subOption.iconStyle?.includes('12') ? '12px' : '16px',
+                                    height: subOption.iconStyle?.includes('12') ? '12px' : '16px',
+                                  }}
+                                ></i>
+                              ) : (
+                                <span style={{ display: 'inline-block', width: '14px', marginRight: '8px' }}></span>
+                              )
+                            ) : subOption.icon ? (
                               <i
                                 className={getIconClass(subOption)}
                                 style={{
@@ -371,19 +461,8 @@ export default function FeedItemDropdown({
                                   height: subOption.iconStyle?.includes('12') ? '12px' : '16px',
                                 }}
                               ></i>
-                            )}
+                            ) : null}
                             <span style={{ flex: 1 }}>{subOption.label}</span>
-                            {subOption.conditionalLabelIcon && subOption.condition && (
-                              <i
-                                className={`${subOption.iconStyle || 'cnv-icons-12'} icon-cnv-tick`}
-                                style={{
-                                  marginLeft: '8px',
-                                  display: 'inline-block',
-                                  width: '12px',
-                                  height: '12px',
-                                }}
-                              ></i>
-                            )}
                           </a>
                         </li>
                       );

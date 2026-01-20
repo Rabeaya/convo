@@ -137,38 +137,48 @@ class AuthService {
    * @returns Promise with session check response
    */
   async checkSession(): Promise<ApiResponse<SessionCheckResponse>> {
-    // IMPORTANT:
-    // Always perform session checks via our Next.js proxy so localhost cookies are forwarded upstream.
-    // If we call `https://{servicesHost}/app/login/?is_ajax=1` directly from the browser, cookies won't be sent,
-    // and the app will look logged out on every refresh.
+    // IMPORTANT: do NOT call https://{servicesHost}/app/login from the browser directly (CORS/cookies).
+    // Use our Next.js proxy so reloads preserve session like Angular.
+    const servicesHost = typeof window !== 'undefined' ? (window as any).servicesHost : undefined;
     const response = await fetch('/api/v1/session', {
       method: 'GET',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...(servicesHost && { 'x-services-host': servicesHost }),
       },
     });
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          data: { isSignedIn: false },
-          status: response.status,
-        };
-      }
-      throw {
-        message: 'Session check failed',
-        status: response.status,
-      };
+    // Normalize response shape so callers can rely on `isSignedIn`.
+    // Our session proxy may return either:
+    // - `{ isSignedIn: boolean, signInResponseData?: ... }` (preferred)
+    // - `{ data: ... }` or direct upstream payload
+    // - HTML/error on failure
+    if (response.status === 401 || response.status === 403) {
+      return { data: { isSignedIn: false }, status: response.status };
     }
 
-    const data = await response.json();
+    const text = await response.text();
+    let json: any = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      // If it's not JSON, treat as not signed in to avoid crashing the app.
+      return { data: { isSignedIn: false }, status: response.status };
+    }
+
+    // If proxy already returned the canonical shape, keep it.
+    if (json && typeof json === 'object' && typeof json.isSignedIn === 'boolean') {
+      return { data: json as SessionCheckResponse, status: response.status };
+    }
+
+    // Otherwise wrap whatever we got as signed-in payload (Angular-ish shape is often `{ data: ... }`).
+    if (!response.ok) {
+      throw { message: json?.error || json?.message || 'Session check failed', status: response.status };
+    }
 
     return {
-      data: {
-        isSignedIn: true,
-        signInResponseData: (data as any)?.data || data,
-      },
+      data: { isSignedIn: true, signInResponseData: json?.data ?? json } as SessionCheckResponse,
       status: response.status,
     };
   }
@@ -194,17 +204,35 @@ class AuthService {
 
   /**
    * Logout user
+   * Matches AngularJS logout() function behavior exactly:
+   * - Clears localStorage (localStore.clear())
+   * - Redirects to logout endpoint
+   * 
+   * AngularJS: $window.location.href = config.LOGOUT_URL
+   * For Next.js: We use our own logout API route which handles the backend call and redirect
    */
-  async logout(): Promise<void> {
-    const logoutUrl = this.getLogoutUrl();
-    const response = await fetch(logoutUrl, {
-      method: 'GET',
-      credentials: 'include',
-    });
-    
-    if (!response.ok) {
-      console.warn('Logout request failed:', response.status);
+  logout(): void {
+    if (typeof window === 'undefined') return;
+
+    // Clear localStorage (matches AngularJS localStore.clear())
+    try {
+      localStorage.clear();
+    } catch (e) {
+      console.warn('Failed to clear localStorage:', e);
     }
+
+    // Get the Next.js login URL (e.g., http://localhost:3001/login)
+    const nextJsLoginUrl = `${window.location.origin}/login`;
+    
+    // Use Next.js logout API route which will:
+    // 1. Call backend logout endpoint to clear session cookie
+    // 2. Redirect to our Next.js login page
+    const logoutApiUrl = `/api/v1/logout?redirect=${encodeURIComponent(nextJsLoginUrl)}`;
+    
+    console.log('[Logout] Redirecting to logout API:', logoutApiUrl);
+    
+    // Redirect to our logout API route (which handles backend call and redirects to login)
+    window.location.href = logoutApiUrl;
   }
 
   /**
@@ -237,12 +265,6 @@ class AuthService {
     return '/api/v1/login';
   }
 
-  /**
-   * Get logout URL from config
-   */
-  private getLogoutUrl(): string {
-    return `${this.getAppLoginUrl()}?logout=1`;
-  }
 }
 
 export const authService = new AuthService();

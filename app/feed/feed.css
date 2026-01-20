@@ -44,6 +44,62 @@
   margin: 0px 30px 0px 0px;
 }
 
+/* Comment Editor Action Bar - matches AngularJS styles.less */
+.feed-comment-editor-cont .comment-action-bar {
+  position: relative;
+  padding: 9px 8px;
+  border-top: 1px solid #ced2dc;
+  border-bottom: 1px solid transparent;
+}
+
+.feed-comment-editor-cont .comment-action-bar .comment-action {
+  text-align: center;
+  margin-right: 4px;
+  cursor: pointer;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.feed-comment-editor-cont .comment-action-bar .comment-action.anim {
+  transition: transform 125ms cubic-bezier(0.4, 0, 1, 1);
+  opacity: 0.85;
+}
+
+.feed-comment-editor-cont .comment-action-bar .comment-action.anim:hover {
+  transform: scale(1.25);
+}
+
+.feed-comment-editor-cont .comment-action-bar .comment-action.anim.disabled:hover {
+  transform: none !important;
+  transition: none !important;
+}
+
+.feed-comment-editor-cont .comment-action-bar .comment-action.emoji-popup-btn {
+  vertical-align: bottom;
+}
+
+.feed-comment-editor-cont .comment-action-bar .comment-action.file-chooser {
+  background-size: 16px;
+  background-position: 2px 2px;
+}
+
+.feed-comment-editor-cont .comment-action-bar .comment-action.gif-attachment {
+  background-position: 0px 4px;
+}
+
+.feed-comment-editor-cont .comment-action-bar .comment-action.disabled {
+  opacity: 0.15;
+  pointer-events: initial;
+}
+
+.feed-comment-editor-cont .comment-action-bar .comment-action.no-pointer-events {
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 .feed-item-container {
   padding: 0px;
   position: relative;
@@ -180,9 +236,67 @@
   padding-right: 20px;
 }
 
+.note .note-details:before {
+  content: '';
+  width: 14px;
+  margin-left: -14px;
+  height: 100%;
+  display: block;
+  position: absolute;
+  background: transparent;
+}
+
 .note .note-details p {
   margin-top: 0;
   margin-bottom: 0 !important;
+}
+
+.note .note-details div p {
+  margin-bottom: 0px !important;
+}
+
+.note .note-details font {
+  font-family: "Source Sans Pro", Arial, sans-serif !important;
+}
+
+/* Rich text list support (Angular default browser rendering; ensure bullets/numbering are visible) */
+.note .note-details ul,
+.note .note-details ol {
+  margin: 0;
+  padding-left: 20px;
+  list-style-position: outside;
+}
+
+.note .note-details ul {
+  list-style-type: disc;
+}
+
+.note .note-details ol {
+  list-style-type: decimal;
+}
+
+.note .note-details li {
+  margin: 0;
+}
+
+/* Same for comment rich text */
+.comment-cont .comment .comment_txt ul,
+.comment-cont .comment .comment_txt ol {
+  margin: 0;
+  padding-left: 20px;
+  list-style-position: outside;
+}
+
+.comment-cont .comment .comment_txt ul {
+  list-style-type: disc;
+}
+
+.comment-cont .comment .comment_txt ol {
+  list-style-type: decimal;
+}
+
+.comment-cont .comment .comment_txt li {
+  margin: 0;
 }
 
 .note .title-text {
@@ -1619,4 +1733,556 @@
   opacity: 1;
 }
 
+
+/* File Gallery Styles - matches AngularJS feedGallery.less */
+.cnv-note-gallery-container {
+  width: auto;
+  height: auto;
+  padding: 3px 0 3px 0;
+  display: inline-block;
+  max-width: 100%;
+  position: relative;
+  margin-top: 3px;
+}
+
+.cnv-note-gallery-container > .feedGalleryContainer {
+  overflow-y: hidden;
+  overflow-x: auto;
+  width: auto;
+  height: 100%;
+  position: relative;
+  display: block;
+}
+
+.cnv-note-gallery-container > .feedGalleryContainer ul.mainUl {
+  padding: 0px;
+  margin: 0 0 0 0 !important;
+  display: inline-flex;
+}
+
+.cnv-note-gallery-container > .feedGalleryContainer ul li.mainLi {
+  display: inline-block;
+  margin-right: 5px;
+  border: 1px solid #e3e8ed;
+  line-height: 217px;
+  text-align: center;
+  position: relative;
+  min-height: 222px;
+  min-width: 180px;
+  cursor: pointer;
+}
+
+.cnv-note-gallery-container > .feedGalleryContainer ul li.mainLi img {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.cnv-note-gallery-container > .feedGalleryContainer ul li.mainLi .middle-align {
+  vertical-align: middle !important;
+}
+
+/* File detail tab - matches AngularJS feedGallery.less */
+.file-detail-tab {
+  height: 30px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.65);
+  position: absolute;
+  bottom: 0;
+  line-height: normal;
+  text-align: left;
+  padding: 0 5px 0 5px;
+  display: block;
+}
+
+.file-detail-tab .ext_holder {
+  top: 6px;
+  border: 1px solid white;
+}
+
+.file-detail-tab i {
+  width: 35px;
+  height: 18px;
+  display: block;
+  float: left;
+  opacity: 0.75;
+  position: relative;
+  top: 5px;
+}
+
+.file-detail-tab i > span.fileExt {
+  display: inline-block;
+  position: relative;
+  top: -3px;
+  font-size: 12px;
+}
+
+.file-detail-tab span.filename {
+  color: #fff;
+  font-size: 14px;
+  line-height: normal;
+  width: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  padding-left: 3px;
+  line-height: 29px;
+}
+
+/* File icon styles - matches AngularJS cnv-sprites.less */
+.cnv-small-file-ico {
+  width: 40px;
+  height: 20px;
+  border: 2px solid white;
+  text-align: center;
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 1;
+  text-transform: uppercase;
+  font-style: normal;
+  color: #2b2b2b;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.cnv-small-file-ico.pdf {
+  background: #e93535;
+  opacity: 0.75;
+  color: #fff;
+  border-radius: 0px;
+}
+
+.cnv-small-file-ico.ppt,
+.cnv-small-file-ico.pptx {
+  background: #f58528;
+  opacity: 0.75;
+  color: #fff;
+  border-radius: 0px;
+}
+
+.cnv-small-file-ico.jpeg,
+.cnv-small-file-ico.jpg {
+  background: #68b95c;
+  opacity: 0.75;
+  color: #fff;
+  border-radius: 0px;
+}
+
+.cnv-small-file-ico.doc,
+.cnv-small-file-ico.docx {
+  background: #1c8ba5;
+  opacity: 0.75;
+  color: #fff;
+  border-radius: 0px;
+}
+
+.cnv-small-file-ico.xls,
+.cnv-small-file-ico.xlsx,
+.cnv-small-file-ico.xlsb,
+.cnv-small-file-ico.xlsm {
+  background: #3b8740;
+  opacity: 0.75;
+  color: #fff;
+  border-radius: 0px;
+}
+
+.cnv-small-file-ico.png,
+.cnv-small-file-ico.psd {
+  background: #6dc6b0;
+  opacity: 0.75;
+  color: #fff;
+  border-radius: 0px;
+}
+
+.cnv-small-file-ico.gif {
+  background: #7c5b99;
+  opacity: 0.75;
+  color: #fff;
+  border-radius: 0px;
+}
+
+.cnv-small-file-ico.rtf,
+.cnv-small-file-ico.air,
+.cnv-small-file-ico.avi,
+.cnv-small-file-ico.bmp,
+.cnv-small-file-ico.flv,
+.cnv-small-file-ico.mp3,
+.cnv-small-file-ico.mpeg,
+.cnv-small-file-ico.pps,
+.cnv-small-file-ico.tif,
+.cnv-small-file-ico.tga,
+.cnv-small-file-ico.txt,
+.cnv-small-file-ico.rar,
+.cnv-small-file-ico.wav,
+.cnv-small-file-ico.wma,
+.cnv-small-file-ico.mov,
+.cnv-small-file-ico.json {
+  background: #047eb3;
+  opacity: 0.75;
+  color: #fff;
+  border-radius: 0px;
+}
+
+/* Note: mp4 files use default cnv-small-file-ico (no extension class) */
+/* AngularJS: case "mp4": className = 'cnv-small-file-ico'; (no extension class) */
+/* This means mp4 files use white background, not colored background */
+
+.file-detail-tab .ext_holder {
+  top: 6px;
+  border: 1px solid white;
+}
+
+.file-detail-tab .cnv-small-file-ico {
+  width: 35px;
+  height: 18px;
+}
+
+/* Comment attachment styles - matches AngularJS feed.less */
+.comment-attachments {
+  margin: 4px 0px 4px 0px;
+  display: inline-block;
+  position: relative;
+}
+
+.comment-attachments .attachment-cont {
+  display: inline-block;
+  position: relative;
+}
+
+.comment-attachments .icon-cont {
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  padding: 3px 0px;
+  display: inline-block;
+  width: 90px;
+  height: 90px;
+  text-align: center;
+  margin-left: 1px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.comment-attachments .icon-cont .file-icon {
+  margin: 6px;
+}
+
+.comment-attachments .file-info {
+  position: absolute;
+  bottom: 0;
+  left: 1px;
+  right: 1px;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0px 2px;
+  font-size: 12px;
+  z-index: 2;
+}
+
+.comment-attachments .file-info .ext_holder {
+  vertical-align: middle;
+  margin: 2px 2px 2px 1px;
+  height: 18px;
+  line-height: 16px;
+  width: 32px;
+  display: inline-block;
+}
+
+.comment-attachments .file-info .ext_holder span {
+  display: inline-block;
+  color: #fff;
+  text-transform: uppercase;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* Comment file icons - matches AngularJS feed.less .comment .comment_body .img-snippet i.cnv-small-file-ico */
+/* In comments, file icons have gray border and text, NOT colored backgrounds */
+/* Must override ALL colored background classes with !important */
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.pdf,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.pptx,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.ppt,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.doc,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.docx,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.xls,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.xlsx,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.jpg,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.jpeg,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.png,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.gif,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.mp4,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.mov,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.avi,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.mpeg {
+  background: none !important;
+  border: 1px solid rgba(123, 131, 134, 0.7) !important;
+  border-radius: 3px !important;
+  width: 32px;
+  height: 17px;
+  font-size: 12px;
+  display: inline-block;
+  color: rgba(123, 131, 134, 0.7) !important;
+  margin-top: 2px;
+  opacity: 0.75 !important;
+}
+
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.pdf span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.pptx span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.ppt span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.doc span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.docx span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.xls span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.xlsx span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.jpg span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.jpeg span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.png span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.gif span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.mp4 span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.mov span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.avi span,
+.comment-attachments .file-info .ext_holder.cnv-small-file-ico.mpeg span {
+  color: rgba(123, 131, 134, 0.7) !important;
+}
+
+.comment-attachments .file-info .attachment-title {
+  display: inline-block;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comment-attachments .attachment-play-overlay {
+  background-size: 50px 50px;
+}
+
+/* Dropzone - matches AngularJS inlineInsert/styles.less */
+.dropzone {
+  position: absolute;
+  background: #fff;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  z-index: 5;
+  margin: -2px;
+  cursor: -webkit-grabbing;
+  transition: transform 0.2s ease;
+}
+
+.dropzone > div {
+  display: table;
+  height: 100%;
+  width: 100%;
+}
+
+.dropzone > div > div {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: center;
+  color: #333;
+  font-size: large;
+}
+
+.dropzone.dropzone-expand {
+  display: block;
+  opacity: 1;
+  border: 3px dashed #e0e0e0;
+  border-radius: 3px;
+}
+
+.dropzone.dropzone-expand .icon-before-message:before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  display: inline-block;
+  background-image: url(/assets/img/tags/locked.png);
+  margin: 0px 10px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.dropzone.dropzone-collapse {
+  display: none !important;
+}
+
+.feed-comment-editor-cont .dropzone.dropzone-expand {
+  border-radius: 3px;
+}
+
+/* Comment file attachments upload reel - matches AngularJS feed.less .upload-files-reel-comments */
+.upload-files-reel-comments {
+  position: relative;
+  border-top: 1px solid #e0e0e0;
+  background: #f2f4f8;
+  padding-left: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  list-style: none;
+  display: flex;
+}
+
+.upload-files-reel-comments .attachment-box {
+  background: transparent;
+  height: 90px !important;
+  min-width: 95px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.upload-files-reel-comments .attachment-box.chooser {
+  height: 98px !important;
+  overflow: visible !important;
+}
+
+.upload-files-reel-comments .attachment-box:not(:first-child) {
+  padding-left: 6px;
+}
+
+.upload-files-reel-comments .attachment-box-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 5px;
+  height: 98px;
+  background: transparent;
+  border: 1px solid #e0e0e0;
+}
+
+.upload-files-reel-comments .attachment-box .progress-bar {
+  height: 98px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.upload-files-reel-comments .attachment-box .progress-bar .bar-internal {
+  height: 98px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-files-reel-comments .attachment-box img {
+  max-height: 90px;
+  max-width: 95px;
+  margin-right: 0px;
+  display: block;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.upload-files-reel-comments .attachment-box .fileNames {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 7px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.upload-files-reel-comments .attachment-box .remove-file {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: none;
+  background: none;
+  background-repeat: no-repeat;
+  background-image: url(/assets/img/inlineInsert/remove.png);
+  background-position: center;
+  cursor: pointer;
+  display: none;
+  z-index: 10;
+}
+
+.upload-files-reel-comments .attachment-box:hover .remove-file {
+  display: block;
+}
+
+.upload-files-reel-comments .attachment-box .remove-file:hover {
+  background-image: url(/assets/img/inlineInsert/remove-press.png);
+}
+
+.upload-files-reel-comments .attachment-box .failed-upload {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  padding: 4px;
+  text-align: center;
+}
+
+.upload-files-reel-comments .attachment-box .failed-upload .upload-failed-icon {
+  width: 24px;
+  height: 24px;
+  background: url(/assets/img/common/webapp_upload_error.png) no-repeat center;
+  background-size: contain;
+  margin-bottom: 4px;
+}
+
+.upload-files-reel-comments .attachment-box.chooser {
+  padding-left: 6px;
+  position: relative;
+  overflow: visible !important;
+}
+
+.upload-files-reel-comments .attachment-box.chooser .plus-icon {
+  width: 100px;
+  height: 98px;
+  background: url(/assets/img/inlineInsert/add-more.jpg) no-repeat center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  display: block;
+}
+
+.comment-attachments .attachment-play-overlay.videoHoverIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  background: url(/assets/img/videoPlayback/videoHover.png) no-repeat;
+  background-position: 50%;
+  background-size: 50px 50px;
+  cursor: pointer;
+}
 

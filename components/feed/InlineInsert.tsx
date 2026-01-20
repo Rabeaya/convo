@@ -157,7 +157,10 @@ export default function InlineInsert() {
     return `https://${host}`;
   };
   
-  const { usersArray, usersMap } = useUsers();
+  const usersQuery = useUsers();
+  const usersData = (usersQuery as any)?.data;
+  const usersArray = (usersData as any)?.usersArray || [];
+  const usersMap = (usersData as any)?.usersMap || {};
   const groupsQuery = useGroups();
   const groupsData: any = (groupsQuery as any)?.data;
 
@@ -441,7 +444,7 @@ export default function InlineInsert() {
       accountId = String(win?.com_convo?.sessionData?.signInResponseData?.account_id || '');
     }
     
-    const appInstanceId = 6; // Notes app instance
+    const appInstanceId: number = 6; // Notes app instance
     let dir = '';
     if (appInstanceId === 4) {
       dir = 'link';

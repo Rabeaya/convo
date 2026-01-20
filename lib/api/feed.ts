@@ -39,6 +39,8 @@ export interface FeedItem {
   viewData?: any;
   _hide?: boolean;
   _actions?: any;
+  deletable?: boolean;
+  restorable?: boolean;
 }
 
 export interface Comment {

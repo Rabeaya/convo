@@ -36,6 +36,7 @@
   --link-color: var(--cnv-blue-dark);
   --gray-base: #7b8386;
   --dark-gray-base: #2b2b2b;
+  --meta-text: #7b8386;
   --cnv-comments-panel-bg: #f2f4f8;
   --cnv-feed-comments-panel-bg: #f2f4f8;
   --cnv-feed-geo-location-bg: #e3f0fd;
@@ -87,6 +88,153 @@
   --cnv-popover-bg: #1e2e3d;
   --cnv-app-border-color: #dde2ea;
   --cnv-app-gradiant: #3b409c 0%, #3172cb 100%;
+}
+
+/* Prompt Modal Styles - matches AngularJS alertsModal.less */
+.prompt-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prompt-modal > .modal-dialog {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+
+.prompt-modal > .modal-dialog > .modal-content {
+  border-radius: 8px;
+  background-color: #fff !important; /* Ensure solid white background - not transparent */
+  position: relative;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5); /* Bootstrap modal shadow */
+  opacity: 1 !important; /* Ensure fully opaque */
+}
+
+.prompt-modal > .modal-dialog > .modal-content > .modal-header {
+  background: #4183d7; /* @cnv-blue */
+  height: 56px;
+  color: #ffffff;
+  padding: 5px 15px 0 15px;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.prompt-modal > .modal-dialog > .modal-content > .modal-header > h4 {
+  display: inline-block;
+  float: left;
+  margin-top: 13px;
+  margin-bottom: 0;
+  font-size: 18px;
+  font-weight: 400;
+  color: #fff;
+}
+
+.prompt-modal > .modal-dialog > .modal-content > .modal-header > .close {
+  margin-top: 10px;
+  font-size: 21px;
+  line-height: 1;
+  color: #fff;
+  opacity: 1;
+  float: right;
+  font-weight: 700;
+}
+
+.prompt-modal > .modal-dialog > .modal-content > .modal-body {
+  padding: 15px;
+}
+
+.prompt-modal > .modal-dialog > .modal-content > .modal-body > p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #272b2c;
+}
+
+.prompt-modal > .modal-dialog > .modal-content > .modal-footer {
+  margin: 15px 15px 0 15px;
+  padding: 15px;
+  border-top: none;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.prompt-modal > .modal-dialog > .modal-content > .modal-footer > .btn {
+  padding: 8px 16px;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.prompt-modal > .modal-dialog > .modal-content > .modal-footer > .btn-primary {
+  background-color: #4183d7; /* @cnv-blue */
+  color: #fff;
+  border: none;
+}
+
+.prompt-modal > .modal-dialog > .modal-content > .modal-footer > .btn-default {
+  background-color: #fff;
+  color: #4183d7; /* @cnv-blue */
+  border: 1px solid #4183d7; /* @cnv-blue */
+}
+
+/* Modal backdrop - Bootstrap style */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5) !important; /* Ensure backdrop is visible */
+  z-index: 1040;
+  opacity: 1 !important; /* Ensure fully opaque */
+}
+
+/* Banner Styles - matches AngularJS cnvBanners/styles.less */
+#bannersCont {
+  position: fixed;
+  z-index: 11;
+  top: 70px; /* @topHeaderBarHeight + 10px */
+  text-align: center;
+  display: inline-block;
+  left: 50%;
+  -webkit-transform: translateX(-50%);
+  transform: translateX(-50%);
+}
+
+.banners-cont {
+  display: inline-block;
+}
+
+.banner {
+  padding: 3px 8px 3px 12px;
+  background-color: #fcf1ce; /* @yellow-color-light - yellow ticker background */
+  border: 1px solid #f0ad4e; /* @yellow-color-dark - yellow ticker border */
+  border-radius: 2px;
+  box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.3);
+  min-width: 250px;
+  max-width: 370px;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: top;
+}
+
+.banner span {
+  padding: 0px;
+}
+
+.banner .network-domain {
+  vertical-align: initial;
+  font-weight: bold;
+  padding: 0px !important;
 }
 
 @theme inline {
@@ -1069,5 +1217,39 @@ body {
   font-weight: 400;
 }
 .note-snippet-playback-banner-wrapper .comment-body a.back-btn:hover {
+  text-decoration: underline;
+}
+
+/* Meta text styling (matches AngularJS override.less) */
+.meta,
+.meta:hover,
+.meta:active,
+.meta:focus {
+  color: var(--meta-text, #7b8386);
+  text-decoration: none;
+}
+
+.meta:hover {
+  text-decoration: underline;
+}
+
+/* Comments closed alert (matches AngularJS cnvCommentEditor.tpl.html) */
+.comments-closed-alert {
+  margin: 0;
+  padding: 8px;
+  color: var(--meta-text, #7b8386);
+  font-size: 14px;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.comments-closed-alert.t-padding {
+  padding-top: 12px;
+}
+
+.comments-closed-alert .meta {
+  color: var(--meta-text, #7b8386);
+}
+
+.comments-closed-alert .meta:hover {
   text-decoration: underline;
 }

@@ -79,14 +79,7 @@ export function classifyFulfilledAndUnfulfilledConstraintsByPassword(
 
 export function checkIfAllConstraintsAreMet(password: string): boolean {
   const constraints = classifyFulfilledAndUnfulfilledConstraintsByPassword(password);
-  let flag = true;
-  constraints.forEach((value) => {
-    if (value.fulfilled === false) {
-      flag = false;
-      return false;
-    }
-  });
-  return flag;
+  return constraints.every((c) => c.fulfilled === true);
 }
 
 export function getPasswordComplexityConstraintsBitMap() {
