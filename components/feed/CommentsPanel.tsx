@@ -7,7 +7,7 @@
  * Migrated from AngularJS cnv-comments-panel directive
  */
 
-import { useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type MutableRefObject } from 'react';
 import { FeedItem, Comment } from '@/lib/api/feed';
 import { User } from '@/lib/api/auth';
 import CommentItem from './CommentItem';
@@ -18,6 +18,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { useFeedPoll } from '@/lib/hooks/use-feed';
 import { useQueryClient } from '@tanstack/react-query';
 import { rmAllSelections, selectTextNested } from '@/lib/utils/text-selections-engine';
+import { likeInfoModal } from '@/lib/utils/modal';
 
 // Helper function to get user name from users map
 function getUserName(users: Record<string, User>, userId: string): string {
@@ -40,6 +41,14 @@ interface CommentsPanelProps {
     ) => void) | null
   >;
 }
+
+export type CommentsPanelHandle = {
+  /**
+   * Angular parity: showAndActivateCommentsPanel()
+   * Activates/focuses the editor without forcing "expand comments" (that is controlled by the bar links).
+   */
+  activateEditor: (initialText?: string, _showOnLoad?: boolean) => void;
+};
 
 // Helper to sort comments by creation_timestamp (oldest first, newest at bottom)
 const sortCommentsByTimestamp = (comments: Comment[]): Comment[] => {
@@ -97,7 +106,10 @@ const mergePreferRicherComment = (existing: Comment | undefined, incoming: Comme
 const LATEST_COMMENTS_ONLY_COUNT = 2; // Exact match from AngularJS
 const PAGE_SIZE = 10; // Exact match from AngularJS
 
-export default function CommentsPanel({ item, showCommentsPanel, onToggleComments: _onToggleComments, snippetReplySetterRef, onPostSnippetPlayback }: CommentsPanelProps) {
+const CommentsPanel = forwardRef<CommentsPanelHandle, CommentsPanelProps>(function CommentsPanel(
+  { item, showCommentsPanel, onToggleComments: _onToggleComments, snippetReplySetterRef, onPostSnippetPlayback },
+  ref
+) {
   const { users } = useFeedContext();
   const feedPoll = useFeedPoll();
   const queryClient = useQueryClient();
@@ -333,6 +345,14 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
       snippetReplySetterRef.current = setSnippetReply;
     }
   }, [snippetReplySetterRef, setSnippetReply]);
+
+  // Expose Angular-equivalent "activate editor" behavior to parent.
+  useImperativeHandle(ref, () => ({
+    activateEditor: (initialText?: string) => {
+      // IMPORTANT: do NOT auto-expand comments here. Angular's onCommentButtonClick only activates editor.
+      commentEditorRef.current?.activate(initialText || '');
+    },
+  }), []);
 
   const checkIfCommentIsInView = (commentId: string): boolean => {
     const container = commentsContainerRef.current;
@@ -928,7 +948,15 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
   return (
     <div 
       className="comments-panel-wrapper l-pad"
+      // Angular bo-show:
+      // itemData.conversations_count > 0 || (likes_count + sub_res_like_count > 0) || showCommentsPanel
       style={{
+        ...( (item.conversations_count || 0) > 0 ||
+            ((item.like_info?.likes_count || 0) + (item.like_info?.sub_res_like_count || 0) > 0) ||
+            showCommentsPanel
+          ? {}
+          : { display: 'none' }
+        ),
         marginTop: '5px',
         marginBottom: '7px',
         position: 'relative',
@@ -938,7 +966,8 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
       }}
     >
       {/* Likes Count Container */}
-      {item.like_info.likes_count > 0 && (
+      {((item.like_info?.likes_count || 0) + (item.like_info?.sub_res_like_count || 0) > 0) &&
+        item.data?.is_acknowledge_post != 1 && (
         <div className="likes-count-container" style={{
           borderBottom: '1px solid #e2e5ea',
           borderTop: '1px solid transparent',
@@ -964,17 +993,28 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
               >
                 {getUserName(users, item.like_info.liked_by)}
               </a>
-              {item.like_info.likes_count > 1 && (
+              {((item.like_info?.likes_count || 0) + (item.like_info?.sub_res_like_count || 0) > 1) && (
                 <>
                   <span style={{ color: '#7b8386' }}>, </span>
                   <a 
                     href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      likeInfoModal({
+                        kind: 'post',
+                        pathId: item.resource_id,
+                        resourceId: item.resource_id,
+                        appInstanceId: item.app_instance_id,
+                        includeSubResources: 1,
+                        isViewMode: false,
+                      });
+                    }}
                     style={{
                       color: '#7b8386',
                       textDecoration: 'none',
                     }}
                   >
-                    +{item.like_info.likes_count - 1} more
+                    +{((item.like_info?.likes_count || 0) + (item.like_info?.sub_res_like_count || 0) - 1)} more
                   </a>
                 </>
               )}
@@ -1166,4 +1206,6 @@ export default function CommentsPanel({ item, showCommentsPanel, onToggleComment
       </div>
     </div>
   );
-}
+});
+
+export default CommentsPanel;

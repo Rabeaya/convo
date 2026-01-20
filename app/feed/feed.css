@@ -180,9 +180,67 @@
   padding-right: 20px;
 }
 
+.note .note-details:before {
+  content: '';
+  width: 14px;
+  margin-left: -14px;
+  height: 100%;
+  display: block;
+  position: absolute;
+  background: transparent;
+}
+
 .note .note-details p {
   margin-top: 0;
   margin-bottom: 0 !important;
+}
+
+.note .note-details div p {
+  margin-bottom: 0px !important;
+}
+
+.note .note-details font {
+  font-family: "Source Sans Pro", Arial, sans-serif !important;
+}
+
+/* Rich text list support (Angular default browser rendering; ensure bullets/numbering are visible) */
+.note .note-details ul,
+.note .note-details ol {
+  margin: 0;
+  padding-left: 20px;
+  list-style-position: outside;
+}
+
+.note .note-details ul {
+  list-style-type: disc;
+}
+
+.note .note-details ol {
+  list-style-type: decimal;
+}
+
+.note .note-details li {
+  margin: 0;
+}
+
+/* Same for comment rich text */
+.comment-cont .comment .comment_txt ul,
+.comment-cont .comment .comment_txt ol {
+  margin: 0;
+  padding-left: 20px;
+  list-style-position: outside;
+}
+
+.comment-cont .comment .comment_txt ul {
+  list-style-type: disc;
+}
+
+.comment-cont .comment .comment_txt ol {
+  list-style-type: decimal;
+}
+
+.comment-cont .comment .comment_txt li {
+  margin: 0;
 }
 
 .note .title-text {

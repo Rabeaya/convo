@@ -17,27 +17,23 @@ interface FileUrlOptions {
 }
 
 /**
- * Get load-balanced AWS file directory base URL
- * Matches config.getLoadBalancedAwsFileDirBase
+ * Angular parity for app14.convodev.net:
+ * - `config.getLoadBalancedAwsFileDirBase(...)` returns the *primary domain* file base:
+ *   `https://{servicesHost}/api/v1/files/` (no fs subdomains).
+ *
+ * In our localhost Next app, direct cross-origin file URLs will not include backend cookies,
+ * so we default to using a same-origin proxy route:
+ *   `/api/v1/files-proxy/...`
  */
-function getLoadBalancedAwsFileDirBase(fileIdx: number = 0): string {
-  // Matches Angular `config.getLoadBalancedAwsFileDirBase(fileSerialNo)`:
-  // https://fs{shard}.{domain}/api/v1/files/
-  const SERVICES_HOST = resolveServicesHostString({ allowWindow: true });
+function getLoadBalancedAwsFileDirBase(_fileIdx: number = 0): string {
+  // Prefer same-origin proxy in the browser (fixes thumbnails not loading due to cookie/CORS)
+  if (typeof window !== 'undefined') {
+    return `/api/v1/files-proxy/`;
+  }
+
+  const SERVICES_HOST = resolveServicesHostString({ allowWindow: false });
   const API_VERSION = 'v1';
-
-  const num =
-    Number(process.env.NEXT_PUBLIC_AWS_FILE_DIR_NUM_SUBDOMAINS) ||
-    // Angular commonly uses 10 in non-dev environments (see `config.js.tpl`).
-    10;
-
-  // Angular: Math.abs((serial % num) - num) => yields 1..num, in reverse order.
-  const shard =
-    typeof fileIdx === 'number' && Number.isFinite(fileIdx)
-      ? Math.abs((fileIdx % num) - num) || 1
-      : 1;
-
-  return `https://fs${shard}.${SERVICES_HOST}/api/${API_VERSION}/files/`;
+  return `https://${SERVICES_HOST}/api/${API_VERSION}/files/`;
 }
 
 /**
@@ -45,11 +41,15 @@ function getLoadBalancedAwsFileDirBase(fileIdx: number = 0): string {
  * Matches config.AWS_FILE_DIR_BASE
  */
 function getAwsFileDirBase(): string {
-  const SERVICES_HOST = resolveServicesHostString({ allowWindow: true });
+  if (typeof window !== 'undefined') {
+    return `/api/v1/files-proxy/`;
+  }
+
+  const SERVICES_HOST = resolveServicesHostString({ allowWindow: false });
   const API_VERSION = 'v1';
 
-  // Angular default: AWS_FILE_DIR_BASE = https://fs1.{domain}/api/v1/files/
-  return `https://fs1.${SERVICES_HOST}/api/${API_VERSION}/files/`;
+  // Angular (app14 config.js): AWS_FILE_DIR_BASE = https://{servicesHost}/api/v1/files/
+  return `https://${SERVICES_HOST}/api/${API_VERSION}/files/`;
 }
 
 /**

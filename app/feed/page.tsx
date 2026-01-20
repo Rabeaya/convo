@@ -18,7 +18,18 @@ import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import InlineInsert from '@/components/feed/InlineInsert';
 
 export default function FeedPage() {
-  const { feedItems, isLoading, error, users, groups, fetchNextPage, hasNextPage, isFetchingNextPage } = useFeed();
+  const {
+    feedItems,
+    isLoading,
+    isFetching,
+    isFetched,
+    error,
+    users,
+    groups,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useFeed();
   const { loginData, user, account } = useAuthStore();
   const queryClient = useQueryClient();
   const [showUpdatesNotif, setShowUpdatesNotif] = useState(false);
@@ -38,6 +49,10 @@ export default function FeedPage() {
     // Best parity with Angular "swap/merge pending": refetch from server to include new items without corrupting pagination offsets.
     queryClient.invalidateQueries({ queryKey: ['feed'] });
   }, []);
+
+  // Angular parity: on reload we wait for session/auth hydration before rendering empty-state.
+  // Otherwise the feed query is disabled and React shows "There is no feed to display." briefly.
+  const authReady = !!loginData && !!user && !!account;
 
   // -----------------------
   // Angular parity: auto feed polling
@@ -245,43 +260,7 @@ export default function FeedPage() {
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  if (isLoading) {
-    return (
-      <div style={{
-        minHeight: '400px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px',
-      }}>
-        <div style={{
-          fontSize: '14px',
-          color: '#7b8386',
-        }}>
-          Loading feed...
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{
-        minHeight: '400px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px',
-      }}>
-        <div style={{
-          fontSize: '14px',
-          color: '#e56564',
-        }}>
-          Error loading feed: {error.message}
-        </div>
-      </div>
-    );
-  }
+  const showInitialLoader = !authReady || isLoading || (!isFetched && isFetching);
 
   // Filter out milestones (app_instance_id == 3) and todos (app_instance_id == 14)
   const visibleFeedItems = feedItems.filter(
@@ -351,24 +330,24 @@ export default function FeedPage() {
         <div className="inline-insert-wrapper">
           <InlineInsert />
         </div>
-        {visibleFeedItems.length === 0 ? (
-          <div className="feed_load_status" style={{
-            textAlign: 'center',
-            padding: '40px',
-            color: '#7b8386',
-            fontSize: '14px',
-          }}>
+
+        {showInitialLoader ? (
+          <div className="feed_load_status">Loading...</div>
+        ) : error ? (
+          <div className="feed_load_status" style={{ color: '#e56564' }}>
+            Error loading feed: {error.message}
+          </div>
+        ) : isFetched && visibleFeedItems.length === 0 ? (
+          <div className="feed_load_status" style={{ textAlign: 'center', padding: '40px', color: '#7b8386', fontSize: '14px' }}>
             There is no feed to display.
           </div>
         ) : (
-          visibleFeedItems.map((item) => (
-            <FeedItem key={item.feed_id} item={item} />
-          ))
+          visibleFeedItems.map((item) => <FeedItem key={item.feed_id} item={item} />)
         )}
       </div>
 
       {/* Loading More Indicator */}
-      {isFetchingNextPage && (
+      {isFetchingNextPage && !showInitialLoader && !error && (
         <div style={{
           textAlign: 'center',
           padding: '20px',
@@ -380,7 +359,7 @@ export default function FeedPage() {
       )}
 
       {/* Feed End Placeholder */}
-      {visibleFeedItems.length > 0 && !hasNextPage && (
+      {visibleFeedItems.length > 0 && !hasNextPage && !showInitialLoader && !error && (
         <div className="feed-end-placeholder" style={{
           background: 'url(/assets/img/feed/infinitescrollend2x.png)',
           backgroundRepeat: 'no-repeat',

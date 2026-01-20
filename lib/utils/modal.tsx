@@ -10,6 +10,7 @@
 import { createRoot, Root } from 'react-dom/client';
 import PromptModal from '@/components/common/PromptModal';
 import AlertModal from '@/components/common/AlertModal';
+import LikeInfoModal, { type LikeInfoModalOpenProps } from '@/components/feed/LikeInfoModal';
 
 let modalRoot: Root | null = null;
 
@@ -124,5 +125,18 @@ export function alertModal(
       onClose={handleClose}
     />
   );
+}
+
+/**
+ * Show Like Info modal (Angular parity: resourceLikeInfoModalService)
+ */
+export function likeInfoModal(props: LikeInfoModalOpenProps): void {
+  const root = getModalRoot();
+
+  const handleClose = () => {
+    cleanupModal();
+  };
+
+  root.render(<LikeInfoModal {...(props as any)} onClose={handleClose} />);
 }
 

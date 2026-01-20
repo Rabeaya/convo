@@ -8,7 +8,7 @@
  * Exact UI match with AngularJS version
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FeedItem as FeedItemType } from '@/lib/api/feed';
 import { User } from '@/lib/api/auth';
 import CommentsPanel from './CommentsPanel';
@@ -19,13 +19,16 @@ import { likeService } from '@/lib/api/feed';
 import FileGallery from './FileGallery';
 import FeedItemDropdown, { DropdownOption } from './FeedItemDropdown';
 import { itemsService } from '@/lib/api/items';
-import { promptModal } from '@/lib/utils/modal';
+import { likeInfoModal, promptModal } from '@/lib/utils/modal';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { useQueryClient } from '@tanstack/react-query';
 import CommentOnThisTooltip from '@/components/common/CommentOnThisTooltip';
 import { clearNativeSelection, getSelectionDataWithin } from '@/lib/utils/text-selection';
 import { rmAllSelections, selectTextNested } from '@/lib/utils/text-selections-engine';
 import NoteSnippetPlaybackBanner from '@/components/feed/NoteSnippetPlaybackBanner';
+import { rewriteConvoFilesToProxy } from '@/lib/utils/rich-text';
+import { formatDateAgo } from '@/lib/utils/dateFormat';
+import type { CommentsPanelHandle } from './CommentsPanel';
 
 interface FeedItemProps {
   item: FeedItemType;
@@ -57,15 +60,6 @@ function getNameById(users: Record<string, User>, groups: Record<string, any>, i
   }
 }
 
-// Helper function to format date as DD/MM/YYYY
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-}
-
 export default function FeedItem({ item }: FeedItemProps) {
   const [showCommentsPanel, setShowCommentsPanel] = useState(false);
   const [localItem, setLocalItem] = useState(item);
@@ -75,14 +69,17 @@ export default function FeedItem({ item }: FeedItemProps) {
   const snippetReplySetterRef = useRef<((snippetWrapper: any, collaborationInfo: any | null, initialText?: string) => void) | null>(null);
   const noteDetailsRef = useRef<HTMLDivElement>(null);
   const feedItemRef = useRef<HTMLDivElement>(null);
+  const commentsPanelRef = useRef<CommentsPanelHandle | null>(null);
   const [selTooltip, setSelTooltip] = useState<{ portalTarget: HTMLElement; top: number; left: number; beginIndex: number; endIndex: number; text: string } | null>(null);
   const [snippetBanner, setSnippetBanner] = useState<{ visible: boolean; commentId: string; highlightTop: number } | null>(null);
+  const [ackCallInProgress, setAckCallInProgress] = useState(false);
 
   // IMPORTANT: Memoize the innerHTML object so React does NOT re-apply innerHTML on unrelated state changes.
   // If React re-applies, it wipes our DOM-injected highlight spans (Angular parity requires direct DOM mutation).
   const noteDetailsHtml = useMemo(() => {
     const html = localItem.search_fragment || localItem.details || '';
-    return { __html: html };
+    // Angular parity: allow rich HTML; rewrite inline file URLs to same-origin proxy so images/snippets load on localhost.
+    return { __html: rewriteConvoFilesToProxy(html) };
   }, [localItem.search_fragment, localItem.details]);
 
   // Reposition selection tooltip on scroll (Angular keeps it visible and moves it)
@@ -120,6 +117,64 @@ export default function FeedItem({ item }: FeedItemProps) {
     setSelTooltip(null);
     clearNativeSelection();
   };
+
+  // Angular parity: cnvFeedItem.js -> showAndActivateCommentsPanel()
+  const showAndActivateCommentsPanel = useCallback((initialContent?: string) => {
+    setShowCommentsPanel(true);
+
+    // Wait a tick so the panel is visible (it may be display:none when there are 0 likes/comments).
+    window.setTimeout(() => {
+      const doActivate = () => {
+        commentsPanelRef.current?.activateEditor(initialContent || '', true);
+      };
+
+      const root = feedItemRef.current;
+      const editorEl = root?.querySelector('.feed-comment-editor') as HTMLElement | null;
+      if (!editorEl) {
+        doActivate();
+        return;
+      }
+
+      const feedScroller = document.getElementById('feedScroller') as HTMLElement | null;
+      const animateScroll = (el: HTMLElement, to: number, duration: number, cb: () => void) => {
+        const start = el.scrollTop;
+        const delta = to - start;
+        const t0 = performance.now();
+        const tick = (t: number) => {
+          const p = Math.min(1, (t - t0) / duration);
+          el.scrollTop = start + delta * p;
+          if (p < 1) requestAnimationFrame(tick);
+          else cb();
+        };
+        requestAnimationFrame(tick);
+      };
+
+      if (feedScroller) {
+        const scRect = feedScroller.getBoundingClientRect();
+        const edRect = editorEl.getBoundingClientRect();
+        const offsetTop = edRect.top - scRect.top + feedScroller.scrollTop;
+        const winInnerHeight = feedScroller.clientHeight;
+        const scrollTop = feedScroller.scrollTop;
+        if (offsetTop + 150 > scrollTop + winInnerHeight) {
+          animateScroll(feedScroller, offsetTop - winInnerHeight + 210, 200, doActivate);
+        } else {
+          doActivate();
+        }
+      } else {
+        // Fallback to window scroll if feedScroller isn't present
+        const rect = editorEl.getBoundingClientRect();
+        const offsetTop = rect.top + window.scrollY;
+        const winInnerHeight = window.innerHeight;
+        const scrollTop = window.scrollY;
+        if (offsetTop + 150 > scrollTop + winInnerHeight) {
+          window.scrollTo({ top: offsetTop - winInnerHeight + 210, behavior: 'smooth' });
+          window.setTimeout(doActivate, 220);
+        } else {
+          doActivate();
+        }
+      }
+    }, 0);
+  }, []);
 
   const handlePostSnippetPlayback = (snippetData: any, commentId: string) => {
     const noteEl = noteDetailsRef.current;
@@ -169,6 +224,18 @@ export default function FeedItem({ item }: FeedItemProps) {
         title,
         type
       );
+      // Angular: if unlike causes likes to reach 0 and no comments, hide comments panel wrapper.
+      if (action === 'unlike') {
+        const currentTotalLikes =
+          (localItem.like_info?.likes_count || 0) + (localItem.like_info?.sub_res_like_count || 0);
+        if (currentTotalLikes <= 1 && (localItem.conversations_count || 0) === 0) {
+          setShowCommentsPanel(false);
+        }
+      }
+      // Angular: acknowledge posts trigger refreshFeed on like.
+      if (localItem.data?.is_acknowledge_post == 1) {
+        queryClient.invalidateQueries({ queryKey: ['feed'] });
+      }
       return response.data;
     } catch (error) {
       console.error('Failed to like feed item:', error);
@@ -585,7 +652,7 @@ export default function FeedItem({ item }: FeedItemProps) {
                 href="#" 
                 style={{
                   color: 'rgb(51, 113, 189)', // Theme color
-                  textDecoration: 'none',
+                textDecoration: 'none',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.textDecoration = 'underline';
@@ -624,7 +691,8 @@ export default function FeedItem({ item }: FeedItemProps) {
                 color: '#7b8386',
                 textDecoration: 'none',
               }}>
-                {formatDate(item.last_modified_date)}
+                {/* Angular: `itemData.last_modified_date | dateAgo:server_now_timestamp:true` */}
+                {formatDateAgo(item.last_modified_date as any, undefined, true)}
               </a>
             </li>
           </ul>
@@ -709,7 +777,16 @@ export default function FeedItem({ item }: FeedItemProps) {
 
             {/* Acknowledge Post Placeholder */}
             {item.show_post_contents === 0 && (
-              <div className="note-details ackWrapper" style={{
+              <div
+                className="note-details ackWrapper"
+                onClick={() => {
+                  // Angular: ng-click="onLikeClick('like')"
+                  if (ackCallInProgress) return;
+                  setAckCallInProgress(true);
+                  handleLikeClick('like')
+                    .finally(() => setAckCallInProgress(false));
+                }}
+                style={{
                 color: 'white',
                 position: 'relative',
                 textAlign: 'center',
@@ -722,7 +799,8 @@ export default function FeedItem({ item }: FeedItemProps) {
                   width="495px"
                   alt="Acknowledge post"
                 />
-                <div className="ackLabel" style={{
+                {!ackCallInProgress ? (
+                  <div className="ackLabel" style={{
                   position: 'absolute',
                   top: 'calc(50% - 19px)',
                   left: 'calc(50% - 145px)',
@@ -738,7 +816,16 @@ export default function FeedItem({ item }: FeedItemProps) {
                   }}>
                     Click <u>Acknowledge</u> to view the post
                   </span>
-                </div>
+                  </div>
+                ) : (
+                  <div className="spinnerWrap" style={{
+                    position: 'absolute',
+                    top: 'calc(50% - 7px)',
+                    left: 'calc(50% - 7px)',
+                  }}>
+                    <span className="cnv-spinner"></span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -772,27 +859,71 @@ export default function FeedItem({ item }: FeedItemProps) {
                   href="#" 
                   onClick={(e) => {
                     e.preventDefault();
-                    setShowCommentsPanel(!showCommentsPanel);
+                    showAndActivateCommentsPanel('');
                   }}
                   className="meta"
                   style={{
-                    color: '#7b8386',
+                    color: 'rgb(51, 113, 189)', // Theme color (match Like link)
                     textDecoration: 'none',
                     cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.textDecoration = 'underline';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.textDecoration = 'none';
                   }}
                 >
                   Comment
                 </a>
               </li>
-              <span className="dot" style={{
-                color: '#959595',
-                fontSize: '20px',
-              }}>&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
+              {/* Angular: dot shown if not ack post OR (ack post and has views) */}
+              {(localItem.data?.is_acknowledge_post != 1 || (localItem.like_info?.likes_count && localItem.data?.is_acknowledge_post == 1)) && (
+                <span className="dot" style={{
+                  color: '#959595',
+                  fontSize: '20px',
+                }}>&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
+              )}
+
               <li className="nobullet" style={{ display: 'inline' }}>
-                <LikeButton 
-                  likeInfo={localItem.like_info} 
-                  onLikeClick={handleLikeClick}
-                />
+                {localItem.data?.is_acknowledge_post != 1 ? (
+                  <LikeButton 
+                    likeInfo={localItem.like_info}
+                    onLikeClick={handleLikeClick}
+                    onLikeInfoChange={(next) => {
+                      setLocalItem((prev) => ({ ...prev, like_info: { ...prev.like_info, ...next } }));
+                    }}
+                  />
+                ) : (
+                  // Angular: show Views link instead of Like button
+                  (localItem.like_info?.likes_count ? (
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        likeInfoModal({
+                          kind: 'post',
+                          pathId: localItem.resource_id,
+                          resourceId: localItem.resource_id,
+                          appInstanceId: localItem.app_instance_id,
+                          includeSubResources: 1,
+                          isViewMode: true,
+                        });
+                      }}
+                      style={{
+                        color: 'rgb(51, 113, 189)',
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+                    >
+                      {Number(localItem.like_info.likes_count) > 1
+                        ? `${localItem.like_info.likes_count} Views`
+                        : `${localItem.like_info.likes_count} View`}
+                    </a>
+                  ) : null)
+                )}
               </li>
             </ul>
           </div>
@@ -801,9 +932,10 @@ export default function FeedItem({ item }: FeedItemProps) {
         {/* Comments Panel - Always show if show_post_contents == 1 (matches AngularJS) */}
         {localItem.show_post_contents === 1 && (
           <CommentsPanel 
+            ref={commentsPanelRef as any}
             item={localItem}
             showCommentsPanel={showCommentsPanel}
-            onToggleComments={() => setShowCommentsPanel(!showCommentsPanel)}
+            onToggleComments={() => setShowCommentsPanel(false)}
             snippetReplySetterRef={snippetReplySetterRef}
             onPostSnippetPlayback={handlePostSnippetPlayback}
           />

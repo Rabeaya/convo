@@ -7,7 +7,8 @@
  * Migrated from AngularJS cnv-like-button directive
  */
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 export interface LikeInfo {
   liked_by: string | null;
@@ -21,11 +22,24 @@ interface LikeButtonProps {
   likeInfo: LikeInfo;
   onLikeClick: (action: 'like' | 'unlike') => Promise<any>;
   disabled?: boolean;
+  onLikeInfoChange?: (next: LikeInfo) => void;
 }
 
-export default function LikeButton({ likeInfo, onLikeClick, disabled = false }: LikeButtonProps) {
+export default function LikeButton({ likeInfo, onLikeClick, disabled = false, onLikeInfoChange }: LikeButtonProps) {
   const [likePending, setLikePending] = useState(false);
   const [localLikeInfo, setLocalLikeInfo] = useState(likeInfo);
+  const { user } = useAuthStore();
+  const currentUserId = useMemo(() => (user as any)?.user_id || (user as any)?.userId || null, [user]);
+
+  // Keep in sync with server/poll updates (Angular binds directly to the object; React needs explicit sync).
+  useEffect(() => {
+    setLocalLikeInfo(likeInfo);
+  }, [likeInfo]);
+
+  const setLikeInfo = (next: LikeInfo) => {
+    setLocalLikeInfo(next);
+    onLikeInfoChange?.(next);
+  };
 
   const handleLikeClick = async () => {
     if (likePending || disabled) {
@@ -37,47 +51,62 @@ export default function LikeButton({ likeInfo, onLikeClick, disabled = false }: 
     const previousLikedBy = localLikeInfo.liked_by;
     const action = localLikeInfo.liked_by_me ? 'unlike' : 'like';
 
-    // Optimistically update UI
-    const optimisticLikeInfo = { ...localLikeInfo };
+    // Optimistically update UI (matches Angular cnvLikeButton.js)
+    const optimisticLikeInfo: LikeInfo = { ...localLikeInfo };
     if (action === 'like') {
       optimisticLikeInfo.liked_by_me = true;
-      optimisticLikeInfo.likes_count++;
+      optimisticLikeInfo.likes_count = (optimisticLikeInfo.likes_count || 0) + 1;
+      if (currentUserId) optimisticLikeInfo.liked_by = String(currentUserId);
     } else {
       optimisticLikeInfo.liked_by_me = false;
-      if (optimisticLikeInfo.likes_count > 0) {
-        optimisticLikeInfo.likes_count--;
+      if ((optimisticLikeInfo.likes_count || 0) > 0) {
+        optimisticLikeInfo.likes_count = optimisticLikeInfo.likes_count - 1;
       }
+      // keep liked_by until server returns new last likedBy (Angular does this)
     }
-    setLocalLikeInfo(optimisticLikeInfo);
+    setLikeInfo(optimisticLikeInfo);
 
     try {
       const response = await onLikeClick(action);
       
       if (response?.success) {
-        // Update with server response
-        setLocalLikeInfo({
-          ...localLikeInfo,
-          liked_by_me: optimisticLikeInfo.liked_by_me,
-          likes_count: parseInt(response.like_count) || optimisticLikeInfo.likes_count,
-          liked_by: response.liked_by || response.likedBy || optimisticLikeInfo.liked_by,
+        // Update with server response (Angular: response.like_count + response.liked_by/likedBy)
+        const likeCount = Number.parseInt(String((response as any).like_count ?? (response as any).likeCount ?? ''), 10);
+        const likedBy = (response as any).liked_by ?? (response as any).likedBy ?? optimisticLikeInfo.liked_by;
+        const likeTimestamp = (response as any).like_timestamp ?? (response as any).likeTimestamp ?? optimisticLikeInfo.like_timestamp;
+
+        setLikeInfo({
+          ...optimisticLikeInfo,
+          likes_count: Number.isFinite(likeCount) ? likeCount : optimisticLikeInfo.likes_count,
+          liked_by: likedBy ?? null,
+          like_timestamp: likeTimestamp ?? optimisticLikeInfo.like_timestamp,
         });
       } else {
-        // Revert on failure
-        setLocalLikeInfo({
-          ...localLikeInfo,
-          liked_by_me: action === 'like' ? false : true,
-          likes_count: action === 'like' ? localLikeInfo.likes_count - 1 : localLikeInfo.likes_count + 1,
-          liked_by: previousLikedBy,
-        });
+        // Revert on failure (matches Angular revertAction)
+        const reverted: LikeInfo = { ...optimisticLikeInfo };
+        if (action === 'like') {
+          reverted.liked_by_me = false;
+          reverted.likes_count = Math.max(0, (reverted.likes_count || 0) - 1);
+          reverted.liked_by = previousLikedBy;
+        } else {
+          reverted.liked_by_me = true;
+          // Angular does not increment likes_count back on unlike failure (server is source of truth later)
+          reverted.liked_by = previousLikedBy;
+        }
+        setLikeInfo(reverted);
       }
     } catch (error) {
-      // Revert on error
-      setLocalLikeInfo({
-        ...localLikeInfo,
-        liked_by_me: action === 'like' ? false : true,
-        likes_count: action === 'like' ? localLikeInfo.likes_count - 1 : localLikeInfo.likes_count + 1,
-        liked_by: previousLikedBy,
-      });
+      // Revert on error (matches Angular revertAction)
+      const reverted: LikeInfo = { ...optimisticLikeInfo };
+      if (action === 'like') {
+        reverted.liked_by_me = false;
+        reverted.likes_count = Math.max(0, (reverted.likes_count || 0) - 1);
+        reverted.liked_by = previousLikedBy;
+      } else {
+        reverted.liked_by_me = true;
+        reverted.liked_by = previousLikedBy;
+      }
+      setLikeInfo(reverted);
     } finally {
       setLikePending(false);
     }

@@ -137,38 +137,48 @@ class AuthService {
    * @returns Promise with session check response
    */
   async checkSession(): Promise<ApiResponse<SessionCheckResponse>> {
-    // IMPORTANT:
-    // Always perform session checks via our Next.js proxy so localhost cookies are forwarded upstream.
-    // If we call `https://{servicesHost}/app/login/?is_ajax=1` directly from the browser, cookies won't be sent,
-    // and the app will look logged out on every refresh.
+    // IMPORTANT: do NOT call https://{servicesHost}/app/login from the browser directly (CORS/cookies).
+    // Use our Next.js proxy so reloads preserve session like Angular.
+    const servicesHost = typeof window !== 'undefined' ? (window as any).servicesHost : undefined;
     const response = await fetch('/api/v1/session', {
       method: 'GET',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...(servicesHost && { 'x-services-host': servicesHost }),
       },
     });
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          data: { isSignedIn: false },
-          status: response.status,
-        };
-      }
-      throw {
-        message: 'Session check failed',
-        status: response.status,
-      };
+    // Normalize response shape so callers can rely on `isSignedIn`.
+    // Our session proxy may return either:
+    // - `{ isSignedIn: boolean, signInResponseData?: ... }` (preferred)
+    // - `{ data: ... }` or direct upstream payload
+    // - HTML/error on failure
+    if (response.status === 401 || response.status === 403) {
+      return { data: { isSignedIn: false }, status: response.status };
     }
 
-    const data = await response.json();
+    const text = await response.text();
+    let json: any = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      // If it's not JSON, treat as not signed in to avoid crashing the app.
+      return { data: { isSignedIn: false }, status: response.status };
+    }
+
+    // If proxy already returned the canonical shape, keep it.
+    if (json && typeof json === 'object' && typeof json.isSignedIn === 'boolean') {
+      return { data: json as SessionCheckResponse, status: response.status };
+    }
+
+    // Otherwise wrap whatever we got as signed-in payload (Angular-ish shape is often `{ data: ... }`).
+    if (!response.ok) {
+      throw { message: json?.error || json?.message || 'Session check failed', status: response.status };
+    }
 
     return {
-      data: {
-        isSignedIn: true,
-        signInResponseData: (data as any)?.data || data,
-      },
+      data: { isSignedIn: true, signInResponseData: json?.data ?? json } as SessionCheckResponse,
       status: response.status,
     };
   }
