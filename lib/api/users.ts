@@ -25,6 +25,11 @@ export interface UsersResponse {
   account_data_revision_no?: number;
 }
 
+// Back-compat type aliases used across the app (some modules expect these names).
+// Keep these aliases to avoid breaking imports when merging branches.
+export type UsersApiResponse = UsersResponse;
+export type UsersApiUser = NetworkUser;
+
 class UsersService {
   /**
    * Get all users accessible to current user in their network

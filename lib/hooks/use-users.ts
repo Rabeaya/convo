@@ -187,7 +187,11 @@ function unwrapUsersResponse(resp: UsersApiResponse): any {
 
 function normalizeUsersResponse(resp: UsersApiResponse): UsersApiUser[] {
   const payload = unwrapUsersResponse(resp);
-  const accessibleRaw = Array.isArray(payload?.accessible_users) ? payload.accessible_users : [];
+  const accessibleRaw = Array.isArray(payload?.accessible_users)
+    ? payload.accessible_users
+    : payload?.accessible_users && typeof payload.accessible_users === 'object'
+      ? Object.values(payload.accessible_users)
+      : [];
   const singleUserRaw = payload?.user ? [payload.user] : [];
 
   const mergedRaw = [...accessibleRaw, ...singleUserRaw];
@@ -238,8 +242,8 @@ export function useUsers(enabled: boolean = true) {
     enabled: enabled && !!loginData && !!user && !!account,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const response = await usersService.getUsers();
-      const normalized = normalizeUsersResponse(response.data);
+      const rawUsers = await usersService.getAllUsers();
+      const normalized = rawUsers.map(coerceUserId).filter(Boolean) as UsersApiUser[];
       return buildUsersData(normalized);
     },
   });
