@@ -15,6 +15,7 @@ import { FeedProvider } from '@/lib/contexts/FeedContext';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { feedService, type FeedPollRequest, type FeedPollResponse, type FeedFetchResponse } from '@/lib/api/feed';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import InlineInsert from '@/components/feed/InlineInsert';
 
 export default function FeedPage() {
   const { feedItems, isLoading, error, users, groups, fetchNextPage, hasNextPage, isFetchingNextPage } = useFeed();
@@ -346,6 +347,10 @@ export default function FeedPage() {
 
       {/* Feed Container */}
       <div className="feed-cont">
+        {/* New Post Composer - Angular parity: cnvHomeCenterPanel.tpl.html inline-insert-wrapper */}
+        <div className="inline-insert-wrapper">
+          <InlineInsert />
+        </div>
         {visibleFeedItems.length === 0 ? (
           <div className="feed_load_status" style={{
             textAlign: 'center',

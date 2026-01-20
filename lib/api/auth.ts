@@ -137,9 +137,11 @@ class AuthService {
    * @returns Promise with session check response
    */
   async checkSession(): Promise<ApiResponse<SessionCheckResponse>> {
-    // Use the app login URL for session check (not API endpoint)
-    const appLoginUrl = this.getAppLoginUrl();
-    const response = await fetch(`${appLoginUrl}?is_ajax=1`, {
+    // IMPORTANT:
+    // Always perform session checks via our Next.js proxy so localhost cookies are forwarded upstream.
+    // If we call `https://{servicesHost}/app/login/?is_ajax=1` directly from the browser, cookies won't be sent,
+    // and the app will look logged out on every refresh.
+    const response = await fetch('/api/v1/session', {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -161,11 +163,11 @@ class AuthService {
     }
 
     const data = await response.json();
-    
+
     return {
       data: {
         isSignedIn: true,
-        signInResponseData: data.data || data,
+        signInResponseData: (data as any)?.data || data,
       },
       status: response.status,
     };

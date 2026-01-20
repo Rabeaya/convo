@@ -27,6 +27,15 @@ export async function GET(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Settings API error:', response.status, errorText);
+      
+      // Handle 401 Unauthorized - redirect to login
+      if (response.status === 401) {
+        return NextResponse.json(
+          { error: 'Unauthorized', redirectToLogin: true },
+          { status: 401 }
+        );
+      }
+      
       return NextResponse.json(
         { error: `Failed to fetch settings: ${response.status} ${errorText}` },
         { status: response.status }
@@ -82,6 +91,15 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Settings API error:', response.status, errorText);
+      
+      // Handle 401 Unauthorized - redirect to login
+      if (response.status === 401) {
+        return NextResponse.json(
+          { error: 'Unauthorized', redirectToLogin: true },
+          { status: 401 }
+        );
+      }
+      
       return NextResponse.json(
         { error: `Failed to save settings: ${response.status} ${errorText}` },
         { status: response.status }

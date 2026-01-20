@@ -1,0 +1,1414 @@
+/* Notes App Styles - matches Angular notesMain.less and headerStyles.less */
+/* Note: Icon sprite CSS is loaded globally via IconStylesheet component */
+
+.notes-app-bg-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.cnvNotesApp {
+  min-width: 800px; /* @cnv-min-notes-link-app-width */
+  margin: 0 auto;
+  height: 100%;
+}
+
+.cnvNotesApp > div {
+  height: calc(100% - 65px); /* @cnv-app-header-height */
+}
+
+/* App Header */
+.app-header {
+  border-bottom-color: #e0e0e0;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  height: 65px;
+  position: relative;
+}
+
+.app-header .segment {
+  display: flex;
+  align-items: center;
+}
+
+.app-header .segment.pull-left {
+  flex: 1;
+}
+
+.app-header .segment.pull-right {
+  flex-shrink: 0;
+}
+
+/* Sub App Header Controls - matches Angular apps/headers/styles.less */
+.sub-app-header-controls {
+  list-style: none;
+  padding: 0;
+  margin: 0px 15px;
+  text-align: center;
+  display: inline-block;
+}
+
+.sub-app-header-controls > li {
+  min-width: 80px;
+  height: 65px; /* @cnv-app-header-height */
+  display: table-cell;
+  vertical-align: middle;
+  padding: 0px;
+  cursor: pointer;
+  position: relative;
+}
+
+.sub-app-header-controls > li:hover {
+  background-color: #f5f5f5;
+}
+
+.sub-app-header-controls > li > .format-label {
+  color: #7b8386; /* @gray-base */
+  font-size: 14px; /* @cnv-secondary-txt-size-14 */
+  display: block;
+  text-align: center;
+}
+
+.sub-app-header-controls > li > i {
+  display: block;
+  margin: auto;
+  width: 16px;
+  height: 16px;
+}
+
+.sub-app-header-controls > li > span {
+  display: block;
+  margin: auto;
+  width: 16px;
+  height: 16px;
+}
+
+.sub-app-header-controls .cnv-icons-16 {
+  width: 16px !important;
+  height: 16px !important;
+  display: block !important;
+  margin: auto !important;
+}
+
+.sub-app-header-controls .margin-left-30 {
+  margin-left: 0; /* Reset for block layout - icons are centered */
+}
+
+.sub-app-header-controls .notification-counter {
+  position: relative;
+  top: 2px;
+}
+
+.sub-app-header-controls .counter.badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #4183d7;
+  color: #fff;
+  border-radius: 10px;
+  padding: 2px 6px;
+  font-size: 11px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* More Options Dropdown */
+.sub-app-header-controls .more-options {
+  position: relative;
+}
+
+.sub-app-header-controls .more-options > div:first-child {
+  position: relative;
+  top: 1px;
+}
+
+.sub-app-header-controls .more-options .dropdown-toggle {
+  text-decoration: none;
+  color: #7b8386;
+  cursor: pointer;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.sub-app-header-controls .more-options .dropdown-toggle:hover {
+  text-decoration: none !important;
+}
+
+.sub-app-header-controls .more-options .placeholder-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  margin: auto;
+}
+
+.sub-app-header-controls .more-options .dropdown-toggle span {
+  font-size: 14px;
+  color: #7b8386;
+  display: block;
+}
+
+.sub-app-header-controls .more-options .dropdown-menu {
+  right: 0px;
+  left: initial;
+}
+
+.sub-app-header-controls .more-options .dropdown-menu > li > a {
+  padding: 5px 12px;
+}
+
+/* Panel Toggle Icon */
+.sub-app-header-controls .panel-toggle {
+  transition: transform 0.3s ease;
+}
+
+.sub-app-header-controls .panel-toggle.forward {
+  transform: rotate(180deg);
+}
+
+.sub-app-header-controls .panel-toggle.backward {
+  transform: rotate(0deg);
+}
+
+/* Separator */
+.app-header .separator {
+  width: 1px;
+  height: 30px;
+  background-color: #e0e0e0;
+  margin: 0 10px;
+}
+
+/* Notification Icon */
+.app-header .notification-icon {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.app-header .notification-icon:hover {
+  background-color: #f5f5f5;
+}
+
+/* Notes App Editor */
+.notes-app-editor {
+  display: inline-block;
+  float: left;
+  padding: 20px;
+  background-color: #fff;
+  transition: width 0.3s ease;
+}
+
+.notes-app-editor.no-padding {
+  padding: 0;
+}
+
+/* Comments Panel Container */
+.comments-panel-container {
+  float: right;
+  border-left: 1px solid #e0e0e0;
+  background-color: #f9f9f9;
+  height: 100%;
+  overflow-y: auto;
+  transition: width 0.3s ease;
+}
+
+.comments-panel-container.no-padding {
+  padding: 0;
+}
+
+/* Responsive - matches Angular media queries */
+@media (max-width: 991px) {
+  .cnvNotesApp {
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .notes-app-editor,
+  .comments-panel-container {
+    width: 100% !important;
+  }
+
+  .comments-panel-container {
+    position: absolute;
+    right: 0;
+    box-shadow: -2px 2px 10px 1px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+  }
+
+  .sub-app-header-controls.editor > li {
+    display: none;
+  }
+
+  .sub-app-header-controls.editor li.compact-view-more-options {
+    display: flex !important;
+  }
+}
+
+/* Note Editor Structure - matches Angular editorMain.less */
+.cnv-note-editor {
+  height: 100%;
+}
+
+.note-container {
+  height: 100%;
+}
+
+.note-wrapper {
+  position: relative;
+  height: 100%;
+  background: white;
+  z-index: 1;
+}
+
+.note-resize-wrapper {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: visible;
+}
+
+.active-container {
+  padding: 0;
+}
+
+/* Section: note-info */
+section.note-info {
+  line-height: 18px;
+  padding-top: 18px;
+  position: relative;
+}
+
+section.note-info .share-with-wrapper {
+  width: 100%;
+}
+
+section.note-info .edit-from-block {
+  margin-top: -14px;
+  margin-bottom: 5px;
+}
+
+section.note-info .edit-from-block .dp {
+  display: inline-block;
+  vertical-align: middle;
+  position: relative;
+  margin-right: 8px;
+}
+
+section.note-info .edit-from-block .dp.edit a {
+  vertical-align: middle;
+}
+
+section.note-info .edit-from-block a {
+  vertical-align: middle;
+  text-decoration: none;
+  color: #272b2c;
+  margin-right: 8px;
+}
+
+section.note-info .edit-from-block .draft.indicator {
+  color: #999;
+  font-size: 13px;
+  margin-left: 0;
+}
+
+section.note-info .edit-submit {
+  float: right;
+  margin: -1px 32.5px; /* @notes-app-gutter/2 */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+section.note-info .edit-submit .status-text {
+  font-size: 12px;
+  color: #999;
+}
+
+section.note-info .to-field-cont,
+section.content .inline-insert-cont .to-field-cont,
+section.content .to-field-cont {
+  position: relative;
+  overflow: visible;
+}
+
+section.note-info .to-field,
+section.content .inline-insert-cont .to-field,
+section.content .to-field-cont .to-field {
+  padding: 0px;
+  position: relative;
+  overflow: visible;
+}
+
+section.note-info .to-field .to-tags {
+  min-height: 45px;
+  border: none;
+  border-radius: 4px;
+  padding: 1px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  align-items: center;
+}
+
+section.note-info .to-field .to-tags .tag-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: inline;
+}
+
+section.note-info .to-field .to-tags .tag-item {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  word-break: break-word;
+  -webkit-font-smoothing: antialiased;
+  white-space: normal;
+  text-align: left;
+  word-wrap: break-word;
+  list-style-type: none;
+  box-sizing: border-box;
+  margin: 4px;
+  padding: 4px 7px 6px 0px;
+  display: inline-block;
+  float: left;
+  font: 14px 'Source Sans Pro', sans-serif;
+  height: 30px;
+  line-height: 20px;
+  border: 1px solid #e0e0e0;
+  color: #7b8386;
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+  cursor: text;
+  -webkit-transition: background-color 50ms, color 50ms;
+  transition: background-color 50ms, color 50ms;
+  vertical-align: middle;
+}
+
+section.note-info .to-field .to-tags .tag-item > div {
+  display: inline-block;
+  padding: 0;
+  margin: 0;
+  vertical-align: middle;
+  height: 20px;
+  line-height: 20px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+section.note-info .to-field .to-tags .tag-item .pill-text {
+  font-size: 14px;
+  color: inherit;
+  padding: 0 4px 0 0;
+  margin: 0;
+  display: inline-block;
+  white-space: nowrap;
+  line-height: 20px;
+  height: 20px;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+section.note-info .to-field .to-tags .tag-item .remove-button {
+  display: inline-block;
+  cursor: pointer;
+  margin: 0px 0px 0px 3px;
+  padding: 0px;
+  border: none;
+  text-decoration: none;
+  vertical-align: middle;
+  width: 8px;
+  height: 8px;
+  font-family: 'Source Sans Pro', sans-serif;
+  color: #e0e0e0;
+  line-height: 8px;
+  text-align: center;
+  font-size: 10px;
+  box-sizing: border-box;
+}
+
+section.note-info .to-field .to-tags .tag-item .remove-button::before {
+  content: '×';
+  display: block;
+  color: #7b8386;
+}
+
+section.note-info .to-field .to-tags .tag-item > div > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  height: 20px;
+  line-height: 20px;
+  box-sizing: border-box;
+}
+
+section.note-info .to-field .to-tags .tag-item i {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: -1px 5px 1px 5px;
+  border-radius: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+section.note-info .to-field .to-tags .tag-item cnv-user-profile-image,
+section.note-info .to-field .to-tags .tag-item cnv-user-profile-image > span,
+section.note-info .to-field .to-tags .tag-item img {
+  margin: 0px 5px;
+  border-radius: 100%;
+  display: block;
+  width: 18px !important;
+  height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+section.note-info .to-field .to-tags .tag-item > div > div {
+  padding: 0;
+  margin: 0;
+  display: inline-block;
+  vertical-align: middle;
+  height: 20px;
+  line-height: 20px;
+  box-sizing: border-box;
+}
+
+section.note-info .to-field .to-tags .tag-item i.group.privateGroup_icon-lightgray {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px;
+  min-height: 18px;
+  max-width: 18px;
+  max-height: 18px;
+  margin-top: -1px !important;
+  margin-bottom: 1px !important;
+}
+
+section.note-info .to-field .to-tags .to-input {
+  border: none;
+  outline: none;
+  min-width: 180px;
+  flex: 1;
+  font-size: 14px;
+  color: #272b2c;
+  background: transparent;
+}
+
+section.note-info .to-field-cont {
+  position: relative;
+}
+
+section.note-info .to-field-cont {
+  position: relative;
+}
+
+section.note-info .to-field-cont .autocomplete,
+section.content .inline-insert-cont .to-field-cont .autocomplete,
+section.content .to-field-cont .autocomplete {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  word-break: break-word;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  color: #272b2c;
+  font-family: 'Source Sans Pro','ConvoEmojiWin81',sans-serif !important;
+  line-height: 18px;
+  box-sizing: border-box;
+  margin-top: 5px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background-color: white;
+  border: 1px solid #e6e8ec;
+  box-shadow: 0 3px 6px -2px rgba(0, 0, 0, 0.175);
+  max-height: 210px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+section.note-info .to-field-cont .autocomplete .suggestion-list,
+section.content .inline-insert-cont .to-field-cont .autocomplete .suggestion-list,
+section.content .to-field-cont .autocomplete .suggestion-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+section.note-info .to-field-cont .autocomplete .suggestion-item,
+section.content .inline-insert-cont .to-field-cont .autocomplete .suggestion-item,
+section.content .to-field-cont .autocomplete .suggestion-item {
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+/* Angular override: selected row background */
+section.note-info .to-field-cont .autocomplete .suggestion-item.selected,
+section.content .inline-insert-cont .to-field-cont .autocomplete .suggestion-item.selected,
+section.content .to-field-cont .autocomplete .suggestion-item.selected {
+  background-color: #f4f4f4;
+}
+
+/* Port from Angular `common/listItemRenderers/styles.less` (scoped) */
+section.note-info .to-field-cont .autocomplete .img-label-list-item,
+section.content .inline-insert-cont .to-field-cont .autocomplete .img-label-list-item,
+section.content .to-field-cont .autocomplete .img-label-list-item {
+  display: inline-block;
+  width: 100%;
+  position: relative;
+  padding: 6px 2px 1px 41px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  line-height: normal;
+}
+
+section.note-info .to-field-cont .autocomplete .img-label-list-item > span,
+section.content .inline-insert-cont .to-field-cont .autocomplete .img-label-list-item > span,
+section.content .to-field-cont .autocomplete .img-label-list-item > span {
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 100%;
+}
+
+section.note-info .to-field-cont .autocomplete .img-label-list-item > span.sec-label,
+section.content .inline-insert-cont .to-field-cont .autocomplete .img-label-list-item > span.sec-label,
+section.content .to-field-cont .autocomplete .img-label-list-item > span.sec-label {
+  font-size: 12px;
+  color: #aaa;
+  padding-bottom: 3px;
+  max-width: 420px;
+  display: inline-block;
+}
+
+/* Button styles matching Angular */
+section.note-info .btn {
+  min-width: 120px;
+}
+
+section.note-info .btn-primary {
+  padding: 6px 16px;
+  background-color: #4183d7;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+/* Section: content */
+section.content {
+  padding-top: 0;
+}
+
+section.content .title {
+  padding: 18px 0px;
+  width: 100%;
+  outline: none;
+  border: none;
+}
+
+section.content .title input {
+  outline: none;
+  border: none;
+  width: 100%;
+  font-weight: 600;
+  color: #272b2c;
+  font-size: 20px;
+  line-height: 20px;
+  font-family: 'Source Sans Pro', 'ConvoEmojiWin81', sans-serif;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+section.content .title input::placeholder {
+  color: #999;
+  font-weight: 400;
+}
+
+/* Editor structure - matches Angular cnv-editor */
+section.content .body.cnv-notes-app-specific {
+  margin-top: 10px;
+}
+
+/* Quill editor container in NotesApp - matches Angular structure */
+section.content .body.cnv-notes-app-specific .inline-insert-editor {
+  padding: 0;
+  border: none;
+  background-color: transparent;
+}
+
+section.content .body.cnv-notes-app-specific .inline-insert-editor .ql-container.ql-snow {
+  border: none !important;
+  padding: 0 !important;
+}
+
+section.content .body.cnv-notes-app-specific .inline-insert-editor .ql-container.ql-snow .ql-editor {
+  min-height: 72px !important;
+  max-height: initial !important;
+  padding: 0 !important;
+  font-family: 'Source Sans Pro', 'ConvoEmojiWin81', sans-serif !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  color: #272b2c !important;
+  outline: none !important;
+}
+
+section.content .body.cnv-notes-app-specific .inline-insert-editor .ql-container.ql-snow .ql-editor:focus {
+  outline: none !important;
+}
+
+section.content .body {
+  margin-top: 10px;
+}
+
+/* Extended Toolbar Styles - matches Angular */
+section.content #notes-app-editor-toolbar.extended-controls {
+  display: block !important;
+  background-color: #fff;
+  border-top: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  padding: 8px;
+  margin-bottom: 10px;
+  min-height: 42px;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+section.content .fake-extended-toolbar {
+  height: 0px;
+}
+
+/* Ensure toolbar buttons are visible - Quill will populate them */
+/* Match Quill's default styles exactly for proper sizing and alignment */
+section.content #notes-app-editor-toolbar .ql-format-button {
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  width: 30px !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  vertical-align: middle !important;
+  background-position: center center !important;
+  background-size: 12px 12px !important;
+  background-repeat: no-repeat !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  margin-right: 4px !important;
+  border-radius: 3px !important;
+  visibility: visible !important;
+  opacity: 0.5 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-format-button:hover {
+  border: 1px solid #e0e0e0 !important;
+  opacity: 1 !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-format-button.ql-active {
+  opacity: 1 !important;
+}
+
+/* Toolbar icon classes - ensure icons from sprite CSS are visible */
+/* Use 12px size to match Quill defaults and Angular */
+section.content #notes-app-editor-toolbar .ql-format-button.icons3_Bold-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.ql-bold.icons3_Bold-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.italic-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.ql-italic.italic-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.underline-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.ql-underline.underline-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.strikethrough-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.ql-strike.strikethrough-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.numberedlist-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.ql-list.numberedlist-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.orderedlist-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.ql-bullet.orderedlist-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.icons_Links-darkgray,
+section.content #notes-app-editor-toolbar .ql-format-button.ql-link.icons_Links-darkgray {
+  background-size: 12px 12px !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-format-group {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  visibility: visible !important;
+  margin-right: 0 !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-picker {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  visibility: visible !important;
+  box-sizing: border-box !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  margin-right: 4px !important;
+  position: relative !important;
+}
+
+/* Color picker specific styles */
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker {
+  width: 44px !important;
+  position: relative !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-label {
+  display: inline-block !important;
+  width: 44px !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  background-image: url('/vendor/quill/img/inlineInsert/font-color.png') !important;
+  background-size: 18px 18px !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  cursor: pointer !important;
+  position: relative !important;
+  opacity: 0.5 !important;
+  visibility: visible !important;
+  border: none !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  text-indent: -9999px !important; /* Hide text content */
+  overflow: hidden !important;
+}
+
+/* Fallback if image doesn't load - show a colored square */
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-label:after {
+  content: '' !important;
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  background: linear-gradient(to bottom, #000 0%, #000 70%, transparent 70%) !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 1 !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-label:hover {
+  opacity: 1 !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-label.ql-active {
+  opacity: 1 !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-label i {
+  position: absolute !important;
+  width: 16px !important;
+  height: 3px !important;
+  left: 50% !important;
+  bottom: 7px !important;
+  margin-left: -8px !important;
+  display: block !important;
+  background: transparent !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options {
+  display: none !important;
+  position: absolute !important;
+  background-color: #fff !important;
+  border: 1px solid #ccc !important;
+  box-shadow: rgba(0,0,0,0.2) 0 2px 8px !important;
+  padding: 8px !important;
+  width: 146px !important;
+  height: 180px !important;
+  padding-top: 32px !important;
+  bottom: 34px !important;
+  left: 0 !important;
+  z-index: 1000 !important;
+  margin-top: -1px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker.ql-expanded .ql-picker-options {
+  display: block !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options:before {
+  content: 'Text Color' !important;
+  margin: 0px !important;
+  position: absolute !important;
+  top: 8px !important;
+  left: 8px !important;
+  font-size: 13px !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options .ql-picker-item {
+  border: 1px solid transparent !important;
+  float: left !important;
+  height: 14px !important;
+  margin: 1px !important;
+  padding: 0px !important;
+  width: 14px !important;
+  cursor: pointer !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  box-sizing: border-box !important;
+  /* Ensure background color from inline style is visible - don't override it */
+  background-image: none !important;
+  /* Make sure the element is not hidden */
+  position: relative !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options .ql-picker-item.ql-primary-color,
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options > .ql-picker-item:nth-child(8),
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options > .ql-picker-item:nth-child(9),
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options > .ql-picker-item:nth-child(10),
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options > .ql-picker-item:nth-child(11),
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options > .ql-picker-item:nth-child(12),
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options > .ql-picker-item:nth-child(13),
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options > .ql-picker-item:nth-child(14),
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options > .ql-picker-item:nth-child(15),
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options > .ql-picker-item:nth-child(16) {
+  margin-bottom: 6px !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options .ql-picker-item.ql-selected,
+section.content #notes-app-editor-toolbar .ql-picker.ql-color-picker .ql-picker-options .ql-picker-item:hover {
+  border-color: #000 !important;
+}
+
+section.content #notes-app-editor-toolbar .ql-format-separator {
+  display: inline-block !important;
+  visibility: visible !important;
+  width: 1px !important;
+  height: 20px !important;
+  background-color: #e0e0e0 !important;
+  margin: 0 4px !important;
+  vertical-align: middle !important;
+}
+
+section.content #ackChkboxContainer {
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+}
+
+section.content #ackChkboxContainer input[type="checkbox"] {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+section.content #ackChkboxContainer label {
+  font-size: 14px;
+  color: #272b2c;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+section.content .note-tags {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+section.content .note-tags .to-field {
+  display: flex;
+  align-items: center;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  padding: 8px;
+  min-height: 35px;
+  background-color: #fff;
+}
+
+section.content .note-tags .to-field input {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  flex: 1;
+  min-width: 150px;
+}
+
+/* Ensure InlineInsert to-field styles work in NotesApp - reuse the same structure */
+/* Copy all styles from feed.css to make them identical */
+section.content .inline-insert-cont .to-field .tags,
+section.content .to-field-cont .to-field .tags {
+  min-height: 45px;
+  border-top: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  padding: 1px 8px;
+  display: block;
+  line-height: 30px;
+  font-size: 0;
+}
+
+section.content .inline-insert-cont .to-field .tags > *,
+section.content .to-field-cont .to-field .tags > * {
+  font-size: 14px;
+}
+
+section.content .inline-insert-cont .to-field .tags .tag-list,
+section.content .to-field-cont .to-field .tags .tag-list {
+  display: inline !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  width: auto;
+}
+
+section.content .inline-insert-cont .to-field .tags .pre-placeholder,
+section.content .to-field-cont .to-field .tags .pre-placeholder {
+  color: #bbb;
+  margin-right: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+section.content .inline-insert-cont .to-field .tags .empty-to-field-pre-placeholder,
+section.content .to-field-cont .to-field .tags .empty-to-field-pre-placeholder {
+  color: #bbb;
+  margin-right: 6px;
+}
+
+section.content .inline-insert-cont .to-field .tags .add-more-placeholder,
+section.content .to-field-cont .to-field .tags .add-more-placeholder {
+  color: #bbb;
+  cursor: pointer;
+  margin-left: 6px;
+}
+
+section.content .inline-insert-cont .to-field .tags .empty-to-field-placeholder,
+section.content .to-field-cont .to-field .tags .empty-to-field-placeholder {
+  color: #bbb;
+  cursor: text;
+  margin-left: 6px;
+}
+
+section.content .inline-insert-cont .to-field .tags .input,
+section.content .to-field-cont .to-field .tags .input {
+  display: inline-block !important;
+  min-width: 100px;
+  vertical-align: middle !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  font-size: 14px !important;
+  color: #272b2c !important;
+  padding: 0 4px !important;
+  margin: 0 !important;
+  line-height: 30px !important;
+  height: 30px !important;
+  box-sizing: border-box;
+}
+
+/* Match Angular ng-tags-input structure: li.tag-item - EXACT styles */
+section.content .inline-insert-cont .to-field .tags .tag-item,
+section.content .to-field-cont .to-field .tags .tag-item {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  word-break: break-word;
+  -webkit-font-smoothing: antialiased;
+  white-space: nowrap !important;
+  text-align: left;
+  word-wrap: normal !important;
+  list-style-type: none !important;
+  box-sizing: border-box;
+  margin: 4px !important;
+  padding: 4px 7px 4px 7px !important;
+  display: inline-block !important;
+  float: none !important;
+  font: 14px 'Source Sans Pro', sans-serif !important;
+  height: 30px !important;
+  line-height: 22px !important;
+  border: 1px solid #e0e0e0 !important;
+  color: #7b8386 !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  background-color: #fff !important;
+  overflow: hidden !important;
+  cursor: text;
+  -webkit-transition: background-color 50ms, color 50ms;
+  transition: background-color 50ms, color 50ms;
+  vertical-align: middle;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative;
+}
+
+/* Attachments Section - matches Angular editorMain.less */
+section.attachments {
+  padding-left: 65px;
+  padding-right: 65px;
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+section.attachments .border-separator {
+  width: 100%;
+}
+
+section.attachments .border-separator table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+section.attachments .attachments-tools {
+  width: 100%;
+}
+
+section.attachments .attachment-info {
+  text-align: left;
+  vertical-align: middle;
+}
+
+section.attachments .attachment-info.l-align.pull-left {
+  text-align: left;
+}
+
+section.attachments .attachment-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+section.attachments .attachment-controls .super {
+  text-decoration: none;
+  color: #4183d7;
+  font-size: 14px;
+  cursor: pointer;
+  margin-right: 12px;
+}
+
+section.attachments .attachment-controls .super:hover {
+  text-decoration: underline;
+}
+
+section.attachments .attachment-controls .cnv-icons-20 {
+  width: 20px !important;
+  height: 20px !important;
+  display: inline-block !important;
+  cursor: pointer;
+  margin-right: 12px !important;
+  opacity: 0.85;
+  vertical-align: middle;
+}
+
+section.attachments .attachment-controls .pin-icon.cnv-icons-20 {
+  width: 20px !important;
+  height: 20px !important;
+  display: inline-block !important;
+  cursor: pointer;
+  margin-right: 12px !important;
+  opacity: 0.85;
+  vertical-align: middle;
+}
+
+section.attachments .attachment-controls .pin-icon.cnv-icons-20:hover {
+  opacity: 1;
+}
+
+section.attachments .attachment-controls .giphy-action-container {
+  display: inline-block !important;
+  margin-right: 12px !important;
+  vertical-align: middle;
+  position: relative;
+}
+
+section.attachments .attachment-controls .giphy-action-container .inLineInsertGiphy.giphy {
+  width: 20px !important;
+  height: 20px !important;
+  background-repeat: no-repeat;
+  background-image: url("data:image/svg+xml,%3C%3Fxml version='1.0' encoding='utf-8'%3F%3E%3C!-- Generator: Adobe Illustrator 22.1.0, SVG Export Plug-In . SVG Version: 6.00 Build 0) --%3E%3Csvg version='1.1' id='Layer_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 48 48' style='enable-background:new 0 0 48 48;' xml:space='preserve'%3E%3Cstyle type='text/css'%3E .st0%7Bfill:%239FA7B7;%7D .st1%7Bfont-family:'ArialRoundedMTBold';%7D .st2%7Bfont-size:17.65px;%7D%0A%3C/style%3E%3Cpath class='st0' d='M39.1,10.2H8.9c-4.6,0-8.4,3.9-8.4,8.6v10.6c0,4.8,3.8,8.6,8.4,8.6h30.3c4.6,0,8.4-3.9,8.4-8.6V18.9 C47.6,14.1,43.8,10.2,39.1,10.2z M44.5,29.1c0,3.4-2.8,6.1-6.1,6.1H9.6c-3.4,0-6.1-2.8-6.1-6.1v-10c0-3.4,2.8-6.1,6.1-6.1h28.7 c3.4,0,6.1,2.8,6.1,6.1L44.5,29.1L44.5,29.1z'/%3E%3Ctext transform='matrix(1 0 0 1 8.9178 30.6387)' class='st0 st1 st2'%3EGIF%3C/text%3E%3C/svg%3E%0A");
+  background-size: contain;
+  background-position: center;
+  opacity: 0.5;
+  cursor: pointer;
+  display: block;
+}
+
+section.attachments .attachment-controls .giphy-action-container .inLineInsertGiphy.giphy:hover {
+  opacity: 1;
+}
+
+section.attachments .attachment-controls .cnv-icons-20:hover {
+  opacity: 1;
+}
+
+section.attachments .attachment-controls .attach-local,
+section.attachments .attachment-controls .attach-drive,
+section.attachments .attachment-controls .attach-box {
+  cursor: pointer;
+}
+
+section.attachments .attachment-selection-controls {
+  text-align: right;
+  vertical-align: middle;
+}
+
+section.attachments .attachment-selection-controls.r-align.pull-right {
+  text-align: right;
+}
+
+/* Files upload container - matches Angular files-upload-container */
+section.attachments .files-upload-container {
+  margin-top: 10px;
+  min-height: 60px;
+}
+
+section.attachments .files-upload-container.no-files {
+  min-height: 60px;
+}
+
+section.attachments .file.upload-box.attachment-box {
+  display: inline-block;
+  cursor: pointer;
+  margin: 10px auto;
+}
+
+section.attachments .file.upload-box.attachment-box .file_holder {
+  cursor: pointer;
+  padding: 10px;
+  display: inline-block;
+}
+
+section.attachments .file.upload-box.attachment-box .file_holder img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  display: block;
+}
+
+section.attachments .attachment-box {
+  position: relative;
+  display: inline-block;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  padding: 5px;
+  background-color: #fff;
+  min-width: 80px;
+  min-height: 80px;
+  margin: 5px;
+}
+
+section.attachments .attachment-box:hover .remove-file,
+section.attachments .attachment-box button[type="button"] {
+  display: block !important;
+}
+
+section.attachments .clear {
+  clear: both;
+}
+
+/* Location container - matches Angular location-container-editor */
+section.content .location-container-editor {
+  max-width: 240px;
+  border: 1px solid #ccd0dd;
+  background-color: #f0f0f0;
+  margin: 10px 0 0 0;
+  font-size: 14px;
+  position: relative;
+  height: fit-content;
+  padding: 5px;
+  border-radius: 3px;
+}
+
+section.content .location-container-editor .close-btn {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  z-index: 10;
+}
+
+section.content .location-container-editor .close-btn-icon {
+  cursor: pointer;
+  max-width: 8px;
+  margin-right: 0px;
+  height: 8px;
+  width: 8px;
+  display: inline-block;
+}
+
+section.content .location-container-editor .geo-location {
+  padding: 0px 5px 5px 5px;
+  margin: 0px 30px 0px 0px;
+  font-size: 14px;
+}
+
+section.content .location-container-editor .geo-location-text {
+  color: #4183d7;
+  font-weight: 600;
+}
+
+section.content .inline-insert-cont .to-field .tags .tag-item > div,
+section.content .to-field-cont .to-field .tags .tag-item > div {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  vertical-align: middle;
+  height: 22px !important;
+  line-height: 22px !important;
+  overflow: visible !important;
+  box-sizing: border-box;
+  white-space: nowrap !important;
+  gap: 0;
+}
+
+section.content .inline-insert-cont .to-field .tags .tag-item .pill-text,
+section.content .to-field-cont .to-field .tags .tag-item .pill-text {
+  font-size: 14px !important;
+  color: #7b8386 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-block !important;
+  white-space: nowrap !important;
+  line-height: 22px !important;
+  height: 22px !important;
+  vertical-align: middle !important;
+  box-sizing: border-box;
+}
+
+section.content .inline-insert-cont .to-field .tags .tag-item .remove-button,
+section.content .to-field-cont .to-field .tags .tag-item .remove-button {
+  display: inline-block !important;
+  cursor: pointer !important;
+  margin: 0px 0px 0px 3px !important;
+  padding: 0px !important;
+  border: none !important;
+  text-decoration: none !important;
+  vertical-align: middle !important;
+  width: 12px !important;
+  height: 12px !important;
+  font-family: 'Source Sans Pro', sans-serif !important;
+  color: #7b8386 !important;
+  line-height: 12px !important;
+  text-align: center !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  box-sizing: border-box;
+  position: relative !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+section.content .inline-insert-cont .to-field .tags .tag-item .remove-button::before,
+section.content .to-field-cont .to-field .tags .tag-item .remove-button::before {
+  display: none;
+}
+
+section.content .inline-insert-cont .to-field .tags .tag-item > div > span:first-child,
+section.content .to-field-cont .to-field .tags .tag-item > div > span:first-child {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle;
+  padding: 0 !important;
+  margin: 0 3px 0 0 !important;
+  height: 16px !important;
+  width: 16px !important;
+  line-height: 16px !important;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+section.content .inline-insert-cont .to-field .tags .tag-item i,
+section.content .to-field-cont .to-field .tags .tag-item i {
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  border-radius: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+section.content .inline-insert-cont .to-field .tags .tag-item i.group.privateGroup_icon-lightgray,
+section.content .to-field-cont .to-field .tags .tag-item i.group.privateGroup_icon-lightgray {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  margin-top: -1px !important;
+  margin-bottom: 1px !important;
+  border-radius: 0 !important; /* Group icons are not circular */
+}
+
+section.content .inline-insert-cont .to-field .tags .tag-item cnv-user-profile-image,
+section.content .inline-insert-cont .to-field .tags .tag-item cnv-user-profile-image > span,
+section.content .inline-insert-cont .to-field .tags .tag-item img,
+section.content .to-field-cont .to-field .tags .tag-item cnv-user-profile-image,
+section.content .to-field-cont .to-field .tags .tag-item cnv-user-profile-image > span,
+section.content .to-field-cont .to-field .tags .tag-item img {
+  margin: 0 !important;
+  border-radius: 100%;
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+section.content .inline-insert-cont .to-field .tags .tag-item > div > div,
+section.content .to-field-cont .to-field .tags .tag-item > div > div {
+  padding: 0 !important;
+  margin: 0 0 0 3px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle;
+  height: 18px !important;
+  line-height: 18px !important;
+  box-sizing: border-box;
+  position: relative;
+  flex-shrink: 0;
+}
+
+section.content .inline-insert-cont .to-field .tags .tag-item .icons2_Close-lightgray,
+section.content .to-field-cont .to-field .tags .tag-item .icons2_Close-lightgray {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Duplicate removed - using styles from line 1035 */
+
+/* Gutter classes */
+.l-gutter {
+  padding-left: 65px;
+}
+
+.r-gutter {
+  padding-right: 65px;
+}
+
