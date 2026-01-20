@@ -1,0 +1,412 @@
+/* ChatListItem.css - EXACT replication of AngularJS chatUsersWindow.less */
+
+/* ============================
+   CONTAINER & HOVER STATES
+   (chatUsersWindow.less lines 428-468)
+   ============================ */
+
+.chatListItemContainer {
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.chatListItemContainer:hover {
+  background: #f5f7fc;
+}
+
+.chatListItemContainer.selected {
+  background: #f5f7fc;
+}
+
+/* ============================
+   LIST ITEM
+   (chatUsersWindow.less lines 480-482)
+   ============================ */
+
+.listItem {
+  cursor: pointer;
+  height: 61px;
+  position: relative;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* ============================
+   INVITED USER ICON
+   (chatUsersWindow.less lines 489-492)
+   ============================ */
+
+.invited-icon {
+  vertical-align: middle;
+  opacity: 0.3;
+}
+
+/* ============================
+   USER AVATAR
+   (chatUsersWindow.less lines 285-289)
+   ============================ */
+
+.user-img-48 {
+  margin-left: 5%;
+  display: inline-block;
+  font-size: 14px;
+  vertical-align: top;
+}
+
+/* ============================
+   USER NAME
+   (chatUsersWindow.less lines 300-313)
+   ============================ */
+
+.listUserName {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 150px;
+  display: inline-block;
+  cursor: pointer;
+  margin-left: 13px;
+  margin-bottom: -7px;
+}
+
+.listUserName:hover {
+  text-decoration: underline;
+}
+
+.listUserName.title-margin-bottom {
+  margin-bottom: 11px;
+}
+
+/* ============================
+   PRESENCE STATUS DOTS
+   (chatUsersWindow.less lines 319-356)
+   ============================ */
+
+.listUserStatusOnline {
+  width: 12px;
+  height: 12px;
+  background: #2ab90a;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: inline-block;
+  position: relative;
+  z-index: 10;
+}
+
+.listUserStatusBusy {
+  width: 12px;
+  height: 12px;
+  background: #e40000;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: inline-block;
+  position: relative;
+  z-index: 10;
+}
+
+.listUserStatusOffline {
+  width: 12px;
+  height: 12px;
+  background: grey;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: inline-block;
+  position: relative;
+  z-index: 10;
+}
+
+.listUserStatusIdle {
+  width: 12px;
+  height: 12px;
+  background: #f3991e;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: inline-block;
+  position: relative;
+  z-index: 10;
+}
+
+.listUserStatusMobile {
+  width: 14px;
+  height: 14px;
+  background-image: url('/assets/img/chat/Mobile.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.listUserStatusMobile.chat-list {
+  display: inline-block;
+  z-index: 2;
+  position: absolute;
+  right: -14px;
+  top: -3px;
+}
+
+.listUserStatusMobileWhite {
+  width: 12px;
+  height: 12px;
+  background-image: url('/assets/img/chat/Mobile_White.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  margin-left: 3px;
+}
+
+.listUserStatusBlocked {
+  width: 12px;
+  height: 12px;
+  background: #e40000;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================
+   INACTIVE TIME FIELD
+   (chatUsersWindow.less lines 251-269)
+   ============================ */
+
+.user-inactive-time-field {
+  position: absolute;
+  right: 0px;
+  top: 0px;
+  width: 38px;
+}
+
+.user-inactive-time {
+  position: absolute;
+  right: -5px;
+  font-size: 10.5px;
+  color: #828282;
+  background: white;
+  min-width: 24px;
+  max-width: 40px;
+  display: inline-block;
+  border-radius: 8px;
+  text-align: center;
+  padding: 0 6px 0 4px;
+}
+
+/* ============================
+   ITEM BORDER
+   (chatUsersWindow.less lines 470-478)
+   ============================ */
+
+.listItemBorder {
+  width: 80%;
+  display: block;
+  border-top: 1px solid #e0e0e0;
+  margin-bottom: 10px;
+  margin-left: 5%;
+  margin-right: 5%;
+  position: absolute;
+}
+
+/* ============================
+   CHAT INFO (for chats with chatId)
+   (chatUsersWindow.less lines 512-560)
+   ============================ */
+
+.chatListInfo {
+  display: inline-block;
+  margin-left: 11px;
+  margin-top: -1px;
+  line-height: 1.27;
+  position: absolute;
+  width: 182px;
+}
+
+.chatListDate {
+  font-size: 13px;
+  color: #7b8386;
+  float: right;
+  text-align: right;
+  white-space: nowrap;
+  margin-left: 3px;
+}
+
+.display-flex {
+  display: flex;
+  align-items: center;
+}
+
+.chatListTitle {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #2b2b2b;
+  text-align: left;
+  display: block;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.boldChatTitle {
+  font-weight: 600;
+}
+
+.listUnreadCountCont {
+  position: absolute;
+  right: 0px;
+  display: inline-block;
+  z-index: 1;
+}
+
+.listUnreadCount {
+  display: inline-block;
+  background: #e0582f; /* Matches AngularJS chatUsersWindow.less line 564 EXACTLY */
+  color: #ffffff; /* Matches AngularJS line 565 */
+  font-size: 14px; /* Matches AngularJS line 566 */
+  text-align: center;
+  padding: 0px 1px; /* Matches AngularJS line 568 */
+  border-radius: 5px; /* Matches AngularJS line 569 */
+  min-height: 18px; /* Matches AngularJS line 570 */
+  min-width: 23px; /* Matches AngularJS line 571 */
+  margin-left: 3px; /* Matches AngularJS line 572 */
+}
+
+.chatListMsg {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  width: 130px;
+  font-size: 14px;
+  font-weight: 300;
+  padding-top: 6px;
+  color: #7b8386;
+}
+
+.chatListMsg.boldText {
+  font-weight: bold;
+}
+
+.chatListMsg.pt0 {
+  padding-top: 0;
+}
+
+/* ============================
+   BLOCKED / LEFT PILLS
+   ============================ */
+
+.users-blocked-pill {
+  display: inline-block;
+  background: #e40000;
+  color: white;
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  margin-left: 5px;
+}
+
+.users-left-pill {
+  display: inline-block;
+  background: #828282;
+  color: white;
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  margin-left: 5px;
+}
+
+.users-gvn-pill {
+  display: inline-block;
+  margin-left: 5px;
+}
+
+/* ============================
+   TYPING / COMPOSING INDICATOR
+   (chatUsersWindow.less lines 429-461)
+   ============================ */
+
+.composingDetails {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #7b8386;
+}
+
+.composingMessageFromOtherUser {
+  display: inline-flex;
+  gap: 1.5px;
+}
+
+.composingMessageFromOtherUser div {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #7b8386;
+  margin-right: 1.5px;
+  animation: composestretchdelay2 1.8s infinite ease-in-out;
+}
+
+.composingMessageFromOtherUser .dot1 {
+  margin-left: 1px;
+}
+
+.composingMessageFromOtherUser .dot2 {
+  animation-delay: -1.7s;
+}
+
+.composingMessageFromOtherUser .dot3 {
+  animation-delay: -1.6s;
+}
+
+@keyframes composestretchdelay2 {
+  0%,
+  40%,
+  100% {
+    transform: translateY(-6px);
+  }
+  20% {
+    transform: translateY(-8px);
+  }
+}
+
+.recordingMessage {
+  font-style: italic;
+  color: #7b8386;
+}
+
+/* ============================
+   SEEN PARTICIPANTS
+   ============================ */
+
+.seen {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.group-chat-seen-more-counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #4183d7;
+  color: white;
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.seen-counter {
+  font-weight: 600;
+}
+
+/* ============================
+   SEPARATOR TITLE
+   (chatUsersWindow.less lines 244-249)
+   ============================ */
+
+.separator-title {
+  background: #f7f7f7;
+  padding: 5px 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+

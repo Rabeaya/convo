@@ -1,0 +1,142 @@
+/* Additional missing icon styles from Angular */
+
+.chatsIcon {
+  width: 20px;
+  height: 20px;
+  background-image: url('/assets/img/chat/ChatsIcon.svg');
+  background-repeat: no-repeat;
+  background-size: contain;
+  display: inline-block;
+  margin-left: 8px;
+  margin-top: 4px;
+}
+
+/* Settings icons */
+.chat_settings_white {
+  background-image: url('/assets/img/chat/Settings.png');
+  background-repeat: no-repeat;
+  background-size: 14px;
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  filter: brightness(0) invert(1);
+}
+
+.chat_settings {
+  background-image: url('/assets/img/chat/Settings.png');
+  background-repeat: no-repeat;
+  background-size: 14px;
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  filter: brightness(0.5);
+}
+
+/* Search icon styles moved to ChatListWindow.css to avoid conflicts */
+
+.unreadCount {
+  position: absolute;
+  background: #e0582f;
+  color: #ffffff;
+  font-size: 14px;
+  text-align: center;
+  padding: 0px 1px;
+  border-radius: 5px;
+  min-width: 20px;
+  min-height:20px;
+  left: 8px;
+  top: -13px;
+  z-index: 101;
+}
+
+/* Spinner */
+.spinner-container {
+  text-align: center;
+  padding: 20px;
+}
+
+.cnv-circle-spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Blank state */
+.chat-blank-state-wrapper {
+  text-align: center;
+  padding: 40px 20px;
+  color: #7b8386;
+}
+
+.chat-blank-state-wrapper p {
+  font-size: 14px;
+  margin-top: 10px;
+  line-height: 1.4;
+}
+
+.cnv-icons-40 {
+  font-size: 40px;
+  opacity: 0.3;
+}
+
+.chatbar-comment-lightgray::before {
+  content: "💬";
+}
+
+/* User status indicators */
+.listUserStatusOnline {
+  width: 12px;
+  height: 12px;
+  background: #2ab90a;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: inline-block;
+}
+
+.listUserStatusBusy {
+  width: 12px;
+  height: 12px;
+  background: #e40000;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: inline-block;
+}
+
+.listUserStatusIdle {
+  width: 12px;
+  height: 12px;
+  background: #f3991e;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: inline-block;
+}
+
+.listUserStatusOffline {
+  width: 12px;
+  height: 12px;
+  background: grey;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: inline-block;
+}
+
+.listUserStatusMobileWhite {
+  width: 12px;
+  height: 12px;
+  background-image: url('/assets/img/chat/Mobile_White.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  margin-left: 3px;
+  display: inline-block;
+}
+
+

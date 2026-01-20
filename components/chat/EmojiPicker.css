@@ -1,0 +1,485 @@
+/* EmojiPicker styles - matches AngularJS exactly (cnvEmoji.less) */
+
+.emoji-action-container .emoji-popup-btn {
+  height: 19px;
+  width: 19px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-top: -2px;
+  border-radius: 100%;
+  cursor: pointer;
+  background-size: 16px;
+  background-position: center;
+  transform: scale(1.20, 1.20);
+  transition: transform 150ms linear 50ms;
+  transform-origin: center center;
+}
+
+.emoji-popup-btn.unselected {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%237b8386'%3E%3Cpath d='M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z'/%3E%3Cpath d='M8 14s1.5 2 4 2 4-2 4-2' stroke='%237b8386' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='9' cy='9' r='1' fill='%237b8386'/%3E%3Ccircle cx='15' cy='9' r='1' fill='%237b8386'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  -webkit-transform: scale(1, 1);
+  transform: scale(1, 1);
+  -webkit-transform-origin-x: center;
+  -webkit-transform-origin-y: center;
+  transform-origin-x: center;
+  transform-origin-y: center;
+  opacity: 0.85;
+  -webkit-transition: -webkit-transform 150ms linear 50ms, opacity 150ms linear 50ms;
+  transition: transform 150ms linear 50ms, opacity 150ms linear 50ms;
+}
+
+.emoji-popup-btn.clicked {
+  opacity: 1;
+}
+
+.emoji-popup-btn:hover:not(.clicked) {
+  -webkit-transform: scale(1.15, 1.15) !important;
+  transform: scale(1.15, 1.15) !important;
+  opacity: 1 !important;
+}
+
+/* Popover styles - matches AngularJS cnvEmoji.less line 47-68 */
+.popover.custom-emoji-popover {
+  max-width: 356px;
+  width: 356px;
+  background-color: #FAFAFA;
+  z-index: 10002 !important; /* Higher than ChatWindow (10000) and MessageList (10001) to appear on top */
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.popover-content {
+  padding: 9px 5px;
+}
+
+.popover.top > .arrow:after {
+  border-top-color: #FAFAFA !important;
+}
+
+.popover.bottom > .arrow:after {
+  border-bottom-color: #FAFAFA !important;
+}
+
+.popover.left > .arrow:after {
+  border-left-color: #FAFAFA !important;
+}
+
+.popover.right > .arrow:after {
+  border-right-color: #FAFAFA !important;
+}
+
+.popover .arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+.popover.top > .arrow {
+  bottom: -8px;
+  left: 50%;
+  margin-left: -8px;
+  border-width: 8px 8px 0 8px;
+  border-color: #e0e0e0 transparent transparent transparent;
+}
+
+.popover.top > .arrow:after {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  left: -8px;
+  border-width: 8px 8px 0 8px;
+  border-color: #FAFAFA transparent transparent transparent;
+}
+
+.popover.bottom > .arrow {
+  top: -8px;
+  left: 50%;
+  margin-left: -8px;
+  border-width: 0 8px 8px 8px;
+  border-color: transparent transparent #e0e0e0 transparent;
+}
+
+.popover.bottom > .arrow:after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: -8px;
+  border-width: 0 8px 8px 8px;
+  border-color: transparent transparent #FAFAFA transparent;
+}
+
+/* Emoji popout inner - matches AngularJS cnvEmoji.tpl.html */
+.cnv-emoji-popout-inner {
+  padding: 0;
+  background-color: #FAFAFA;
+}
+
+/* Search Bar - matches AngularJS cnvEmoji.less line 309-342 */
+.emojiSearchBar {
+  border-style: solid;
+  border-width: 1px;
+  border-color: #e0e0e0;
+  background: white;
+  height: 40px;
+  margin-left: 2px;
+  margin-bottom: 2px;
+  width: 99%;
+  display: flex;
+  align-items: center;
+  padding: 0 5px;
+}
+
+.searchEmojiIcon {
+  height: 16px;
+  width: 16px;
+  display: inline-block;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%237b8386'%3E%3Cpath d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  margin-bottom: -3px;
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+
+.cnv-emoji-search-field {
+  width: 84%;
+  height: 38px;
+  border: none;
+  outline: none;
+  word-break: break-all;
+  margin-left: 5px;
+  display: inline-block;
+  background: transparent;
+  font-size: 14px;
+}
+
+.cnv-emoji-search-field::-ms-clear {
+  display: none;
+}
+
+.clear-search-button {
+  margin: 5px;
+  cursor: pointer;
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  vertical-align: middle;
+  visibility: visible;
+  flex-shrink: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' viewBox='0 0 24 24' fill='%237b8386'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: center;
+}
+
+/* Emoji Container - matches AngularJS cnvEmoji.less line 73-86 */
+.cnv-emoji-container {
+  width: 99%;
+  width: inherit;
+  height: 249px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0px 0px 0px 0px;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.cnv-emoji-container::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.cnv-emoji-container::-webkit-scrollbar-track:hover {
+  background-color: #DBDBDB;
+}
+
+ul.emoji-categories-list,
+.emoji-list {
+  list-style: none;
+  -webkit-padding-start: 0px;
+  -moz-padding-start: 0px;
+  margin-right: -1px;
+  padding: 0px;
+}
+
+/* Category Label - matches AngularJS cnvEmoji.less line 106-128 */
+.category-label {
+  background-color: #FAFAFA;
+  padding: 0% 1%;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #798385;
+  font-size: 12px;
+  width: 93%;
+  z-index: 1;
+}
+
+.category-label2 {
+  background-color: #FAFAFA;
+  padding: 0% 1%;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #798385;
+  font-size: 12px;
+  width: 93%;
+  position: absolute;
+  top: 51px;
+  display: none;
+  z-index: 1;
+}
+
+.category-label-bottom {
+  background-color: #FAFAFA;
+  padding: 0% 1%;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #798385;
+  font-size: 12px;
+  width: 93%;
+  visibility: hidden;
+}
+
+.category-label.fix-cat {
+  visibility: hidden;
+}
+
+/* Emoji Item - matches AngularJS cnvEmoji.less line 159-182 */
+li.emoji-item {
+  display: inline-block;
+  font-size: 23px;
+  width: 36px;
+  cursor: pointer;
+  text-align: center;
+  vertical-align: middle;
+  border-radius: 25%;
+}
+
+li.emoji-item-not-found {
+  text-align: center;
+  margin-top: 33.5%;
+  color: #798385;
+}
+
+li.emoji-item:hover {
+  background-color: #C8D3FF;
+  opacity: 1;
+  border-radius: 10%;
+}
+
+/* Category Toolbar - matches AngularJS cnvEmoji.less line 183-298 */
+.categories-icon-list-container {
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #C6C5C6;
+  width: 104%;
+  margin-left: -6px;
+}
+
+ul.categorires-icon-list {
+  -webkit-padding-start: 0px;
+  margin-left: 5%;
+  -moz-padding-start: 0px;
+  list-style: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 5px 0 5px 5%;
+}
+
+.categorires-icon-list li {
+  float: left;
+  display: inline-block;
+  white-space: nowrap;
+  margin: 1%;
+  padding: 3% 5%;
+  width: 18px;
+  height: 18px;
+  background-repeat: no-repeat;
+  background-size: 18px;
+  cursor: pointer;
+}
+
+/* Category Icons - Unselected - matches AngularJS cnvEmoji.less line 204-244 */
+/* 1. Frequently Used - Clock icon (outline style) */
+li.Frequently {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle fill='none' stroke='%237b8386' stroke-width='1.2' cx='9' cy='9' r='7'/%3E%3Cline stroke='%237b8386' stroke-width='1.2' stroke-linecap='round' x1='9' y1='9' x2='9' y2='5'/%3E%3Cline stroke='%237b8386' stroke-width='1.2' stroke-linecap='round' x1='9' y1='9' x2='12' y2='9'/%3E%3C/svg%3E");
+  background-size: 18px;
+  cursor: pointer;
+}
+
+/* 2. People - Smiley face icon (outline style) */
+li.People-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle fill='none' stroke='%237b8386' stroke-width='1.2' cx='9' cy='9' r='7'/%3E%3Ccircle fill='%237b8386' cx='6.5' cy='7.5' r='0.8'/%3E%3Ccircle fill='%237b8386' cx='11.5' cy='7.5' r='0.8'/%3E%3Cpath fill='none' stroke='%237b8386' stroke-width='1.2' stroke-linecap='round' d='M6 11.5c0 1.5 1.5 2.5 3 2.5s3-1 3-2.5'/%3E%3C/svg%3E");
+  background-size: 18px;
+  cursor: pointer;
+}
+
+/* 3. Nature - Pine tree icon (solid style) */
+li.Nature-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='%237b8386' d='M9 2l-1.5 3h3L9 2zm-2 4h4l-1.5 3h-1l-1.5-3zm-1.5 4h7l-1.5 3H7l-1.5-3zm-1.5 4h10v1.5H4V14z'/%3E%3C/svg%3E");
+  background-size: 18px;
+  cursor: pointer;
+}
+
+/* 4. Foods - Watermelon slice icon (solid style with seeds) */
+li.Foods-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='%237b8386' d='M9 2c3.5 0 6.5 2 6.5 6s-3 6-6.5 6-6.5-2-6.5-6 3-6 6.5-6zm0 2c-2 0-4 1-4 4s2 4 4 4 4-1 4-4-2-4-4-4z'/%3E%3Ccircle fill='%237b8386' cx='7' cy='7.5' r='0.4'/%3E%3Ccircle fill='%237b8386' cx='9' cy='8.5' r='0.4'/%3E%3Ccircle fill='%237b8386' cx='11' cy='7.5' r='0.4'/%3E%3Ccircle fill='%237b8386' cx='8' cy='9.5' r='0.4'/%3E%3Ccircle fill='%237b8386' cx='10' cy='9.5' r='0.4'/%3E%3C/svg%3E");
+  background-size: 18px;
+  cursor: pointer;
+}
+
+/* 5. Celebration - Balloon icon (solid style with string) */
+li.Celebration-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='%237b8386' d='M9 2c2 0 3.5 1.5 3.5 3.5 0 2-1.5 3.5-3.5 3.5S5.5 7.5 5.5 5.5C5.5 3.5 7 2 9 2z'/%3E%3Cpath fill='none' stroke='%237b8386' stroke-width='1.2' stroke-linecap='round' d='M9 9v7'/%3E%3C/svg%3E");
+  background-size: 18px;
+  cursor: pointer;
+}
+
+/* 6. Activity - Running person icon (solid style) */
+li.Activity-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle fill='%237b8386' cx='9' cy='4' r='1.8'/%3E%3Cpath fill='%237b8386' d='M6 7h6l-1 5H7l-1-5zm-1 6l2 3h4l2-3'/%3E%3Cpath fill='none' stroke='%237b8386' stroke-width='1.2' stroke-linecap='round' d='M5 10l-1-1m9-1l1-1'/%3E%3C/svg%3E");
+  background-size: 18px;
+  cursor: pointer;
+}
+
+/* 7. Places - Cityscape with bus icon (solid style) */
+li.Places-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='%237b8386' d='M2 14h3V9H2v5zm1-3h1v2H3v-2zm5 3h7V9H8v5zm1-3h5v2H9v-2z'/%3E%3Cpath fill='%237b8386' d='M2 9l2-1.5h1v1.5H2zm6 0l2-1.5h1v1.5H8z'/%3E%3Cpath fill='%237b8386' d='M1 11h2v0.5H1V11zm6 0h2v0.5H8V11z'/%3E%3Cpath fill='%237b8386' d='M2 7h2.5v2H2V7zm0.5 0.5h1.5v1H2.5v-1z'/%3E%3C/svg%3E");
+  background-size: 18px;
+  cursor: pointer;
+}
+
+/* 8. Symbols - Grid with symbols icon (outline style with star, circle, plus, note) */
+li.Symbols-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='none' stroke='%237b8386' stroke-width='1.2' d='M3 3h12v12H3z'/%3E%3Cpath fill='none' stroke='%237b8386' stroke-width='1.2' d='M9 3v12M3 9h12'/%3E%3Cpath fill='%237b8386' d='M6 5l0.4 0.8h0.8l-0.6 0.5 0.2 0.8-0.9-0.7-0.9 0.7 0.2-0.8-0.6-0.5h0.8L6 5z'/%3E%3Ccircle fill='none' stroke='%237b8386' stroke-width='1.2' cx='12' cy='6' r='0.7'/%3E%3Cpath fill='none' stroke='%237b8386' stroke-width='1.2' d='M6 12h1.2v1.2H6zm4.8 0h1.2v1.2h-1.2z'/%3E%3Cpath fill='%237b8386' d='M12 12.5l-0.3 0.5h-0.5l0.4 0.3-0.2 0.5 0.7-0.5 0.7 0.5-0.2-0.5 0.4-0.3h-0.5l-0.3-0.5z'/%3E%3Cpath fill='none' stroke='%237b8386' stroke-width='1.2' d='M12 12.5v1.5h0.5'/%3E%3C/svg%3E");
+  background-size: 18px;
+  cursor: pointer;
+}
+
+/* Category Icons - Selected - matches AngularJS cnvEmoji.less line 247-288 */
+/* Selected icons use blue color (#4183d7) instead of gray */
+li.Frequently.selected {
+  background-color: #FAFAFA;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle fill='none' stroke='%234183d7' stroke-width='1.2' cx='9' cy='9' r='7'/%3E%3Cline stroke='%234183d7' stroke-width='1.2' stroke-linecap='round' x1='9' y1='9' x2='9' y2='5'/%3E%3Cline stroke='%234183d7' stroke-width='1.2' stroke-linecap='round' x1='9' y1='9' x2='12' y2='9'/%3E%3C/svg%3E");
+  background-size: 18px;
+}
+
+li.People-icon.selected {
+  background-color: #FAFAFA;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle fill='none' stroke='%234183d7' stroke-width='1.2' cx='9' cy='9' r='7'/%3E%3Ccircle fill='%234183d7' cx='6.5' cy='7.5' r='0.8'/%3E%3Ccircle fill='%234183d7' cx='11.5' cy='7.5' r='0.8'/%3E%3Cpath fill='none' stroke='%234183d7' stroke-width='1.2' stroke-linecap='round' d='M6 11.5c0 1.5 1.5 2.5 3 2.5s3-1 3-2.5'/%3E%3C/svg%3E");
+  background-size: 18px;
+}
+
+li.Nature-icon.selected {
+  background-color: #FAFAFA;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='%234183d7' d='M9 2l-1.5 3h3L9 2zm-2 4h4l-1.5 3h-1l-1.5-3zm-1.5 4h7l-1.5 3H7l-1.5-3zm-1.5 4h10v1.5H4V14z'/%3E%3C/svg%3E");
+  background-size: 18px;
+}
+
+li.Foods-icon.selected {
+  background-color: #FAFAFA;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='%234183d7' d='M9 2c3.5 0 6.5 2 6.5 6s-3 6-6.5 6-6.5-2-6.5-6 3-6 6.5-6zm0 2c-2 0-4 1-4 4s2 4 4 4 4-1 4-4-2-4-4-4z'/%3E%3Ccircle fill='%234183d7' cx='7' cy='7.5' r='0.4'/%3E%3Ccircle fill='%234183d7' cx='9' cy='8.5' r='0.4'/%3E%3Ccircle fill='%234183d7' cx='11' cy='7.5' r='0.4'/%3E%3Ccircle fill='%234183d7' cx='8' cy='9.5' r='0.4'/%3E%3Ccircle fill='%234183d7' cx='10' cy='9.5' r='0.4'/%3E%3C/svg%3E");
+  background-size: 18px;
+}
+
+li.Celebration-icon.selected {
+  background-color: #FAFAFA;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='%234183d7' d='M9 2c2 0 3.5 1.5 3.5 3.5 0 2-1.5 3.5-3.5 3.5S5.5 7.5 5.5 5.5C5.5 3.5 7 2 9 2z'/%3E%3Cpath fill='none' stroke='%234183d7' stroke-width='1.2' stroke-linecap='round' d='M9 9v7'/%3E%3C/svg%3E");
+  background-size: 18px;
+}
+
+li.Activity-icon.selected {
+  background-color: #FAFAFA;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle fill='%234183d7' cx='9' cy='4' r='1.8'/%3E%3Cpath fill='%234183d7' d='M6 7h6l-1 5H7l-1-5zm-1 6l2 3h4l2-3'/%3E%3Cpath fill='none' stroke='%234183d7' stroke-width='1.2' stroke-linecap='round' d='M5 10l-1-1m9-1l1-1'/%3E%3C/svg%3E");
+  background-size: 18px;
+}
+
+li.Places-icon.selected {
+  background-color: #FAFAFA;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='%234183d7' d='M2 14h3V9H2v5zm1-3h1v2H3v-2zm5 3h7V9H8v5zm1-3h5v2H9v-2z'/%3E%3Cpath fill='%234183d7' d='M2 9l2-1.5h1v1.5H2zm6 0l2-1.5h1v1.5H8z'/%3E%3Cpath fill='%234183d7' d='M1 11h2v0.5H1V11zm6 0h2v0.5H8V11z'/%3E%3Cpath fill='%234183d7' d='M2 7h2.5v2H2V7zm0.5 0.5h1.5v1H2.5v-1z'/%3E%3C/svg%3E");
+  background-size: 18px;
+}
+
+li.Symbols-icon.selected {
+  background-color: #FAFAFA;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Cpath fill='none' stroke='%234183d7' stroke-width='1.2' d='M3 3h12v12H3z'/%3E%3Cpath fill='none' stroke='%234183d7' stroke-width='1.2' d='M9 3v12M3 9h12'/%3E%3Cpath fill='%234183d7' d='M6 5l0.4 0.8h0.8l-0.6 0.5 0.2 0.8-0.9-0.7-0.9 0.7 0.2-0.8-0.6-0.5h0.8L6 5z'/%3E%3Ccircle fill='none' stroke='%234183d7' stroke-width='1.2' cx='12' cy='6' r='0.7'/%3E%3Cpath fill='none' stroke='%234183d7' stroke-width='1.2' d='M6 12h1.2v1.2H6zm4.8 0h1.2v1.2h-1.2z'/%3E%3Cpath fill='%234183d7' d='M12 12.5l-0.3 0.5h-0.5l0.4 0.3-0.2 0.5 0.7-0.5 0.7 0.5-0.2-0.5 0.4-0.3h-0.5l-0.3-0.5z'/%3E%3Cpath fill='none' stroke='%234183d7' stroke-width='1.2' d='M12 12.5v1.5h0.5'/%3E%3C/svg%3E");
+  background-size: 18px;
+}
+
+/* Emoji hover icon classes - matches AngularJS coloredIcons.less */
+.emoji-popup-btn.emoji-hover-icon-thick-01 {
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20%20width%3D%2280px%22%20height%3D%2280px%22%20viewBox%3D%220%200%2080%2080%22%20enable-background%3D%22new%200%200%2080%2080%22%20xml%3Aspace%3D%22preserve%22%3E%3Cg%20id%3D%22Layer1%22%3E%20%3Cg%20id%3D%22Shape1%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath1%22%20fill%3D%22%23DEE9ED%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-miterlimit%3D%222%22%20d%3D%22M69.3%2C40%20%20%20c0%2C16.568-13.431%2C30-30%2C30c-16.568%2C0-30-13.432-30-30c0-16.568%2C13.432-30%2C30-30C55.869%2C10%2C69.3%2C23.432%2C69.3%2C40z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape2%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath2%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M44.2%2C53.4%20%20%20c0%2C3.533-2.194%2C6.397-4.9%2C6.397c-2.706%2C0-4.9-2.864-4.9-6.397c0-3.535%2C2.194-6.4%2C4.9-6.4C42.006%2C47%2C44.2%2C49.865%2C44.2%2C53.4z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape3%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath3%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M28%2C39.1%20%20%20c0%2C1.876-1.522%2C3.4-3.4%2C3.4s-3.4-1.521-3.4-3.4c0-1.878%2C1.522-3.4%2C3.4-3.4S28%2C37.222%2C28%2C39.1z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape4%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath4%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M57.1%2C39.1%20%20%20c0%2C1.876-1.521%2C3.4-3.397%2C3.4s-3.4-1.521-3.4-3.4c0-1.878%2C1.522-3.4%2C3.4-3.4S57.1%2C37.222%2C57.1%2C39.1z%22%2F%3E%20%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px !important;
+  background-position: center !important;
+}
+
+.emoji-popup-btn.emoji-hover-icon-thick-02 {
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20%20width%3D%2280px%22%20height%3D%2280px%22%20viewBox%3D%220%200%2080%2080%22%20enable-background%3D%22new%200%200%2080%2080%22%20xml%3Aspace%3D%22preserve%22%3E%3Cg%20id%3D%22Layer1%22%3E%20%3Cg%20id%3D%22Shape1%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath1%22%20fill%3D%22%23DEE9ED%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-miterlimit%3D%222%22%20d%3D%22M69.3%2C40%20%20%20c0%2C16.568-13.431%2C30-30%2C30c-16.568%2C0-30-13.432-30-30c0-16.568%2C13.432-30%2C30-30C55.869%2C10%2C69.3%2C23.432%2C69.3%2C40z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape2%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath2%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%224.5%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22%20%20%20M30.167%2C38.548c-0.324-0.375-1.942-2.063-3.884-2.063c-2.103%2C0-3.721%2C1.688-3.883%2C2.063%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape3%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath3%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%224.5%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22%20%20%20M54.7%2C38.548c-0.308-0.375-1.842-2.063-3.685-2.063c-1.995%2C0-3.529%2C1.688-3.683%2C2.063%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape4%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath4%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22M28.2%2C51.6%20%20%20c0.8%2C0.7%2C5.3%2C5%2C11.1%2C5s10.4-4.199%2C11.101-5%22%2F%3E%20%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px !important;
+  background-position: center !important;
+}
+
+.emoji-popup-btn.emoji-hover-icon-thick-03 {
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20%20width%3D%2280px%22%20height%3D%2280px%22%20viewBox%3D%220%200%2080%2080%22%20enable-background%3D%22new%200%200%2080%2080%22%20xml%3Aspace%3D%22preserve%22%3E%3Cg%20id%3D%22Layer1%22%3E%20%3Cg%20id%3D%22Shape1%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath1%22%20fill%3D%22%23DEE9ED%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-miterlimit%3D%222%22%20d%3D%22M69.3%2C40%20%20%20c0%2C16.568-13.431%2C30-30%2C30c-16.568%2C0-30-13.432-30-30c0-16.568%2C13.432-30%2C30-30C55.869%2C10%2C69.3%2C23.432%2C69.3%2C40z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape2%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath2%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-miterlimit%3D%222%22%20d%3D%22M42.7%2C53.9%20%20%20c0%2C2.152-1.343%2C3.898-3%2C3.898s-3-1.746-3-3.898c0-2.154%2C1.343-3.9%2C3-3.9S42.7%2C51.746%2C42.7%2C53.9z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape3%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath3%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22M28.1%2C38.1%20%20%20c-0.2-0.2-1.2-1.1-2.4-1.1c-1.3%2C0-2.3%2C0.9-2.4%2C1.1%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape4%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath4%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22M55.5%2C38.1%20%20%20c-0.2-0.2-1.2-1.1-2.4-1.1c-1.3%2C0-2.3%2C0.9-2.398%2C1.1%22%2F%3E%20%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px !important;
+  background-position: center !important;
+}
+
+.emoji-popup-btn.emoji-hover-icon-thick-04 {
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20%20width%3D%2280px%22%20height%3D%2280px%22%20viewBox%3D%220%200%2080%2080%22%20enable-background%3D%22new%200%200%2080%2080%22%20xml%3Aspace%3D%22preserve%22%3E%3Cg%20id%3D%22Layer1%22%3E%20%3Cg%20id%3D%22Shape1%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath1%22%20fill%3D%22%23DEE9ED%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-miterlimit%3D%222%22%20d%3D%22M69.3%2C40%20%20%20c0%2C16.568-13.431%2C30-30%2C30c-16.568%2C0-30-13.432-30-30c0-16.568%2C13.432-30%2C30-30C55.869%2C10%2C69.3%2C23.432%2C69.3%2C40z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape2%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath2%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22M33.1%2C53.7%20%20%20c0.4%2C0.399%2C2.9%2C2.8%2C6.2%2C2.7c3.2%2C0%2C5.7-2.301%2C6.101-2.7%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape3%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath3%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22M30.5%2C39.8%20%20%20c-0.305-0.2-1.825-1.1-3.65-1.1c-1.978%2C0-3.499%2C0.9-3.65%2C1.1%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape4%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath4%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22M56.4%2C39.8%20%20%20c-0.319-0.2-1.912-1.1-3.825-1.1c-2.071%2C0-3.665%2C0.9-3.825%2C1.1%22%2F%3E%20%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px !important;
+  background-position: center !important;
+}
+
+.emoji-popup-btn.emoji-hover-icon-thick-05 {
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20%20width%3D%2280px%22%20height%3D%2280px%22%20viewBox%3D%220%200%2080%2080%22%20enable-background%3D%22new%200%200%2080%2080%22%20xml%3Aspace%3D%22preserve%22%3E%3Cg%20id%3D%22Layer1%22%3E%20%3Cg%20id%3D%22Shape1%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath1%22%20fill%3D%22%23DEE9ED%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-miterlimit%3D%222%22%20d%3D%22M69.3%2C40%20%20%20c0%2C16.568-13.431%2C30-30%2C30c-16.568%2C0-30-13.432-30-30c0-16.568%2C13.432-30%2C30-30C55.869%2C10%2C69.3%2C23.432%2C69.3%2C40z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape2%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath2%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M29%2C40.4%20%20%20c0%2C1.877-1.522%2C3.398-3.4%2C3.398s-3.4-1.521-3.4-3.398c0-1.878%2C1.522-3.4%2C3.4-3.4S29%2C38.522%2C29%2C40.4z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape3%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath3%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M56.1%2C40.4%20%20%20c0%2C1.877-1.521%2C3.398-3.398%2C3.398s-3.4-1.521-3.4-3.398c0-1.878%2C1.522-3.4%2C3.4-3.4S56.1%2C38.522%2C56.1%2C40.4z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape4%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath4%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22M28.2%2C51.9%20%20%20c0.8%2C0.699%2C5.3%2C5%2C11.1%2C5s10.4-4.2%2C11.101-5%22%2F%3E%20%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px !important;
+  background-position: center !important;
+}
+
+.emoji-popup-btn.emoji-hover-icon-thick-06 {
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20%20width%3D%2280px%22%20height%3D%2280px%22%20viewBox%3D%220%200%2080%2080%22%20enable-background%3D%22new%200%200%2080%2080%22%20xml%3Aspace%3D%22preserve%22%3E%3Cg%20id%3D%22Layer1%22%3E%20%3Cg%20id%3D%22Shape1%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath1%22%20fill%3D%22%23DEE9ED%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-miterlimit%3D%222%22%20d%3D%22M69.3%2C40%20%20%20c0%2C16.568-13.431%2C30-30%2C30c-16.568%2C0-30-13.432-30-30c0-16.568%2C13.432-30%2C30-30C55.869%2C10%2C69.3%2C23.432%2C69.3%2C40z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape2%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath2%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M32.2%2C39.2%20%20%20c0%2C1.878-1.522%2C3.399-3.4%2C3.399c-1.877%2C0-3.4-1.521-3.4-3.399s1.522-3.4%2C3.4-3.4C30.678%2C35.8%2C32.2%2C37.322%2C32.2%2C39.2z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape3%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath3%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22M53.4%2C34.9%20%20%20c0%2C0-6.738%2C3.884-6.738%2C4.765c0%2C0.706%2C6.738%2C4.062%2C6.738%2C4.062%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape4%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath4%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22%20%20%20M38.75%2C58.5c5.51-0.134%2C10.752-2.904%2C14.65-6.6%22%2F%3E%20%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px !important;
+  background-position: center !important;
+}
+
+.emoji-popup-btn.emoji-hover-icon-thick-07 {
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20%20width%3D%2280px%22%20height%3D%2280px%22%20viewBox%3D%220%200%2080%2080%22%20enable-background%3D%22new%200%200%2080%2080%22%20xml%3Aspace%3D%22preserve%22%3E%3Cg%20id%3D%22Layer1%22%3E%20%3Cg%20id%3D%22Shape1%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath1%22%20fill%3D%22%23DEE9ED%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-miterlimit%3D%222%22%20d%3D%22M69.3%2C40%20%20%20c0%2C16.568-13.431%2C30-30%2C30c-16.568%2C0-30-13.432-30-30c0-16.568%2C13.432-30%2C30-30C55.869%2C10%2C69.3%2C23.432%2C69.3%2C40z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape2%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath2%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M29.4%2C38.9%20%20%20c0%2C1.877-1.522%2C3.398-3.4%2C3.398s-3.4-1.521-3.4-3.398c0-1.878%2C1.522-3.4%2C3.4-3.4S29.4%2C37.022%2C29.4%2C38.9z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape3%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath3%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M56.5%2C38.9%20%20%20c0%2C1.877-1.521%2C3.398-3.4%2C3.398c-1.877%2C0-3.398-1.521-3.398-3.398c0-1.878%2C1.521-3.4%2C3.398-3.4C54.979%2C35.5%2C56.5%2C37.022%2C56.5%2C38.9%20%20%20z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape4%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath4%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22%20%20%20M25.1%2C48.837c0.973%2C0.851%2C6.446%2C6.081%2C13.5%2C6.081c7.054%2C0%2C12.648-5.108%2C13.5-6.081%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape5%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath5%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22%20%20%20M48.087%2C61.147c2.798-1.339%2C2.189-5.596%2C1.703-7.662c-0.122-0.608-0.852-0.974-1.459-0.73l-6.689%2C2.797%20%20%20c-0.608%2C0.244-0.852%2C1.096-0.487%2C1.582C42.614%2C58.959%2C45.533%2C62.485%2C48.087%2C61.147z%22%2F%3E%20%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px !important;
+  background-position: center !important;
+}
+
+.emoji-popup-btn.emoji-hover-icon-thick-08 {
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20%20width%3D%2280px%22%20height%3D%2280px%22%20viewBox%3D%220%200%2080%2080%22%20enable-background%3D%22new%200%200%2080%2080%22%20xml%3Aspace%3D%22preserve%22%3E%3Cg%20id%3D%22Layer1%22%3E%20%3Cg%20id%3D%22Shape1%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath1%22%20fill%3D%22%23DEE9ED%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-miterlimit%3D%222%22%20d%3D%22M69.3%2C40%20c0%2C16.568-13.431%2C30-30%2C30c-16.568%2C0-30-13.432-30-30c0-16.568%2C13.432-30%2C30-30C55.869%2C10%2C69.3%2C23.432%2C69.3%2C40z%22%2F%3E%3C%2Fg%3E%20%3Cg%20id%3D%22Shape2%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath2%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M29.4%2C42.5%20c0%2C1.878-1.522%2C3.4-3.4%2C3.4s-3.4-1.522-3.4-3.4s1.522-3.4%2C3.4-3.4S29.4%2C40.622%2C29.4%2C42.5z%22%2F%3E%3C%2Fg%3E%20%3Cg%20id%3D%22Shape3%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath3%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M56.5%2C42.5%20c0%2C1.878-1.521%2C3.4-3.4%2C3.4c-1.877%2C0-3.397-1.522-3.397-3.4s1.521-3.4%2C3.397-3.4C54.979%2C39.1%2C56.5%2C40.622%2C56.5%2C42.5z%22%2F%3E%3C%2Fg%3E%20%3Cg%20id%3D%22Shape4%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath4%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22%20%20M30.5%2C54.912c0.636%2C0%2C4.217%2C0%2C8.833%2C0c4.615%2C0%2C8.276%2C0%2C8.833%2C0%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px !important;
+  background-position: center !important;
+}
+
+.emoji-popup-btn.emoji-hover-icon-thick-09 {
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20%20width%3D%2280px%22%20height%3D%2280px%22%20viewBox%3D%220%200%2080%2080%22%20enable-background%3D%22new%200%200%2080%2080%22%20xml%3Aspace%3D%22preserve%22%3E%3Cg%20id%3D%22Layer1%22%3E%20%3Cg%20id%3D%22Shape1%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath1%22%20fill%3D%22%23DEE9ED%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-miterlimit%3D%222%22%20d%3D%22M69.3%2C40%20%20%20c0%2C16.568-13.431%2C30-30%2C30c-16.568%2C0-30-13.432-30-30c0-16.568%2C13.432-30%2C30-30C55.869%2C10%2C69.3%2C23.432%2C69.3%2C40z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape2%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath2%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M28.4%2C39.4%20%20%20c0%2C1.877-1.522%2C3.4-3.4%2C3.4s-3.4-1.522-3.4-3.4c0-1.878%2C1.522-3.4%2C3.4-3.4S28.4%2C37.522%2C28.4%2C39.4z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape3%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath3%22%20fill%3D%22%234183d7%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%223%22%20stroke-miterlimit%3D%222%22%20d%3D%22M57.5%2C39.4%20%20%20c0%2C1.877-1.521%2C3.4-3.4%2C3.4c-1.877%2C0-3.398-1.522-3.398-3.4c0-1.878%2C1.521-3.4%2C3.398-3.4C55.979%2C36%2C57.5%2C37.522%2C57.5%2C39.4z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape4%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath4%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%224.5%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22M29%2C50.2%20%20%20C29.1%2C56%2C33.7%2C60.6%2C39.3%2C60.6C44.9%2C60.6%2C49.5%2C56%2C49.6%2C50.2H29z%22%2F%3E%20%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px !important;
+  background-position: center !important;
+}
+
+.emoji-popup-btn.emoji-hover-icon-thick-10 {
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22utf-8%22%3F%3E%3C!DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%3Csvg%20version%3D%221.1%22%20id%3D%22Layer_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%20%20width%3D%2280px%22%20height%3D%2280px%22%20viewBox%3D%220%200%2080%2080%22%20enable-background%3D%22new%200%200%2080%2080%22%20xml%3Aspace%3D%22preserve%22%3E%3Cg%20id%3D%22Layer1%22%3E%20%3Cg%20id%3D%22Shape1%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath1%22%20fill%3D%22%23DEE9ED%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%226%22%20stroke-miterlimit%3D%222%22%20d%3D%22M69.3%2C40%20%20%20c0%2C16.568-13.431%2C30-30%2C30c-16.568%2C0-30-13.432-30-30c0-16.568%2C13.432-30%2C30-30C55.869%2C10%2C69.3%2C23.432%2C69.3%2C40z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape2%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath2%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%224.5%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22M29%2C49.2%20%20%20C29.1%2C55%2C33.7%2C59.6%2C39.3%2C59.6C44.9%2C59.6%2C49.5%2C55%2C49.6%2C49.2H29z%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape3%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath3%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22M30%2C37.587%20%20%20c-0.291-0.188-1.75-2.075-3.5-2.075c-1.896%2C0-3.354%2C1.698-3.5%2C2.075%22%2F%3E%20%3C%2Fg%3E%20%3Cg%20id%3D%22Shape4%22%3E%20%20%20%20%20%3Cpath%20id%3D%22shapePath4%22%20fill%3D%22none%22%20stroke%3D%22%234183d7%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-miterlimit%3D%222%22%20d%3D%22%20%20%20M55.3%2C37.587c-0.282-0.188-1.69-2.075-3.521-2.075s-3.238%2C1.698-3.379%2C2.075%22%2F%3E%20%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E') !important;
+  background-repeat: no-repeat !important;
+  background-size: 16px !important;
+  background-position: center !important;
+}

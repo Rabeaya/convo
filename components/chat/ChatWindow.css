@@ -1,0 +1,283 @@
+/* ChatWindow.css - Matches AngularJS chat window styles */
+
+.chatWindowMain {
+  position: fixed;
+  z-index: 10000; /* Higher than chat list (9999) and background content - CRITICAL for proper stacking */
+  background: #fff !important; /* Solid white background - CRITICAL for isolation - !important ensures override */
+  box-shadow: 0px 0px 0px 1px rgba(150,150,150,0.1); /* Matches AngularJS */
+  display: flex;
+  flex-direction: column;
+  transition: height 0.2s ease;
+  transform: translateZ(0); /* Creates new stacking context - matches AngularJS */
+  isolation: isolate; /* Creates new stacking context - ensures isolation from background */
+  will-change: transform; /* Optimizes rendering and creates stacking context */
+  outline: none; /* Matches AngularJS */
+  user-select: text; /* Matches AngularJS */
+  -webkit-user-select: text; /* Matches AngularJS */
+  -moz-user-select: text; /* Matches AngularJS */
+  -ms-user-select: text; /* Matches AngularJS */
+  background-clip: padding-box; /* Matches AngularJS */
+  -webkit-background-clip: padding; /* Matches AngularJS */
+  -moz-background-clip: padding; /* Matches AngularJS */
+}
+
+.content-resizer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  cursor: ns-resize;
+  z-index: 10;
+  background: transparent;
+}
+
+.content-resizer:hover {
+  background: rgba(74, 144, 226, 0.2);
+}
+
+.chatWindowHeader {
+  height: 28px;
+  background: #1f2e3d; /* Matches @cnv-chat-focused-color */
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  position: relative;
+  color: #ffffff;
+  z-index: 2; /* Ensure header is above content */
+}
+
+.chatWindowHeader.unfocused-state {
+  background: #7b8386; /* Matches @cnv-chat-unfocused-color */
+}
+
+.chatWindowHeader .headerIcon {
+  background-size: 14px;
+  cursor: pointer;
+  padding: 14px 10px;
+  background-position: 3px;
+  opacity: 0.8;
+}
+
+.chatWindowHeader .headerIcon:hover {
+  opacity: 1;
+}
+
+.btnExpand {
+  position: absolute;
+  right: 91px;
+  top: 0;
+}
+
+.btnExpand .chat-window-expand-white {
+  display: block;
+  background-size: 13px;
+}
+
+.btnStartAudioCall {
+  position: absolute;
+  right: 68px;
+  top: 0px;
+}
+
+.btnStartAudioCall .headerIcon {
+  background-size: 14px;
+}
+
+.addToChat {
+  position: absolute;
+  right: 45px;
+  top: 0px;
+}
+
+.btnChatOptions {
+  position: absolute;
+  right: 25px;
+  top: 0px;
+}
+
+.btnChatOptions .headerIcon {
+  transition: transform 0.3s;
+}
+
+.btnChatOptions:hover .headerIcon {
+  opacity: 1;
+  transform: rotate(45deg);
+}
+
+.btnClose {
+  position: absolute;
+  right: 4px;
+  top: 0px;
+}
+
+.btnClose .headerIcon {
+  background-size: 12px;
+}
+
+.chatActionBar {
+  height: 40px;
+  outline: none;
+  background: #fff; /* Matches @cnv-chat-window-color - CRITICAL for isolation */
+  border-bottom: 1px solid #d4d9e3; /* Matches @cnv-chat-separator */
+  position: relative;
+  z-index: 2; /* Ensure status bar is above content */
+}
+
+.statusMessage {
+  width: 60%;
+  height: inherit;
+  position: absolute;
+  margin-left: 5px;
+  line-height: 40px;
+  font-size: 14px;
+  color: #7b8386;
+}
+
+.userProfileImg {
+  position: absolute;
+  /* Matches AngularJS styles.less line 805 */
+}
+
+.userProfileName {
+  width: 50%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  display: inline-block;
+  position: absolute;
+  line-height: 27px;
+  left: 50px;
+  cursor: default;
+  top: 1px;
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.leftTitleForGrpChat {
+  left: 33px; /* Matches AngularJS .leftTitleForGrpChat */
+}
+
+.chatWindowTitle {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.chatWindowControls {
+  display: flex;
+  gap: 4px;
+}
+
+.headerBtn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+}
+
+.headerBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.chatWindowContent {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: #fff; /* Solid white background - CRITICAL for isolation */
+  position: relative; /* CRITICAL: Required for absolute positioning of custom scrollbar */
+  z-index: 1; /* Ensure content is above background */
+}
+
+/* Ensure custom scrollbar styles are available in chat window */
+/* These styles are used by the useAutoHidingScrollbar hook */
+.chatWindowContent .scroll-track {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: transparent;
+  width: 8px;
+  margin: 1px;
+  border-radius: 5px;
+  transition: background-color linear 0.3s;
+  z-index: 10000; /* Very high z-index to ensure visibility above all content */
+  pointer-events: auto;
+}
+
+.chatWindowContent .scroll-track:hover {
+  background: #f5f7fc !important; /* Matches AngularJS line 641 */
+}
+
+.chatWindowContent .scroll-bar {
+  position: absolute;
+  background: #dadee6; /* Matches @cnv-app-scroll-color from variables.less line 291 */
+  border-radius: 3px;
+  min-height: 20px;
+  right: 1px;
+  width: 6px;
+  opacity: 0; /* Hidden by default - matches AngularJS line 652 */
+  display: block;
+  transition: opacity linear 0.1s, top linear 0.07s; /* Matches AngularJS line 654 */
+  cursor: pointer;
+  pointer-events: auto;
+  top: 0; /* Start at top */
+}
+
+.chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  background: #f5f6f7;
+}
+
+.chatInputContainer {
+  padding: 10px;
+  border-top: 1px solid #e6e8ec;
+  background: #fff;
+}
+
+.chatMessageInput {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: none;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.chatMessageInput:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+.chatSendBtn {
+  margin-top: 5px;
+  padding: 6px 12px;
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chatSendBtn:hover {
+  background: #357abd;
+}
+
+.chatSendBtn:active {
+  background: #2a5f94;
+}
+
+
+
+
