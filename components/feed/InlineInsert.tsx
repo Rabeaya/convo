@@ -244,6 +244,7 @@ export default function InlineInsert() {
     type: string;
     status: 'waiting' | 'uploading' | 'uploaded' | 'converting' | 'success' | 'failed';
     serverFileId?: string;
+    serverFileObj?: any;
     subResourceId?: string; // Unique ID for poll option
     localPreviewUrl?: string;
     progress?: number;
@@ -1422,6 +1423,8 @@ export default function InlineInsert() {
 
   // Close calendar when clicking outside
   useEffect(() => {
+    if (!isCalendarOpen) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
         setIsCalendarOpen(false);
@@ -1429,12 +1432,10 @@ export default function InlineInsert() {
       }
     };
 
-    if (isCalendarOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isCalendarOpen]);
 
   // Angular behavior:
