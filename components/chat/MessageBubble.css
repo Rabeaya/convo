@@ -1,0 +1,186 @@
+/* MessageBubble styles - matches AngularJS exactly */
+
+.chat-message-bubble {
+  clear: both;
+  margin-bottom: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden; /* Prevent overflow */
+}
+
+.messsage-meta {
+  /* Matches AngularJS messageList.tpl.html line 15 */
+  clear: both;
+}
+
+.chat-message {
+  position: relative;
+  clear: both;
+  margin-bottom: 0;
+}
+
+.message-to-be-selected {
+  /* Matches AngularJS messageList.tpl.html line 150 */
+  position: relative;
+}
+
+.message-with-menu-container {
+  /* Matches AngularJS messageList.tpl.html line 152 */
+  position: relative;
+}
+
+.messageFromMe {
+  /* Matches AngularJS styles.less line 608-619 EXACTLY */
+  position: relative;
+  max-width: 225px;
+  background: #8dbefd; /* Matches @cnv-chat-msg-from-me: #8dbefd */
+  color: #ffffff;
+  text-align: left;
+  float: right; /* CRITICAL: Right-aligns sent messages */
+  border-radius: 5px;
+  margin: 1px 10px 1px 5px;
+  word-wrap: break-word;
+  box-sizing: border-box;
+}
+
+.messageFromMeAckn {
+  /* Matches AngularJS styles.less line 643-645 */
+  background: #4183d7; /* Matches @cnv-blue: #4183d7 for acknowledged messages */
+}
+
+.messageFromMe a {
+  color: #ffffff;
+}
+
+.message-content-container {
+  display: inline-block;
+}
+
+.messageFromOtherUser {
+  /* Matches AngularJS styles.less line 662-674 EXACTLY */
+  max-width: 225px;
+  background: #f2f4f8; /* Matches @cnv-chat-msg-from-other: #f2f4f8 */
+  color: #2b2b2b;
+  text-align: left;
+  float: left; /* CRITICAL: Left-aligns received messages */
+  border-radius: 4px;
+  margin: 1px 3px; /* With avatar: 1px 0px, without: 1px 5px (handled inline) */
+  word-wrap: break-word;
+  min-height: 32px;
+  position: relative;
+}
+
+.messageFromOtherUserWithImg {
+  /* Matches AngularJS styles.less line 675-678 */
+  margin: 1px 0px;
+}
+
+.messageFromOtherUserWithoutImg {
+  /* Matches AngularJS styles.less line 684-696 */
+  max-width: 225px;
+  background: #f2f4f8;
+  color: #2b2b2b;
+  text-align: left;
+  display: inline-block;
+  border-radius: 4px;
+  margin: 1px 5px;
+  word-wrap: break-word;
+  min-height: 32px;
+  position: relative;
+}
+
+.chat-other-user-image-container {
+  position: relative;
+}
+
+.chat-msg-cont {
+  /* Matches AngularJS - inherits font-size from parent, no explicit size */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap; /* Matches AngularJS style="white-space: pre-wrap;" */
+}
+
+.message-time {
+  /* Matches AngularJS - timestamp styling */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.notSelectable {
+  /* Matches AngularJS notSelectable class */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* System message styles - Matches AngularJS styles.less line 937 */
+.system-chat-msg {
+  width: 85%;
+  text-align: center;
+  padding-bottom: 12px;
+  padding-top: 12px;
+  color: #7b8386;
+  margin: auto;
+  font-size: 13px;
+  clear: both;
+}
+
+/* Date separator styles - Matches AngularJS styles.less line 915 */
+.dateChatSeparator {
+  font-size: 13px;
+  color: #7b8386;
+  text-align: center;
+  padding: 8px 0;
+  clear: both;
+  width: 100%;
+  margin: 0;
+}
+
+.dateChatSeparator.show-time {
+  font-size: 13px;
+  color: #7b8386;
+  text-align: center;
+  padding: 4px 0;
+  clear: both;
+}
+
+/* Single emoji message styles - matches AngularJS styles.less line 1518-1541 */
+.noBackground {
+  font-size: 50px !important;
+  background: none !important;
+  color: #aaa !important;
+  padding: 0px !important;
+  max-width: 210px;
+}
+
+.noBackground .message-time {
+  font-size: 12px !important;
+  color: #7b8386 !important; /* Gray timestamp below emoji */
+  height: auto !important;
+  margin-left: 0 !important;
+  margin-top: 4px !important;
+  opacity: 1 !important;
+  text-align: center;
+  width: 100%;
+  display: block;
+}
+
+.messageFromMe.noBackground {
+  text-align: right;
+}
+
+.messageFromMe.noBackground .message-time {
+  color: #7b8386 !important; /* Gray timestamp for sent emoji messages too */
+}
+
+.noBackground:after {
+  opacity: 0;
+}
+
+
+
+

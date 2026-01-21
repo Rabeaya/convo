@@ -58,5 +58,3 @@ export function getAccountImageUrl(
 
   return imageUrl;
 }
-
-

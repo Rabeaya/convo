@@ -41,7 +41,7 @@ export default function UserProfileImage({
   showBorder = false,
 }: UserProfileImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [showInitials, setShowInitials] = useState(false);
+  const [showInitials, setShowInitials] = useState(true); // CRITICAL: Start with true to show initials by default
   const imageRef = useRef<HTMLImageElement>(null);
 
   const w = normalizeCssSize(width);
@@ -49,13 +49,84 @@ export default function UserProfileImage({
   const wNum = toNumber(width);
   const hNum = toNumber(height);
 
+  // CRITICAL: Calculate userName with priority: fullName > user.displayName > user.name > user.first_name+last_name > user.email > userId
   const userName =
     (fullName || '').trim() ||
+    ((user as any)?.displayName || '').trim() ||
     (user ? getUserFullNameFromAnyUser(user) : '') ||
     userId;
 
-  const initials = getUserInitials(user || ({ user_id: userId, name: userName } as any));
+  // CRITICAL: Calculate initials with fallback to userName if user object doesn't have name properties
+  // This ensures initials are always calculated, even if user object is incomplete
+  // If user object doesn't have name properties, use userName (which comes from fullName or displayName)
+  const userForInitials = user ? {
+    ...user,
+    // Ensure name is set if it's missing but we have displayName or fullName
+    name: (user as any).name || (user as any).displayName || fullName || userName,
+    // Ensure first_name/last_name are set if missing but we have a name to extract from
+    first_name: (user as any).first_name || (user as any).firstName || 
+      (userName.includes(' ') ? userName.split(' ')[0] : userName),
+    last_name: (user as any).last_name || (user as any).lastName || 
+      (userName.includes(' ') ? userName.split(' ').slice(1).join(' ') : ''),
+  } : ({ 
+    user_id: userId, 
+    name: userName,
+    // Try to extract first/last name from userName if it contains spaces
+    first_name: userName.includes(' ') ? userName.split(' ')[0] : userName,
+    last_name: userName.includes(' ') ? userName.split(' ').slice(1).join(' ') : '',
+    email: userName.includes('@') ? userName : undefined,
+  } as any);
+  const initials = getUserInitials(userForInitials);
+  
+  // CRITICAL: If initials are ". .", it means getUserInitials couldn't extract a name
+  // This should not happen if displayName or fullName is provided
+  if (initials === '. .' && (fullName || (user as any)?.displayName || userName !== userId)) {
+    console.warn('[UserProfileImage] ⚠️ Initials are ". ." but name should be available:', {
+      userId,
+      fullName,
+      userName,
+      userDisplayName: (user as any)?.displayName,
+      userHasName: !!(user as any)?.name,
+      userHasFirstName: !!(user as any)?.first_name || !!(user as any)?.firstName,
+      userHasLastName: !!(user as any)?.last_name || !!(user as any)?.lastName,
+      userForInitialsName: (userForInitials as any)?.name,
+      userForInitialsFirstName: (userForInitials as any)?.first_name,
+      userForInitialsLastName: (userForInitials as any)?.last_name,
+    });
+  }
+  
+  // Debug: Log initials calculation if enabled
+  if (typeof window !== 'undefined' && (window as any).__DEBUG_AVATAR__) {
+    console.log('[UserProfileImage] Initials calculation:', {
+      userId,
+      userName,
+      fullName,
+      initials,
+      userHasName: !!(user as any)?.name,
+      userHasDisplayName: !!(user as any)?.displayName,
+      userHasFirstName: !!(user as any)?.first_name || !!(user as any)?.firstName,
+      userHasLastName: !!(user as any)?.last_name || !!(user as any)?.lastName,
+      userHasEmail: !!(user as any)?.email,
+      userForInitialsName: (userForInitials as any)?.name,
+      userForInitialsFirstName: (userForInitials as any)?.first_name,
+      userForInitialsLastName: (userForInitials as any)?.last_name,
+    });
+  }
   const backgroundColor = stringToColor(userName || userId);
+  
+  // Debug: Log initials calculation (remove in production)
+  if (typeof window !== 'undefined' && (window as any).__DEBUG_AVATAR__) {
+    console.log('[UserProfileImage] Initials calculation:', {
+      userId,
+      userName,
+      initials,
+      userHasName: !!(user as any)?.name,
+      userHasFirstName: !!(user as any)?.first_name || !!(user as any)?.firstName,
+      userHasLastName: !!(user as any)?.last_name || !!(user as any)?.lastName,
+      userHasEmail: !!(user as any)?.email,
+      fullName,
+    });
+  }
 
   // Keep URL generation stable and only set state when it changes.
   useEffect(() => {
@@ -68,13 +139,32 @@ export default function UserProfileImage({
     if (!directUrl) {
       const t = profileType ?? (user as any)?.profile_image_type;
       const v = profileVersion ?? (user as any)?.profile_image_version;
-      const size = toImageSize(Math.max(wNum, hNum));
-      const serialNo =
-        (user as any)?.serialNo ??
-        (user as any)?.serial_no ??
-        (user as any)?.serial_number ??
-        (user as any)?.user_serial_no;
-      directUrl = getUserProfileImageUrl(userId, t as any, v as any, size, undefined, false, Number(serialNo));
+      
+      // CRITICAL: Only generate URL for custom or system images, NOT for default images
+      // Matches AngularJS behavior - show initials instead of default image
+      const PROFILE_IMAGE_TYPE_SYSTEM = 2;
+      const PROFILE_IMAGE_TYPE_CUSTOM = 1;
+      const PROFILE_IMAGE_TYPE_DEFAULT = 0;
+      
+      const typeNum = Number(t);
+      const versionNum = Number(v);
+      const hasValidVersion = versionNum > 0;
+      
+      // Only generate URL if:
+      // 1. System user (type === 2), OR
+      // 2. Custom image (type === 1) with valid version (> 0)
+      // Otherwise, show initials (no URL = show initials)
+      if (typeNum === PROFILE_IMAGE_TYPE_SYSTEM || 
+          (typeNum === PROFILE_IMAGE_TYPE_CUSTOM && hasValidVersion)) {
+        const size = toImageSize(Math.max(wNum, hNum));
+        const serialNo =
+          (user as any)?.serialNo ??
+          (user as any)?.serial_no ??
+          (user as any)?.serial_number ??
+          (user as any)?.user_serial_no;
+        directUrl = getUserProfileImageUrl(userId, t as any, v as any, size, undefined, false, Number(serialNo));
+      }
+      // If type is DEFAULT (0) or version is 0/missing, directUrl stays null = show initials
     }
 
     setImageUrl((prev) => (prev === directUrl ? prev : directUrl));

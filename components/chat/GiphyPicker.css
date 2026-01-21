@@ -1,0 +1,229 @@
+/* GiphyPicker styles - matches AngularJS cnvGiphy.less EXACTLY */
+
+.giphy-action-container {
+  opacity: 1;
+  position: absolute;
+  right: 4px; /* Matches AngularJS (line 575) */
+  bottom: 4px; /* Matches AngularJS (line 576) - uses bottom, not top */
+}
+
+.giphy-action-container:hover {
+  border: 0;
+}
+
+/* Popover base styles - matches AngularJS Bootstrap popover */
+.popover.custom-giphy-popover {
+  max-width: 355px;
+  margin-top: -12px !important;
+  border-radius: 3px; /* Matches AngularJS @cnv-border-radius: 3px */
+  background-color: #fff; /* White background */
+  border: 1px solid #ddd; /* Border */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Shadow for depth */
+  display: block !important; /* Ensure it's visible */
+}
+
+.popover.custom-giphy-popover .popover-content {
+  padding: 1px 1px 0px 1px;
+}
+
+.cnv-giphy-container {
+  width: 343px; /* Matches AngularJS line 23 - this is adjust inner width */
+}
+
+.cnv-giphy-container .popover-content {
+  padding: 5px 4px;
+}
+
+.cnv-giphy-gallary {
+  overflow-x: scroll; /* Horizontal scroll only - matches AngularJS line 33 */
+  overflow-y: hidden; /* No vertical scroll - matches AngularJS line 34 */
+  margin: 10px 0 0 0; /* Matches AngularJS line 35 */
+  min-height: 142px; /* Matches AngularJS line 36 - allows ~2 rows visible (130px + 12px spacing) */
+  width: 100%; /* Full width of container */
+  /* Enable smooth scrolling */
+  -webkit-overflow-scrolling: touch;
+}
+
+.cnv-giphy-gallary ul {
+  list-style: none; /* Remove bullets - matches AngularJS behavior */
+  padding: 0;
+  margin: 0 0 0 0 !important; /* Matches AngularJS line 41 */
+  display: inline-flex; /* Matches AngularJS line 42 - horizontal flex container */
+  display: -webkit-inline-flex; /* Matches AngularJS line 43 */
+  display: -ms-flexbox; /* Matches AngularJS line 44 */
+  flex-wrap: wrap; /* Allow wrapping to create multiple rows */
+  flex-direction: row; /* Items flow left to right, then wrap to next row */
+  align-content: flex-start; /* Align wrapped rows to start */
+  width: max-content; /* Allow ul to expand beyond container width for horizontal scroll */
+  min-width: 100%; /* At least full width */
+}
+
+.cnv-giphy-gallary li {
+  vertical-align: middle; /* Matches AngularJS line 48 */
+  display: inline-block; /* Matches AngularJS line 49 - inline-block allows wrapping */
+  margin-right: 5px; /* Matches AngularJS line 50 */
+  border: 1px solid #e3e8ed; /* Matches AngularJS line 51 */
+  text-align: center; /* Matches AngularJS line 52 */
+  position: relative; /* Matches AngularJS line 53 */
+  cursor: pointer; /* Matches AngularJS line 54 */
+  flex-shrink: 0; /* Prevent items from shrinking in flex context */
+  margin-bottom: 0; /* No bottom margin - items wrap naturally */
+}
+
+.cnv-giphy-gallary img {
+  height: 130px; /* Matches AngularJS line 58 */
+  width: auto; /* Maintain aspect ratio */
+  display: block; /* Remove inline spacing */
+}
+
+.cnv-giphy-gallary .cnv-spinner {
+  width: 27px;
+  height: 27px;
+  margin: 50px auto;
+  border-width: 2px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  margin-left: -12px;
+  margin-top: -12px;
+}
+
+.cnv-giphy-gallary .not-found {
+  background-color: #f5f4f4;
+  /* No search result - display as empty state */
+  background-repeat: no-repeat;
+  background-position: left center;
+  width: 150px;
+  height: 130px;
+  background-size: 150px 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 12px;
+}
+
+.cnv-giphy-container .cnv-giphy-search-field {
+  width: 85%; /* Matches AngularJS line 81 */
+  height: 38px; /* Matches AngularJS line 82 */
+  border: none; /* Matches AngularJS line 83 */
+  outline: none; /* Matches AngularJS line 84 */
+  word-break: break-all; /* Matches AngularJS line 85 */
+  margin-left: 5px; /* Matches AngularJS line 86 */
+  flex: 1; /* Allow input to take remaining space */
+  padding: 0; /* No padding */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; /* Default system font */
+  font-size: 14px; /* Standard input font size */
+  color: #333; /* Text color */
+}
+
+.cnv-giphy-container .cnv-giphy-search-field::placeholder {
+  color: #999; /* Placeholder color - matches AngularJS */
+  font-size: 14px; /* Placeholder font size */
+  opacity: 1; /* Ensure placeholder is visible */
+}
+
+.cnv-giphy-branding {
+  background-color: #F5F4F4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='94' height='9' viewBox='0 0 94 9'%3E%3Ctext x='0' y='7' font-family='Arial' font-size='8' fill='%23999'%3EPOWERED BY GIPHY%3C/text%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 94px;
+  height: 24px;
+  margin-top: 2px;
+}
+
+/* Popover arrow styles */
+.custom-giphy-popover .arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+.custom-giphy-popover.popover-top .arrow {
+  bottom: -8px;
+  left: 20px;
+  border-width: 8px 8px 0 8px;
+  border-color: #ddd transparent transparent transparent;
+}
+
+.custom-giphy-popover.popover-top .arrow:after {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  left: -8px;
+  border-width: 8px 8px 0 8px;
+  border-style: solid;
+  border-color: #fff transparent transparent transparent;
+}
+
+.custom-giphy-popover.popover-bottom .arrow {
+  top: -8px;
+  left: 20px;
+  border-width: 0 8px 8px 8px;
+  border-color: transparent transparent #ddd transparent;
+}
+
+.custom-giphy-popover.popover-bottom .arrow:after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: -8px;
+  border-width: 0 8px 8px 8px;
+  border-style: solid;
+  border-color: transparent transparent #fff transparent;
+}
+
+/* Search bar styles - matches AngularJS structure exactly */
+.cnv-giphy-container .chatSearchBar {
+  display: flex;
+  align-items: center;
+  /* No padding, border, or margin - matches AngularJS (no specific styling in cnvGiphy.less) */
+  /* Padding comes from .popover-content (5px 4px) */
+}
+
+.cnv-giphy-container .searchChatIcon {
+  width: 16px;
+  height: 16px;
+  display: block; /* Matches AngularJS */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%23999' d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.397h-.001c.03.04 1.062 1.062 1.062 1.062l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.85-3.85zm-6.242 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
+/* GIF button styles - matches AngularJS attachmentButton.giphy */
+.attachmentButton.giphy {
+  right: 0; /* Relative to giphy-action-container */
+  bottom: 0; /* Matches AngularJS (line 576) */
+  height: 22px; /* Matches AngularJS (line 577) */
+  padding-bottom: 0px; /* Matches AngularJS (line 578) */
+  box-sizing: content-box; /* Matches AngularJS (line 579) */
+  width: 25px; /* Matches AngularJS giphy width */
+  position: absolute; /* Absolute within container */
+  display: block;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%239FA7B7' d='M39.1,10.2H8.9c-4.6,0-8.4,3.9-8.4,8.6v10.6c0,4.8,3.8,8.6,8.4,8.6h30.3c4.6,0,8.4-3.9,8.4-8.6V18.9C47.6,14.1,43.8,10.2,39.1,10.2z M44.5,29.1c0,3.4-2.8,6.1-6.1,6.1H9.6c-3.4,0-6.1-2.8-6.1-6.1v-10c0-3.4,2.8-6.1,6.1-6.1h28.7c3.4,0,6.1,2.8,6.1,6.1L44.5,29.1L44.5,29.1z'/%3E%3Ctext transform='matrix(1 0 0 1 8.9178 30.6387)' fill='%239FA7B7' font-family='ArialRoundedMTBold' font-size='17.65px'%3EGIF%3C/text%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  -webkit-transition: -webkit-transform 125ms cubic-bezier(0.4, 0, 1, 1), opacity 125ms cubic-bezier(0.4, 0, 1, 1); /* Matches AngularJS (line 586-587) */
+  transition: transform 125ms cubic-bezier(0.4, 0, 1, 1), opacity 125ms cubic-bezier(0.4, 0, 1, 1); /* Matches AngularJS (line 586-587) */
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.attachmentButton.giphy:hover {
+  -webkit-transform: scale(1.15); /* Matches AngularJS (line 590-591) */
+  transform: scale(1.15); /* Matches AngularJS (line 590-591) */
+  opacity: 1 !important;
+}
+
+.attachmentButton.giphy.selected {
+  opacity: 1;
+}

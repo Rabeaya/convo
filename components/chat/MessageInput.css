@@ -1,0 +1,190 @@
+/* MessageInput styles - matches AngularJS exactly */
+
+.messageInputContainer {
+  position: relative; /* Changed from absolute - parent flex handles positioning */
+  background: #fff !important; /* Solid white background - CRITICAL for isolation */
+  border-top: 1px solid #eee; /* Matches AngularJS .messageInputBar border-top */
+  min-height: 50px;
+  z-index: 2; /* Ensure input is above messages */
+  flex-shrink: 0; /* Prevent input from shrinking */
+}
+
+.messageInputBar {
+  border-top: 1px solid #eee; /* Matches AngularJS .messageInputBar (line 501) */
+  background: #ffffff; /* Matches AngularJS .messageInputBar (line 502) */
+  position: relative;
+  min-height: 35px; /* Ensures consistent height for icon vertical centering */
+  /* NO padding here - padding is on .ql-container inside */
+}
+
+/* Matches AngularJS .ql-container padding (line 504-506) */
+.messageInputBar .ql-container {
+  padding: 2px 8px 0px 8px;
+}
+
+.messageInputField {
+  max-height: 150px; /* Matches AngularJS max-height (line 522) */
+  overflow-y: hidden !important; /* Matches AngularJS overflow-y: hidden !important (line 523) */
+  border-radius: 3px; /* Matches AngularJS (line 524) */
+  vertical-align: bottom; /* Matches AngularJS (line 518) */
+}
+
+.messageInputField:focus {
+  outline: none;
+}
+
+/* Scroll hider - Matches AngularJS line 220 */
+.scrollHider {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(to bottom, transparent, #ffffff);
+  pointer-events: none;
+}
+
+/* Attachment button styles - Matches AngularJS styles.less lines 527-602 */
+/* Using top: 50% + translateY(-50%) for perfect vertical centering */
+.attachmentButton {
+  width: 25px;
+  height: 19px;
+  display: inline; /* Matches AngularJS (line 530) */
+  position: absolute;
+  cursor: pointer;
+  bottom: 6px; /* Matches AngularJS (line 533) - uses bottom positioning */
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: center; /* Center the icon within the button */
+  opacity: 0.85;
+  float: right; /* Matches AngularJS (line 536) */
+  -webkit-transition: -webkit-transform 125ms cubic-bezier(0.4, 0, 1, 1), opacity 125ms cubic-bezier(0.4, 0, 1, 1);
+  transition: transform 125ms cubic-bezier(0.4, 0, 1, 1), opacity 125ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+.attachmentButton:hover {
+  -webkit-transform: scale(1.20) !important; /* Matches AngularJS (line 549-550) - !important to override inline styles */
+  transform: scale(1.20) !important; /* Matches AngularJS (line 549-550) - !important to override inline styles */
+  opacity: 1 !important; /* Matches AngularJS hover opacity - !important to override inline styles */
+}
+
+.attachmentButton.photo {
+  right: 36px; /* Matches AngularJS (line 539) */
+  width: 18px; /* Matches AngularJS (line 540) */
+  height: 17px; /* Matches AngularJS (line 541) */
+  bottom: 7px; /* Matches AngularJS (line 542) */
+  background-position: center; /* Matches AngularJS (line 543) */
+  /* Paperclip icon - inline SVG data URI matching icons2_Attach-darkgray */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237b8386' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+  -webkit-transition: -webkit-transform 125ms cubic-bezier(0.4, 0, 1, 1); /* Matches AngularJS (line 545-546) */
+  transition: transform 125ms cubic-bezier(0.4, 0, 1, 1); /* Matches AngularJS (line 545-546) */
+}
+
+.attachmentButton.photo:hover {
+  -webkit-transform: scale(1.20) !important; /* Matches AngularJS (line 549-550) - !important to override inline styles */
+  transform: scale(1.20) !important; /* Matches AngularJS (line 549-550) - !important to override inline styles */
+  opacity: 1 !important; /* Matches AngularJS hover opacity - !important to override inline styles */
+}
+
+/* Emoji action container - Matches AngularJS emoji-action-container (cnvEmoji.less) */
+.emoji-action-container {
+  width: 19px;
+  height: 19px;
+  display: inline-block;
+  position: absolute;
+  right: 54px; /* Matches AngularJS (line 1654) */
+  bottom: 6px; /* Matches AngularJS (line 599) - uses bottom positioning */
+  /* Emoji icon handled by EmojiPicker component */
+}
+
+.emoji-action-container:hover {
+  /* Hover effect handled by EmojiPicker component */
+}
+
+.attachmentButton.emoji {
+  right: 54px;
+  width: 25px;
+  height: 19px;
+  /* Legacy - kept for compatibility */
+}
+
+/* GIF button container - matches AngularJS giphy-action-container */
+.giphy-action-container {
+  position: absolute;
+  right: 4px; /* Matches AngularJS (line 575) */
+  bottom: 4px; /* Matches AngularJS (line 576) - uses bottom, not top */
+  width: 25px;
+  height: 22px;
+}
+
+.attachmentButton.giphy {
+  right: 0; /* Relative to giphy-action-container */
+  bottom: 0; /* Matches AngularJS (line 576) */
+  height: 22px; /* Matches AngularJS (line 577) */
+  padding-bottom: 0px; /* Matches AngularJS (line 578) */
+  box-sizing: content-box; /* Matches AngularJS (line 579) */
+  width: 25px; /* Matches AngularJS giphy width */
+  position: relative; /* Relative to container */
+  /* Background image set inline in GiphyPicker component to match AngularJS 2xMouseoverClick.svg */
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: center;
+  -webkit-transition: -webkit-transform 125ms cubic-bezier(0.4, 0, 1, 1), opacity 125ms cubic-bezier(0.4, 0, 1, 1); /* Matches AngularJS (line 586-587) */
+  transition: transform 125ms cubic-bezier(0.4, 0, 1, 1), opacity 125ms cubic-bezier(0.4, 0, 1, 1); /* Matches AngularJS (line 586-587) */
+  /* GIF button handled by GiphyPicker component */
+}
+
+.attachmentButton.giphy:hover {
+  -webkit-transform: scale(1.15); /* Matches AngularJS (line 590-591) */
+  transform: scale(1.15); /* Matches AngularJS (line 590-591) */
+  opacity: 1; /* Matches AngularJS hover opacity */
+}
+
+.attachmentButton.giphy.selected {
+  /* Selected state - blue version of GIF button */
+  /* Using inline SVG instead of image file to match AngularJS 2xBlue.png */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%234183d7' d='M39.1,10.2H8.9c-4.6,0-8.4,3.9-8.4,8.6v10.6c0,4.8,3.8,8.6,8.4,8.6h30.3c4.6,0,8.4-3.9,8.4-8.6V18.9C47.6,14.1,43.8,10.2,39.1,10.2z M44.5,29.1c0,3.4-2.8,6.1-6.1,6.1H9.6c-3.4,0-6.1-2.8-6.1-6.1v-10c0-3.4,2.8-6.1,6.1-6.1h28.7c3.4,0,6.1,2.8,6.1,6.1L44.5,29.1L44.5,29.1z'/%3E%3Ctext transform='matrix(1 0 0 1 8.9178 30.6387)' fill='%234183d7' font-family='ArialRoundedMTBold' font-size='17.65px'%3EGIF%3C/text%3E%3C/svg%3E");
+  background-color: #ffffff; /* Matches AngularJS (line 583) */
+}
+
+/* Giphy disabled state - Matches AngularJS giphyDisabled styles (line 1644-1649) */
+.giphyDisabled .attachmentButton.emoji {
+  right: 25px;
+}
+
+.giphyDisabled .attachmentButton.photo {
+  right: 5px;
+}
+
+/* Send button styles - Matches AngularJS send-btn styles */
+.message-input-buttons.send-btn {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.message-input-buttons.send-btn-blue {
+  /* Send button active state */
+  opacity: 1;
+}
+
+.message-input-buttons.send-btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inputHide {
+  display: none;
+}
+
+
+
+

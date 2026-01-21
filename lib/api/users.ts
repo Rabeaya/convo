@@ -2,81 +2,79 @@ import type { ApiError, ApiResponse } from './client';
 import type { User } from './auth';
 import { resolveServicesHostString } from '@/lib/config/services-host';
 
-export interface UsersApiUser {
+export interface NetworkUser {
   user_id: string;
-  first_name?: string;
-  last_name?: string;
-  name?: string;
-  fullName?: string;
-  email?: string;
-  phone_no?: string;
-  show_email?: number | boolean;
-  show_phone?: number | boolean;
-  sign_up_identity?: number;
-  status?: string;
-  rank?: number;
-  publishable?: boolean;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  profile_picture?: string;
+  profile_image_type?: number;
+  profile_image_version?: number;
+  user_role?: string;
+  designation?: string;
+  department?: string;
+  is_accessible?: boolean;
+  last_active_time?: number;
+  account_id?: string;
+  show_in_buddy_list?: boolean; // CRITICAL: Filter for buddy list (Angular line 133)
   searchable?: boolean;
+  publishable?: boolean;
+  status?: string;
   [key: string]: unknown;
 }
 
-export interface UsersApiResponse {
-  accessible_users?: UsersApiUser[];
-  user?: UsersApiUser;
-  account_data_revision_number?: number;
-  [key: string]: unknown;
+export interface UsersResponse {
+  accessible_users: Record<string, NetworkUser>;
+  account_data_revision_no?: number;
 }
+
+// Back-compat type aliases used across the app (some modules expect these names).
+// Keep these aliases to avoid breaking imports when merging branches.
+export type UsersApiResponse = UsersResponse;
+export type UsersApiUser = NetworkUser;
 
 class UsersService {
-  async getUsers(): Promise<ApiResponse<UsersApiResponse>> {
-    const response = await fetch('/api/v1/users', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
+  /**
+   * Get all users accessible to current user in their network
+   * Matches AngularJS: getAllUsersDetailsAccessibleToUserInAccount
+   */
+  async getAllUsers(): Promise<NetworkUser[]> {
+    try {
+      const response = await fetch('/api/v1/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          method: 'getAllUsersDetailsAccessibleToUserInAccount',
+        }),
+      });
 
-    if (!response.ok) {
-      let errorText = 'Failed to fetch users';
-      try {
-        const errorData = await response.json();
-        errorText = (errorData as any).error || (errorData as any).message || errorText;
-      } catch {
-        try {
-          errorText = await response.text();
-        } catch {
-          errorText = `HTTP ${response.status}: ${response.statusText}`;
-        }
+      if (!response.ok) {
+        throw new Error(`Failed to fetch users: ${response.statusText}`);
       }
 
-      const error: ApiError = {
-        message: errorText,
-        code: 'USERS_FETCH_ERROR',
-        status: response.status,
-      };
+      const data = await response.json();
+      
+      // Response format: { data: { accessible_users: { userId: userObject } } }
+      const usersData: UsersResponse = data.data || data;
+      const accessibleUsers = usersData.accessible_users || {};
+
+      // Convert object to array
+      const usersArray: NetworkUser[] = Object.values(accessibleUsers);
+
+      console.log(`[UsersService] Fetched ${usersArray.length} network users`);
+      // Convert object to array and return as-is (no filtering)
+      
+      console.log(`[UsersService] Fetched ${usersArray.length} users from API`);
+      
+      return usersArray;
+    } catch (error) {
+      console.error('[UsersService] Error fetching users:', error);
       throw error;
     }
-
-    let data: unknown;
-    try {
-      data = await response.json();
-    } catch {
-      const error: ApiError = {
-        message: 'Invalid JSON response from users API',
-        code: 'USERS_PARSE_ERROR',
-        status: response.status,
-      };
-      throw error;
-    }
-
-    // AngularJS ServerComm.getx returns response.data already. Our proxy may return { data: ... } or direct object.
-    const unwrapped = (data as any)?.data ? (data as any).data : data;
-
-    return {
-      data: unwrapped as UsersApiResponse,
-      status: response.status,
-    };
   }
 }
 
@@ -170,7 +168,7 @@ function getFilesBaseUrl(host: string, forUnAuthorizedOrigin: boolean, fileSeria
 /**
  * Helper function to get user initials from name
  */
-export function getUserInitials(user: User | UsersApiUser | null | undefined): string {
+export function getUserInitials(user: User | NetworkUser | null | undefined): string {
   if (!user) return '. .';
   
   let name = '';

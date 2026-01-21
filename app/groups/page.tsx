@@ -174,5 +174,3 @@ export default function GroupsDirectoryPage() {
     </div>
   );
 }
-
-
