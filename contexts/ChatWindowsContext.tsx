@@ -65,8 +65,12 @@ export function ChatWindowsProvider({ children }: { children: ReactNode }) {
         isMinimized: w.isMinimized,
       }));
       
-      // TODO: Get chat list minimized state from context when available
-      const chatListProperties = { isMinimized: false };
+      // Chat list minimized state (matches AngularJS: mainChatsListProperties.isMinimized)
+      // Keep this as a runtime toggle (no JSX/CSS changes) to avoid circular dependencies between contexts.
+      const chatListProperties = {
+        isMinimized:
+          typeof window !== 'undefined' ? Boolean((window as any).__cnvChatListIsMinimized) : false,
+      };
       
       // Check if there's enough space to open the new window
       const canOpen = canOpenChat(

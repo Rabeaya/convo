@@ -24,92 +24,46 @@ interface ChatWindowsRendererProps {
 function ChatWindowsRenderer({ chatListIsMinimized }: ChatWindowsRendererProps) {
   const { openWindows, focusedChatId } = useChatWindows();
 
-  // Filter windows to only render active (non-minimized) windows
-  // Matches AngularJS behavior where minimized windows are hidden (not in chatWindows array)
-  // Only active/open windows are visible, and windows cannot overlap
+  // Render BOTH minimized + maximized windows (matches AngularJS cnvWindowMaximizeMinimizeManager):
+  // - minimized windows shrink to 28px height and remain visible as headers
+  // - minimized windows still occupy width (166px) in positioning
   const visibleWindows = useMemo(() => {
     if (typeof window === 'undefined' || openWindows.length === 0) {
       return [];
     }
 
-    // In AngularJS, chatWindows array contains only active (non-minimized) windows
-    // Minimized windows are moved to dockedWind and are hidden
-    // Filter out minimized windows - only show active windows
-    const activeWindows = openWindows.filter(w => !w.isMinimized);
-    
-    if (activeWindows.length === 0) {
-      return [];
+    const windowsForPosition = openWindows.map(w => ({
+      chatId: w.chatId,
+      isMinimized: w.isMinimized,
+    }));
+
+    const visible: Array<{ windowMeta: (typeof openWindows)[number]; positionIndex: number }> = [];
+
+    for (let i = 0; i < openWindows.length; i++) {
+      const meta = openWindows[i];
+      const rightOffset = calculateChatWindowPosition(i, windowsForPosition, { isMinimized: chatListIsMinimized });
+      const windowWidth = meta.isMinimized ? WINDOW_MINIMIZED_WIDTH : CHAT_WINDOW_MAXIMIZED_WIDTH;
+      const windowLeftEdge = window.innerWidth - rightOffset - windowWidth;
+
+      // Stop rendering when windows would overlap left sidebar (Angular docks instead).
+      if (windowLeftEdge < LEFT_PANEL_WIDTH) break;
+
+      visible.push({ windowMeta: meta, positionIndex: i });
     }
 
-    // Process active windows in order, ensuring no overlap
-    // Matches AngularJS adjustChatWindowsPosition logic
-    // In AngularJS, minimized windows are removed from chatWindows array, so they don't take up space
-    // We filter them out and only calculate positions for active windows
-    const visible: typeof openWindows = [];
-    
-    // Map only active windows for position calculation (matches AngularJS chatWindows array)
-    const activeWindowsForPosition = activeWindows.map(w => ({
-      chatId: w.chatId,
-      isMinimized: false, // All are active, so none are minimized
-    }));
-    
-    for (let i = 0; i < activeWindows.length; i++) {
-      // Calculate position using index in activeWindows array (matches AngularJS chatWindows array)
-      const rightOffset = calculateChatWindowPosition(
-        i,
-        activeWindowsForPosition,
-        { isMinimized: chatListIsMinimized }
-      );
-      
-      const windowWidth = CHAT_WINDOW_MAXIMIZED_WIDTH; // All active windows are maximized
-      
-      // Calculate left edge of this window
-      const windowLeftEdge = window.innerWidth - rightOffset - windowWidth;
-      
-      // Check if window would overlap with left sidebar
-      // Window should not cover left sidebar (235px)
-      if (windowLeftEdge < LEFT_PANEL_WIDTH) {
-        // This window would overlap with left sidebar - stop rendering
-        // Matches AngularJS docking behavior
-        break;
-      }
-      
-      // Check if this window overlaps with previous window
-      if (i > 0 && visible.length > 0) {
-        const prevWindowWidth = CHAT_WINDOW_MAXIMIZED_WIDTH;
-        const prevRightOffset = calculateChatWindowPosition(
-          i - 1,
-          activeWindowsForPosition,
-          { isMinimized: chatListIsMinimized }
-        );
-        
-        const currentWindowLeftFromRight = rightOffset + windowWidth;
-        const prevWindowLeftFromRight = prevRightOffset + prevWindowWidth;
-        
-        // Check for overlap: current window's left edge should be to the left of previous window's left edge
-        if (currentWindowLeftFromRight <= prevWindowLeftFromRight) {
-          // Overlap detected - stop rendering (matches AngularJS docking behavior)
-          break;
-        }
-      }
-      
-      // Window fits - add it to visible
-      visible.push(activeWindows[i]);
-    }
-    
     return visible;
   }, [openWindows, chatListIsMinimized]);
 
   return (
     <>
-      {visibleWindows.map((windowMeta, index) => (
+      {visibleWindows.map(({ windowMeta, positionIndex }) => (
         <ChatWindow
           key={windowMeta.chatId}
           chatId={windowMeta.chatId}
           chat={windowMeta.chat}
           isMinimized={windowMeta.isMinimized}
           initialHeight={windowMeta.height}
-          position={index}
+          position={positionIndex}
           chatListIsMinimized={chatListIsMinimized}
         />
       ))}

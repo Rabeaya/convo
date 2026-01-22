@@ -155,22 +155,17 @@ export default function ChatWindow({
 
   // Calculate position using AngularJS logic (matches adjustChatWindowsPosition)
   // This accounts for minimized/maximized states and proper spacing
-  // CRITICAL: Use position prop which is the index in filtered activeWindows array
-  // In AngularJS, minimized windows are removed from chatWindows, so they don't affect positioning
-  // The position prop passed from DockedChat is already the correct index among active windows only
+  // CRITICAL: Use position prop which is the index in the full windows array (includes minimized windows).
+  // AngularJS keeps minimized windows visible and includes their widths in positioning.
   const rightOffset = useMemo(() => {
-    // Filter to only active (non-minimized) windows for position calculation
-    // This matches AngularJS where minimized windows are removed from chatWindows array
-    const activeWindows = openWindows.filter(w => !w.isMinimized);
-    const activeWindowsForPosition = activeWindows.map(w => ({
+    const windowsForPosition = openWindows.map(w => ({
       chatId: w.chatId,
-      isMinimized: false, // All are active
+      isMinimized: w.isMinimized,
     }));
-    
-    // Use position prop which is already the index in activeWindows array
+
     return calculateChatWindowPosition(
       position,
-      activeWindowsForPosition,
+      windowsForPosition,
       { isMinimized: chatListIsMinimized }
     );
   }, [position, openWindows, chatListIsMinimized]);
@@ -186,6 +181,90 @@ export default function ChatWindow({
   const handleClose = useCallback(() => {
     closeChatWindow(chatId);
   }, [chatId, closeChatWindow]);
+
+  // Match AngularJS cnvWindowMaximizeMinimizeManager transitions (applied after initial paint)
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const headerEl = root.querySelector('.chatWindowHeader') as HTMLElement | null;
+    const t = window.setTimeout(() => {
+      if (headerEl) {
+        headerEl.style.transition = 'background-color 0.2s, width 0.25s';
+      }
+      root.style.transition = 'width 0.25s, height 0.25s, left 0.25s, right 0.25s';
+    }, 1);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  // Preserve scroll position across minimize/maximize (matches AngularJS cnvWindowMaximizeMinimizeManager)
+  const scrollStateRef = useRef<{ scrollTop: number; scrollToBot: boolean } | null>(null);
+  const prevIsMinimizedRef = useRef<boolean>(isMinimized);
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) {
+      prevIsMinimizedRef.current = isMinimized;
+      return;
+    }
+
+    // On minimize: capture scrollTop and "scrolled to bottom" state.
+    if (!prevIsMinimizedRef.current && isMinimized) {
+      const msgWin = root.querySelector('.chatMessageWindow') as HTMLElement | null;
+      if (msgWin) {
+        const scrollTop = Math.ceil(msgWin.scrollTop);
+        const scrollToBot = scrollTop + msgWin.clientHeight >= msgWin.scrollHeight - 10;
+        scrollStateRef.current = { scrollTop, scrollToBot };
+      }
+    }
+
+    // On maximize: restore scrollTop or scroll to bottom.
+    if (prevIsMinimizedRef.current && !isMinimized) {
+      const saved = scrollStateRef.current;
+      if (saved) {
+        window.setTimeout(() => {
+          const msgWin = rootRef.current?.querySelector('.chatMessageWindow') as HTMLElement | null;
+          if (!msgWin) return;
+          if (saved.scrollTop >= 0 && !saved.scrollToBot) {
+            msgWin.scrollTop = saved.scrollTop;
+          } else {
+            msgWin.scrollTop = msgWin.scrollHeight;
+          }
+        }, 1);
+      }
+    }
+
+    prevIsMinimizedRef.current = isMinimized;
+  }, [isMinimized]);
+
+  // Header mousedown toggles minimize/maximize (matches AngularJS onWindowHeaderMouseDown)
+  const onHeaderMouseDown = useCallback((event: React.MouseEvent) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    // Don't toggle when interacting with header controls/menus.
+    if (
+      target.classList.contains('headerIcon') ||
+      target.classList.contains('dropdownLinkContainer') ||
+      target.closest('.btnChatOptions') ||
+      target.closest('.addUserList') ||
+      target.closest('.vidCallOptionsDropdown') ||
+      target.closest('.addParticipantList') ||
+      target.closest('.chatSettingsOptionsBtn') ||
+      target.closest('.btnClose') ||
+      target.closest('.btnStartAudioCall') ||
+      target.closest('.btnExpand') ||
+      target.closest('.addToChat')
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (!isMinimized) {
+      handleMinimize();
+    } else {
+      handleMaximize();
+    }
+  }, [isMinimized, handleMinimize, handleMaximize]);
 
   // Handle chat focus/unfocus (matches AngularJS chatWindow.js setWindFocus lines 153-191)
   // When chat gains focus: reset unread count (matches AngularJS line 188-191)
@@ -2228,7 +2307,7 @@ export default function ChatWindow({
 
       {/* Header - Matches AngularJS chatWindow.tpl.html exactly */}
       {/* Header background: #1f2e3d (focused) or #7b8386 (unfocused) - matches @cnv-chat-focused-color */}
-      <div className="chatWindowHeader" style={{ background: '#1f2e3d' }}>
+      <div className="chatWindowHeader" style={{ background: '#1f2e3d' }} onMouseDown={onHeaderMouseDown}>
         {/* User avatar and presence (P2P chats only) - Matches AngularJS lines 7-23 */}
         {chat.chatType === 1 && enrichedUser && !isMinimized && (
           <div className="namesPopover" style={{ cursor: 'pointer', verticalAlign: 'middle', minHeight: '100%' }}>
@@ -2314,7 +2393,16 @@ export default function ChatWindow({
         {!isMinimized && (
           <>
             {/* Expand icon - right: 91px */}
-            <a className="btnExpand" style={{ position: 'absolute', right: '91px', top: 0 }}>
+            <a
+              className="btnExpand"
+              href="#/chats/all"
+              target="_blank"
+              style={{ position: 'absolute', right: '91px', top: 0 }}
+              onMouseUp={() => {
+                // AngularJS: openChatInFullView() minimizes the chat window before navigation.
+                handleMinimize();
+              }}
+            >
               <i className="headerIcon cnv-icons-16 chat-window-expand-white" />
             </a>
             {/* Audio call icon - right: 68px */}

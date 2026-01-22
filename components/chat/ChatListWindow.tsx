@@ -11,7 +11,7 @@
  * - Scrollbar appears only when content overflows
  */
 
-  import { useState, useMemo, useEffect, useRef } from 'react';
+  import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
   import { useChatList } from '@/contexts/ChatListContext';
   import { xmppChatService } from '@/utils/xmppChatService';
   import ChatListItem from './ChatListItem';
@@ -29,10 +29,76 @@
   }
 
   export default function ChatListWindow({ onMinimizeChange }: ChatListWindowProps = {} as ChatListWindowProps) {
-    const [isMinimized, setIsMinimized] = useState(false);
+    // AngularJS cnvWindowMaximizeMinimizeManager initializes the chat list window in minimized state.
+    const [isMinimized, setIsMinimized] = useState(true);
+    // Keep siblings visible during the minimize animation, then hide after 200ms (matches AngularJS)
+    const [showBody, setShowBody] = useState(false);
+    // Height is stretchable in-place (matches AngularJS vertical resizer + maximizeWindow clamp)
+    const [listHeight, setListHeight] = useState(350);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const prevHeightRef = useRef(350);
+    const dragRef = useRef<{ startY: number; startH: number } | null>(null);
     const [searchText, setSearchText] = useState('');
     const { chats, users, isLoading, error, selectedChatId, selectedUserId, selectChat, selectUser } = useChatList();
     const { openChatWindow } = useChatWindows();
+    const rootRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Header color state (matches AngularJS cnvChatUsersWindow.js + chatUsersWindow.less)
+    // - Focused (no class): @cnv-chat-focused-color (from colorProfile.less) → #4183d7
+    // - Unfocused: .unfocused-state → @cnv-chat-unfocused-color → #1e2e3d
+    // - Unread: .unread-state → @cnv-chat-unread-color → #3371bd
+    const CNV_CHAT_FOCUSED_COLOR = '#4183d7';
+    const CNV_CHAT_UNFOCUSED_COLOR = '#1e2e3d';
+    const CNV_CHAT_UNREAD_COLOR = '#3371bd';
+    const BLINK_LIGHT = '#4183d7'; // Angular: CHAT_WINDOW_HEADER_HIGHLIGHTED_LIGHT_COLOR
+    const BLINK_DARK = '#3166aa'; // Angular: CHAT_WINDOW_HEADER_HIGHLIGHTED_DARK_COLOR
+
+    const [listWindInFocus, setListWindInFocus] = useState(false);
+    const [lastSeenUnreadCount, setLastSeenUnreadCount] = useState(0);
+    const [blinkBg, setBlinkBg] = useState<string | null>(null);
+    const blinkTimeoutRef = useRef<number | null>(null);
+
+    const getMaxListHeight = () => {
+      // AngularJS cnvWindowMaximizeMinimizeManager: maxHeight = getVisibleBrowserHeight() - 59 (for chat list)
+      // We approximate visible browser height via window.innerHeight and apply the same subtraction.
+      if (typeof window === 'undefined') return 350;
+      const maxHeight = Math.max(window.innerHeight - 59, 350);
+      return maxHeight;
+    };
+
+    // Vertical resize handling for chat list (matches Angular cnv-window-resize-manager="vertical")
+    const onResizerPointerDown = useCallback((e: React.PointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isMinimized) return;
+
+      dragRef.current = {
+        startY: e.clientY,
+        startH: listHeight,
+      };
+
+      const onPointerMove = (moveE: PointerEvent) => {
+        if (!dragRef.current) return;
+        const deltaY = dragRef.current.startY - moveE.clientY; // drag up increases height
+        const maxH = getMaxListHeight();
+        const newH = Math.max(350, Math.min(maxH, dragRef.current.startH + deltaY));
+        setListHeight(newH);
+        // If user manually resized away from max, treat as not "expanded"
+        setIsExpanded(newH >= maxH - 1);
+      };
+
+      const onPointerUp = () => {
+        dragRef.current = null;
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+        // Persist last manual height for collapse-from-expanded
+        prevHeightRef.current = listHeight;
+      };
+
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+    }, [isMinimized, listHeight]);
 
   // Ensure chats and users are always sorted (matches AngularJS behavior)
   // This ensures sorting is applied even if data changes
@@ -135,10 +201,147 @@
   const toggleMinimize = () => {
     const newMinimized = !isMinimized;
     setIsMinimized(newMinimized);
-    // Notify parent component of minimize state change (for window positioning)
-    if (onMinimizeChange) {
-      onMinimizeChange(newMinimized);
+  };
+
+  // Keep global minimized flag in sync for window positioning (used by ChatWindowsContext)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    (window as any).__cnvChatListIsMinimized = isMinimized;
+  }, [isMinimized]);
+
+  // Match AngularJS cnvWindowMaximizeMinimizeManager transitions (applied after initial paint)
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || typeof window === 'undefined') return;
+    const headerEl = root.querySelector('.chatUserListHeader') as HTMLElement | null;
+    const t = window.setTimeout(() => {
+      if (headerEl) {
+        headerEl.style.transition = 'background-color 0.2s, width 0.25s';
+      }
+      root.style.transition = 'width 0.25s, height 0.25s, left 0.25s, right 0.25s';
+    }, 1);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  // Focus management for header color switching (matches Angular: input focus/blur drives listWindInFocus)
+  useEffect(() => {
+    if (isMinimized) {
+      setListWindInFocus(false);
+      return;
     }
+    if (showBody) {
+      // Angular maximizes then focuses inputSearchBar
+      window.setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 1);
+      setListWindInFocus(true);
+      setLastSeenUnreadCount(unreadCount);
+    }
+  }, [isMinimized, showBody, unreadCount]);
+
+  // Blink on new unread when not focused (matches AngularJS: blink(7, 800))
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Clear any previous blink when focus changes.
+    if (listWindInFocus || isMinimized) {
+      if (blinkTimeoutRef.current) {
+        window.clearTimeout(blinkTimeoutRef.current);
+        blinkTimeoutRef.current = null;
+      }
+      setBlinkBg(null);
+      if (listWindInFocus) {
+        setLastSeenUnreadCount(unreadCount);
+      }
+      return;
+    }
+
+    const isNewUnread = unreadCount > lastSeenUnreadCount;
+    if (!isNewUnread || unreadCount <= 0) return;
+
+    // Toggle between light/dark blue for N times, then restore class-based color.
+    let times = 7;
+    const step = () => {
+      if (times <= 0) {
+        setBlinkBg(null);
+        blinkTimeoutRef.current = null;
+        // Don't update lastSeenUnreadCount here; Angular only considers "seen" when focused.
+        return;
+      }
+      setBlinkBg((prev) => (prev === BLINK_LIGHT ? BLINK_DARK : BLINK_LIGHT));
+      times -= 1;
+      blinkTimeoutRef.current = window.setTimeout(step, 800);
+    };
+
+    // start
+    step();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unreadCount, lastSeenUnreadCount, listWindInFocus, isMinimized]);
+
+  // Keep focus state in sync with input focus/blur (matches AngularJS 100ms blur delay)
+  const onSearchFocus = () => {
+    setListWindInFocus(true);
+    setLastSeenUnreadCount(unreadCount);
+  };
+  const onSearchBlur = () => {
+    window.setTimeout(() => {
+      setListWindInFocus(false);
+    }, 100);
+  };
+
+  // Compute header class + background (use inline backgroundColor to avoid any theme mismatches/opacity washout)
+  const hasUnread = unreadCount > 0;
+  const hasNewUnreadSinceLastFocus = hasUnread && unreadCount > lastSeenUnreadCount;
+  const headerClass =
+    `chatUserListHeader` +
+    (listWindInFocus && !isMinimized ? '' : hasNewUnreadSinceLastFocus ? ' unread-state' : ' unfocused-state');
+  const headerBg =
+    blinkBg ??
+    (listWindInFocus && !isMinimized ? CNV_CHAT_FOCUSED_COLOR : hasNewUnreadSinceLastFocus ? CNV_CHAT_UNREAD_COLOR : CNV_CHAT_UNFOCUSED_COLOR);
+
+  // Siblings hide after transition on minimize; show immediately on maximize.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isMinimized) {
+      setShowBody(true);
+      // Keep DockedChat in sync
+      onMinimizeChange?.(false);
+      return;
+    }
+    const t = window.setTimeout(() => setShowBody(false), 200);
+    // Keep DockedChat in sync
+    onMinimizeChange?.(true);
+    return () => window.clearTimeout(t);
+  }, [isMinimized, onMinimizeChange]);
+
+  // Clamp expanded height on browser resize (in-place; no new window)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onResize = () => {
+      if (!isExpanded) return;
+      setListHeight(getMaxListHeight());
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [isExpanded]);
+
+  // Header mousedown toggles minimize/maximize (matches AngularJS onWindowHeaderMouseDown)
+  const onHeaderMouseDown = (event: React.MouseEvent) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    if (
+      target.classList.contains('headerIcon') ||
+      target.classList.contains('dropdownLinkContainer') ||
+      target.closest('.btnChatSettings') ||
+      target.closest('.btnExpand') ||
+      target.closest('.create-new-feed-chat-btn') ||
+      target.closest('.chatSettingsOptionsBtn')
+    ) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    toggleMinimize();
   };
 
     const handleNewChat = () => {
@@ -254,25 +457,28 @@
       id="chatUserListMainWindow"
       className="chatUserListMainStyl z-index-9"
       tabIndex={0}
+      ref={rootRef}
       style={{
-        height: isMinimized ? '28px' : '350px',
+        height: isMinimized ? '28px' : `${listHeight}px`,
         width: isMinimized ? '166px' : '260px',
       }}
     >
       {/* Resize handle (matches Angular) */}
-      {!isMinimized && (
+      {showBody && (
         <div
           className="content-resizer"
           data-cnv-window-resize-manager="vertical"
           data-resizer-bottom="chatUserListMainWindow"
+          onPointerDown={onResizerPointerDown}
         />
       )}
 
       {/* Header (EXACT match to AngularJS cnvChatUsersWindow.tpl.html lines 3-43) */}
       <div
-        className="chatUserListHeader unfocused-state"
+        className={headerClass}
         data-cnv-chats-list-window-header=""
-        onMouseDown={toggleMinimize}
+        onMouseDown={onHeaderMouseDown}
+        style={{ backgroundColor: headerBg }}
       >
         {/* Unread count badge (Angular line 4) - positioned FIRST before chatsIcon, on LEFT side */}
         {unreadCount > 0 && (
@@ -305,12 +511,28 @@
         </div>
 
         {/* Expand button (link to full chat view) */}
-        {!isMinimized && (
+        {showBody && (
           <a
             className="btnExpand"
-            href="#/chats/all"
-            target="_blank"
+            href="#"
             style={{ display: 'block' }}
+            onMouseUp={() => {
+              // AngularJS chat list expands/collapses within the same container (no new window).
+              // We implement in-place stretch: toggle height between previous and max visible height.
+              if (isMinimized) return;
+              if (!isExpanded) {
+                prevHeightRef.current = listHeight;
+                setListHeight(getMaxListHeight());
+                setIsExpanded(true);
+              } else {
+                setListHeight(prevHeightRef.current || 350);
+                setIsExpanded(false);
+              }
+            }}
+            onClick={(e) => {
+              // prevent page jump due to href="#"
+              e.preventDefault();
+            }}
           >
             <i className="headerIcon cnv-icons-16 chat-window-expand-white" />
             <i className="headerIcon cnv-icons-16 chat-window-expand-gray-hover" />
@@ -318,7 +540,7 @@
         )}
 
         {/* New chat button */}
-        {!isMinimized && (
+        {showBody && (
           <div
             className="create-new-feed-chat-btn"
             onMouseDown={handleNewChat}
@@ -329,7 +551,7 @@
         )}
 
         {/* Settings button */}
-        {!isMinimized && (
+        {showBody && (
           <div
             className="chatSettingsOptionsBtn btnChatSettings"
             onMouseDown={(e) => {
@@ -360,7 +582,7 @@
       </div>
 
       {/* Search bar (EXACT match to Angular) */}
-      {!isMinimized && (
+      {showBody && (
         <div className="chatSearchBar">
           <div className="searchChatIconContainer">
             <i className="searchChatIcon" />
@@ -371,12 +593,15 @@
             placeholder="SEARCH"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
+            ref={searchInputRef}
+            onFocus={onSearchFocus}
+            onBlur={onSearchBlur}
           />
         </div>
       )}
 
       {/* Chat list container (EXACT match to Angular) */}
-      {!isMinimized && (
+      {showBody && (
         <div
           id="chatUserList"
           className="chatUserList cnvScrollContainerParent"
