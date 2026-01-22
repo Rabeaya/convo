@@ -42,8 +42,9 @@ export function computeGroupChatTitle(
   for (const userId in participants) {
     const participant = participants[userId];
     
-    // Skip if participant info should be hidden (matches AngularJS showParticipantInfo check)
-    if (participant.showParticipantInfo === 0) {
+    // Match AngularJS: if(!chatParticipant.showParticipantInfo ...) continue;
+    // (Angular treats undefined/0 as hidden)
+    if (!(participant as any).showParticipantInfo) {
       continue;
     }
     
@@ -61,7 +62,8 @@ export function computeGroupChatTitle(
         return uId === userId;
       });
 
-      if (user && user.is_accessible !== false && user.isAccessible !== false) {
+      // Match AngularJS: usersManager.getUserById(...) presence is enough to include user in title
+      if (user) {
         participantsCount++;
         
         // Show first 2 names
@@ -118,7 +120,8 @@ export function computeGroupChatTitle(
 
   // Fallback if no title computed
   if (!titleString) {
-    if (thisUserInChat && participantsCount > 0) {
+    // Match AngularJS: if every other participant left but this user is in chat → "Group Chat"
+    if (thisUserInChat) {
       titleString = 'Group Chat';
     } else {
       titleString = 'Empty Room';

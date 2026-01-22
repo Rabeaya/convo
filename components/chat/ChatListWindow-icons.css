@@ -8,7 +8,7 @@
   background-size: contain;
   display: inline-block;
   margin-left: 8px;
-  margin-top: 4px;
+  margin-top: 1px;
 }
 
 /* Settings icons */
@@ -44,7 +44,7 @@
   border-radius: 5px;
   min-width: 20px;
   min-height:20px;
-  left: 8px;
+  left: 23px;
   top: -13px;
   z-index: 101;
 }

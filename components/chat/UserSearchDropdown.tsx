@@ -10,7 +10,6 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { NetworkUser, Chat } from '@/types/chat';
-import UserProfileImage from '@/components/common/UserProfileImage';
 import './UserSearchDropdown.css';
 
 interface UserSearchDropdownProps {
@@ -157,6 +156,32 @@ export default function UserSearchDropdown({
     return null;
   }
 
+  // AngularJS: close on outside click (cnvAddUserInChat.js outsideClickHandling)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onDocMouseDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      // if click is inside dropdown, ignore
+      if (target.closest('.addParticipantList')) return;
+      // if click is on header icon (plus), ignore (Angular checks .headerIcon)
+      if (target.classList.contains('headerIcon') || target.closest('.addToChat')) return;
+      onClose();
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [isOpen, onClose]);
+
+  const getPresenceStatus = (u: NetworkUser): number => {
+    return (u as any).presenceStatus || (u as any).presence_status || 4;
+  };
+  const getDevice = (u: NetworkUser): number => {
+    return (u as any).device || (u as any).device_type || 1;
+  };
+  const hasMobile = (u: NetworkUser): boolean => {
+    return !!((u as any).has_mobile || (u as any).hasMobile);
+  };
+
   return (
     <div className="user-search-dropdown cnvScrollContainerParent addParticipantList">
       <div className="userSearchBarContainer">
@@ -190,33 +215,58 @@ export default function UserSearchDropdown({
             const isSelected = selectedIndex === index;
             const isParticipant = chat.participants?.[userId] !== undefined;
 
+            const presenceStatus = getPresenceStatus(user);
+            const device = getDevice(user);
+            const userHasMobile = hasMobile(user);
+
             return (
-              <div
-                key={userId}
-                className={`chat-member possible-chat-participant ${isSelected ? 'chat-member-selected' : ''} ${isParticipant ? 'user-not-participant' : ''}`}
-                onClick={() => !isParticipant && handleUserClick(user)}
-                onMouseEnter={() => setSelectedIndex(index)}
-              >
-                <div className="user-img-with-presence">
-                  <UserProfileImage
-                    userId={userId}
-                    size={81}
-                    width={32}
-                    height={32}
-                    profileType={user.profile_image_type?.toString()}
-                    profileVersion={user.profile_image_version?.toString()}
-                    fullName={displayName}
-                  />
-                  {/* Presence indicator would go here if needed */}
-                </div>
-                <span className="chat-member-label">{displayName}</span>
-                {isParticipant && (
-                  <span className="chat-participant">
-                    {user.user_role === 'GUEST' || user.userRole === 'GUEST' ? 'GUEST' : ''}
-                    {isParticipant && (user.user_role === 'GUEST' || user.userRole === 'GUEST') && ' | '}
-                    {isParticipant && 'ADDED'}
-                  </span>
+              <div key={`${userId}-${index}`}>
+                {/* AngularJS: optional account name header (bo-if="user.accountName") */}
+                {(user as any).accountName && (
+                  <div
+                    style={{
+                      padding: '5px 15px',
+                      fontWeight: 600,
+                      color: '#8e8e8e',
+                      background: '#F7F7F7',
+                    }}
+                  >
+                    {(user as any).accountName}
+                  </div>
                 )}
+
+                <div
+                  className={`addParticipantItem ${isSelected ? 'selected' : ''} ${isParticipant ? 'user-not-participant' : ''}`}
+                  onMouseDown={() => !isParticipant && handleUserClick(user)}
+                  onMouseOver={() => setSelectedIndex(index)}
+                >
+                  <div className="addListUserStatusWrap">
+                    {presenceStatus === 1 && device !== 2 && <div className="addListUserStatusOnline" />}
+                    {presenceStatus === 2 && device !== 2 && <div className="addListUserStatusBusy" />}
+                    {presenceStatus === 3 && device !== 2 && <div className="addListUserStatusIdle" />}
+                    {presenceStatus === 4 && device !== 2 && !userHasMobile && <div className="addListUserStatusOffline" />}
+                    {(device === 2 || (presenceStatus === 4 && userHasMobile)) && (
+                      <div className="addListUserStatusMobile aling-to-normal-status-bubble" />
+                    )}
+                  </div>
+                  <div className="addListUserName">
+                    <span>{displayName}</span>
+                  </div>
+
+                  {(user.user_role === 'GUEST' || (user as any).userRole === 'GUEST') && (
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        color: '#8e8e8e',
+                        position: 'relative',
+                        right: '10px',
+                        bottom: '4px',
+                      }}
+                    >
+                      GUEST
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })

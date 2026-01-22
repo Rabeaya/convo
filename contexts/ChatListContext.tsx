@@ -661,17 +661,75 @@ export function ChatListProvider({ children }: { children: ReactNode }) {
           ? Math.min(...messages.map(m => m.sequenceNumber || 0).filter(seq => seq > 0))
           : 0;
         
+        const getCurrentUserId = () => {
+          if (typeof window !== 'undefined') {
+            const sessionData = (window as any).com_convo?.sessionData?.signInResponseData;
+            return sessionData?.user?.user_id || '';
+          }
+          return '';
+        };
+
+        const escapeHtml = (s: string) =>
+          s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        const getFirstNameForUserId = (userId: string): string => {
+          if (!userId) return '';
+
+          const user = allUsers.find((u: any) => (u?.user_id || u?.userId) === userId);
+          if (user) {
+            const firstName = user.first_name || user.firstName;
+            if (firstName) return String(firstName);
+
+            const fullName =
+              `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
+              user.name ||
+              user.displayName ||
+              '';
+            if (fullName) return String(fullName).split(' ')[0];
+          }
+
+          const participantName =
+            (chat as any)?.participants?.[userId]?.name ||
+            (chat as any)?.participants?.[userId]?.displayName ||
+            '';
+          return participantName ? String(participantName).split(' ')[0] : '';
+        };
+
+        const currentUserId = getCurrentUserId();
+        const latestSenderId = (latestMessage as any).senderId || (latestMessage as any).sender_id || '';
+
         // Update chat properties (matches AngularJS chat.addMessage and chatManager.updateChat)
         const newLastMessageTimestamp = latestMessage.timestamp;
         const newLastMessageSequenceNumber = latestMessage.sequenceNumber || 0;
-        const newSummeryText = latestMessage.messageText || '';
+        const baseText = latestMessage.messageText || '';
+        const safeBaseText = escapeHtml(String(baseText));
+
+        // Match AngularJS: Chat.prototype.getSummeryText()
+        // - Own last message: "You: <text>"
+        // - Group chat (not own): "<FirstName>: <text>" (if first name available)
+        let newSummeryText = safeBaseText;
+        if (latestSenderId && currentUserId && latestSenderId === currentUserId) {
+          newSummeryText = safeBaseText ? `You: ${safeBaseText}` : safeBaseText;
+        } else if ((chat as any).chatType === 2 && latestSenderId) {
+          const senderFirstName = getFirstNameForUserId(String(latestSenderId));
+          if (senderFirstName) {
+            const safeSenderFirstName = escapeHtml(senderFirstName);
+            newSummeryText = safeBaseText ? `${safeSenderFirstName}: ${safeBaseText}` : `${safeSenderFirstName}:`;
+          }
+        }
         
         // Only update if changed
         if (
           chat.lastMessageTimestamp !== newLastMessageTimestamp ||
           chat.lastMessageSequenceNumber !== newLastMessageSequenceNumber ||
           chat.summeryText !== newSummeryText ||
-          chat.minSequenceNumber !== minSequenceNumber
+          chat.minSequenceNumber !== minSequenceNumber ||
+          (chat as any).last_message_sender_id !== latestSenderId
         ) {
           updated = true;
           console.log(`[ChatListContext] 📝 Updating chat ${chat.chatId}:`, {
@@ -687,6 +745,7 @@ export function ChatListProvider({ children }: { children: ReactNode }) {
             lastMessageTimestamp: newLastMessageTimestamp,
             lastMessageSequenceNumber: newLastMessageSequenceNumber,
             summeryText: newSummeryText,
+            last_message_sender_id: latestSenderId,
             minSequenceNumber: minSequenceNumber || undefined, // Store undefined if 0 (no messages with sequenceNumber > 0)
             isLoadingInProgress: false, // Clear loading flag after messages update
           };
@@ -704,7 +763,7 @@ export function ChatListProvider({ children }: { children: ReactNode }) {
       
       return prevChats;
     });
-  }, [messagesState]);
+  }, [messagesState, allUsers]);
 
   // Re-sort when presence changes or new messages arrive (matches Angular)
   const resortChatList = useCallback(() => {

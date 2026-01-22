@@ -196,7 +196,7 @@ export default function ParticipantList({ chat, allUsers }: ParticipantListProps
                   style={{
                     display: 'inline-block',
                     marginLeft: '-11px',
-                    marginBottom: '-14px',
+                    marginBottom: '-22px',
                     verticalAlign: 'middle',
                     pointerEvents: 'none',
                   }}

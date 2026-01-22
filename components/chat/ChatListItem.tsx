@@ -252,7 +252,7 @@ export default function ChatListItem({ chat, isSelected, onClick }: ChatListItem
 
         {/* P2P Presence Status (Angular lines 232-248) - EXACT positioning match */}
         {isP2P && chat._user && !chat._user.isInvitedUser && (
-          <div style={{ position: 'absolute', left: '42px', marginTop: '28px', display: 'inline-block' }}>
+          <div style={{ position: 'absolute', left: '42px', marginTop: '23px', display: 'inline-block' }}>
             {hasUserBlockedChat && (
               <div className="listUserStatusBlocked">
                 <i className="cnv-icons-10 blocked-icn"></i>

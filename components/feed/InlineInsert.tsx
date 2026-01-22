@@ -1615,9 +1615,15 @@ export default function InlineInsert() {
     }
 
     const deduped = uniqByKey(mapped, (x) => `${x.type}:${x.id}`);
-    if (deduped.length) {
-      setToItems(deduped);
-    }
+    if (!deduped.length) return;
+
+    // IMPORTANT: Prevent render→effect→setState loops if usersMap/groupsMap/settingsResp are unstable references.
+    // Only update if the resulting recipients actually changed.
+    setToItems((prev) => {
+      const prevKey = prev.map((x) => `${x.type}:${x.id}`).join('|');
+      const nextKey = deduped.map((x) => `${x.type}:${x.id}`).join('|');
+      return prevKey === nextKey ? prev : deduped;
+    });
   }, [settingsResp, usersMap, groupsMap]);
 
   const suggestions: ToItem[] = useMemo(() => {

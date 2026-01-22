@@ -54,6 +54,7 @@ export default function ChatWindow({
 }: ChatWindowProps) {
   const {
     openWindows,
+    openChatWindow,
     closeChatWindow,
     minimizeChatWindow,
     maximizeChatWindow,
@@ -2374,133 +2375,120 @@ export default function ChatWindow({
         <ParticipantList chat={chat} allUsers={allUsers} />
       )}
 
-      {/* Add user in chat dropdown (AngularJS cnv-add-user-in-chat) */}
+      {/* Add user in chat dropdown (AngularJS cnv-add-user-in-chat) - overlay under header (no layout shift) */}
       {!isMinimized && showUserSearchDropdown && (
-        <div className="chatActionBar" style={{
-          height: '40px',
-          background: '#fff',
-          borderBottom: '1px solid #d4d9e3',
-          position: 'relative',
-        }}>
-          {/* Participants list would go here */}
-          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            <UserSearchDropdown
-              chat={chat}
-              isOpen={showUserSearchDropdown}
-              onClose={() => setShowUserSearchDropdown(false)}
-              onUserSelect={async (user: NetworkUser) => {
-                try {
-                  // Get current session info
-                  const sessionData =
-                    typeof window !== 'undefined'
-                      ? (window as any).com_convo?.sessionData?.signInResponseData
-                      : null;
-                  const currentAccountId = sessionData?.account_id;
-                  const currentUser = sessionData?.user;
-                  const currentUserId = currentUser?.user_id || '';
-                  const currentUserName =
-                    `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.email || '';
+        <UserSearchDropdown
+          chat={chat}
+          isOpen={showUserSearchDropdown}
+          onClose={() => setShowUserSearchDropdown(false)}
+          onUserSelect={async (user: NetworkUser) => {
+            try {
+              // Get current session info
+              const sessionData =
+                typeof window !== 'undefined'
+                  ? (window as any).com_convo?.sessionData?.signInResponseData
+                  : null;
+              const currentAccountId = sessionData?.account_id;
+              const currentUser = sessionData?.user;
+              const currentUserId = currentUser?.user_id || '';
+              const currentUserName =
+                `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || currentUser?.email || '';
 
-                  // Selected user fields
-                  const selectedUserId = user.user_id || user.userId || '';
-                  const selectedUserName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || '';
-                  const selectedUserAccountId = user.account_id || user.accountId;
+              // Selected user fields
+              const selectedUserId = user.user_id || user.userId || '';
+              const selectedUserName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || '';
+              const selectedUserAccountId = user.account_id || user.accountId;
 
-                  if (chat.chatType === 1) {
-                    // P2P → create a new local group chat (AngularJS: chatManager.startChatWithUsers)
-                    const other = chat._user;
-                    if (!other?.userId) {
-                      console.warn('[ChatWindow] Cannot create group chat from P2P: missing other participant');
-                      return;
-                    }
-
-                    const newChatId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-                    const isUnifiedChat =
-                      !!selectedUserAccountId && !!currentAccountId && selectedUserAccountId !== currentAccountId;
-
-                    const participants: Record<string, ChatParticipant> = {};
-                    // this user
-                    if (currentUserId) {
-                      participants[currentUserId] = {
-                        userId: currentUserId,
-                        name: currentUserName,
-                        displayName: currentUserName,
-                        status: 'joined',
-                        accountId: currentAccountId,
-                        showParticipantInfo: 1,
-                      };
-                    }
-                    // existing other participant
-                    participants[other.userId] = {
-                      ...other,
-                      userId: other.userId,
-                      name: other.name || other.displayName || other.userId,
-                      displayName: other.displayName || other.name,
-                      status: 'joined',
-                      accountId: other.accountId || currentAccountId,
-                      showParticipantInfo: 1,
-                    };
-                    // newly selected participant
-                    participants[selectedUserId] = {
-                      userId: selectedUserId,
-                      name: selectedUserName,
-                      displayName: selectedUserName,
-                      status: 'joined',
-                      accountId: selectedUserAccountId,
-                      showParticipantInfo: 1,
-                    };
-
-                    const newGroupChat: Chat = {
-                      chatId: newChatId,
-                      title: '', // server/computed title
-                      chatType: 2,
-                      unreadCount: 0,
-                      lastMessageTimestamp: 0,
-                      lastMessageSequenceNumber: 0,
-                      summeryText: '',
-                      isMuted: false,
-                      participants,
-                      isUnifiedChat,
-                    };
-
-                    openChatWindow(newGroupChat, { isOpenedOnUserAction: true });
-                    setShowUserSearchDropdown(false);
-                    return;
-                  }
-
-                  // GROUP: invite into existing group chat (AngularJS: chatManager.inviteUsersInChat)
-                  const isUnifiedChat = chat.isUnifiedChat || false;
-                  const unifiedNetworkAccountId = sessionData?.account_id;
-
-                  const inviteUsers = [
-                    {
-                      userId: selectedUserId,
-                      displayName: selectedUserName,
-                      accountId: selectedUserAccountId,
-                    },
-                  ];
-
-                  xmppChatService.inviteUsersInChat(
-                    inviteUsers,
-                    chat.chatId,
-                    chat.chatType,
-                    isUnifiedChat,
-                    unifiedNetworkAccountId,
-                    () => {
-                      setShowUserSearchDropdown(false);
-                    },
-                    (error) => {
-                      console.error('[ChatWindow] ❌ Error inviting user:', error);
-                    }
-                  );
-                } catch (error) {
-                  console.error('[ChatWindow] ❌ Error in invite handler:', error);
+              if (chat.chatType === 1) {
+                // P2P → create a new local group chat (AngularJS: chatManager.startChatWithUsers)
+                const other = chat._user;
+                if (!other?.userId) {
+                  console.warn('[ChatWindow] Cannot create group chat from P2P: missing other participant');
+                  return;
                 }
-              }}
-              availableUsers={allUsers}
-            />
-          </div>
-        </div>
+
+                const newChatId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                const isUnifiedChat =
+                  !!selectedUserAccountId && !!currentAccountId && selectedUserAccountId !== currentAccountId;
+
+                const participants: Record<string, ChatParticipant> = {};
+                if (currentUserId) {
+                  participants[currentUserId] = {
+                    userId: currentUserId,
+                    name: currentUserName,
+                    displayName: currentUserName,
+                    status: 'joined',
+                    accountId: currentAccountId,
+                    showParticipantInfo: 1,
+                  };
+                }
+                participants[other.userId] = {
+                  ...other,
+                  userId: other.userId,
+                  name: other.name || other.displayName || other.userId,
+                  displayName: other.displayName || other.name,
+                  status: 'joined',
+                  accountId: other.accountId || currentAccountId,
+                  showParticipantInfo: 1,
+                };
+                participants[selectedUserId] = {
+                  userId: selectedUserId,
+                  name: selectedUserName,
+                  displayName: selectedUserName,
+                  status: 'joined',
+                  accountId: selectedUserAccountId,
+                  showParticipantInfo: 1,
+                };
+
+                const newGroupChat: Chat = {
+                  chatId: newChatId,
+                  title: '',
+                  chatType: 2,
+                  unreadCount: 0,
+                  lastMessageTimestamp: 0,
+                  lastMessageSequenceNumber: 0,
+                  summeryText: '',
+                  isMuted: false,
+                  participants,
+                  isUnifiedChat,
+                };
+
+                openChatWindow(newGroupChat, { isOpenedOnUserAction: true });
+                setShowUserSearchDropdown(false);
+                return;
+              }
+
+              // GROUP: invite into existing group chat (AngularJS: chatManager.inviteUsersInChat)
+              const isUnifiedChat = chat.isUnifiedChat || false;
+              const unifiedNetworkAccountId = sessionData?.account_id;
+
+              const inviteUsers = [
+                {
+                  userId: selectedUserId,
+                  displayName: selectedUserName,
+                  accountId: selectedUserAccountId,
+                },
+              ];
+
+              xmppChatService.inviteUsersInChat(
+                inviteUsers,
+                chat.chatId,
+                chat.chatType,
+                isUnifiedChat,
+                unifiedNetworkAccountId,
+                () => {
+                  setShowUserSearchDropdown(false);
+                },
+                (error) => {
+                  console.error('[ChatWindow] ❌ Error inviting user:', error);
+                }
+              );
+            } catch (error) {
+              console.error('[ChatWindow] ❌ Error in invite handler:', error);
+            }
+          }}
+          availableUsers={allUsers}
+        />
       )}
 
       {/* Chat content (only when maximized) - Matches AngularJS chatWindowContent structure */}
